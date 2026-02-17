@@ -1,2 +1,3 @@
-# quick-bee-agency_1
-Exported from Caffeine project: Quick Bee Agency
+## Quick Bee Agency
+
+To run app build and run docker image: `docker build -t app . docker run -it --network host app`

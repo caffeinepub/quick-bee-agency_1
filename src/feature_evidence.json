@@ -1,0 +1,379 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-implement-the-premium-modern-dark-ui-design-system-for-quick-bee-agency-using-deep-black-0f0f0f-backgrounds-teal-green-00c2a8-accent-color-and-smooth-teal-to-emerald-gradients-00c2a8-00e0b8-009688-across-buttons-highlights-hover-states-and-interactive-elements-use-modern-bold-sans-serif-typography-inter-poppins-style-rounded-2xl-cards-glassmorphism-panels-subtle-transparency-light-blur-thin-teal-borders-hover-scale-animation-and-300ms-transitions-ensure-the-layout-is-clean-minimal-fast-loading-and-mobile-responsive",
+      "featureTitle": "Implement the premium modern dark UI design system for “Quick Bee Agency” using deep black (#0F0F0F) backgrounds, teal green (#00C2A8) accent color, and smooth teal-to-emerald gradients (#00C2A8 → #00E0B8 → #009688) across buttons, highlights, hover states, and interactive elements; use modern bold sans-serif typography (Inter/Poppins style), rounded 2xl cards, glassmorphism panels (subtle transparency + light blur), thin teal borders, hover-scale animation, and ~300ms transitions; ensure the layout is clean, minimal, fast-loading, and mobile responsive.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/index.css",
+        "frontend/tailwind.config.js"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-the-core-dashboard-layout-and-navigation-structure-a-left-sidebar-navigation-with-items-dashboard-leads-services-crm-automation-analytics-payments-legal-settings-and-a-top-navbar-with-a-notification-bell-glow-indicator-and-a-profile-dropdown-include-kpi-dashboard-cards-neon-teal-progress-bars-dark-input-fields-with-teal-focus-rings-gradient-primary-buttons-with-hover-glow-pricing-cards-with-soft-glow-borders-ai-generator-feature-cards-and-a-subtle-animated-teal-gradient-mesh-floating-blurred-shapes-background",
+      "featureTitle": "Create the core dashboard layout and navigation structure: a left sidebar navigation with items (Dashboard, Leads, Services, CRM, Automation, Analytics, Payments, Legal, Settings), and a top navbar with a notification bell (glow indicator) and a profile dropdown; include KPI dashboard cards, neon teal progress bars, dark input fields with teal focus rings, gradient primary buttons with hover glow, pricing cards with soft glow borders, AI/generator feature cards, and a subtle animated teal gradient mesh/floating blurred shapes background.",
+      "files": [
+        "frontend/src/components/layout/AppShell.tsx",
+        "frontend/src/components/layout/SidebarNav.tsx",
+        "frontend/src/components/layout/TopNav.tsx",
+        "frontend/src/pages/AnalyticsPage.tsx",
+        "frontend/src/pages/AutomationPage.tsx",
+        "frontend/src/pages/CRMPage.tsx",
+        "frontend/src/pages/DashboardPage.tsx",
+        "frontend/src/pages/LeadsPage.tsx",
+        "frontend/src/pages/LegalPage.tsx",
+        "frontend/src/pages/PaymentsPage.tsx",
+        "frontend/src/pages/ServicesPage.tsx",
+        "frontend/src/pages/SettingsPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-gradient-3d-style-iconography-across-navigation-and-feature-cards-provide-a-consistent-set-of-teal-to-cyan-gradient-icons-with-soft-lighting-subtle-glow-depth-and-realistic-shadow-effects-use-these-icons-for-sidebar-items-and-module-cards",
+      "featureTitle": "Add gradient 3D-style iconography across navigation and feature cards: provide a consistent set of teal-to-cyan gradient icons with soft lighting, subtle glow, depth, and realistic shadow effects; use these icons for sidebar items and module cards.",
+      "files": [
+        "frontend/src/components/layout/SidebarNav.tsx",
+        "frontend/src/pages/DashboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-role-based-login-with-a-role-selection-ui-admin-manager-client-and-fixed-demo-credentials-for-each-role-maintain-an-authenticated-session-in-the-frontend-and-enforce-strict-role-based-access-restrictions-across-navigation-and-page-level-actions",
+      "featureTitle": "Implement role-based login with a role selection UI (Admin, Manager, Client) and fixed demo credentials for each role; maintain an authenticated session in the frontend and enforce strict role-based access restrictions across navigation and page-level actions.",
+      "files": [
+        "frontend/src/auth/demoCredentials.ts",
+        "frontend/src/auth/useSession.ts",
+        "frontend/src/components/layout/SidebarNav.tsx",
+        "frontend/src/components/layout/TopNav.tsx",
+        "frontend/src/pages/LoginPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-the-service-marketplace-with-30-productized-services-exact-names-as-provided-each-offering-indian-student-friendly-pricing-tiers-basic-pro-premium-within-the-specified-inr-ranges-implement-service-detail-view-plan-selection-a-comparison-table-and-add-to-cart-functionality",
+      "featureTitle": "Create the service marketplace with 30 productized services (exact names as provided), each offering Indian student-friendly pricing tiers (Basic, Pro, Premium) within the specified INR ranges; implement service detail view, plan selection, a comparison table, and add-to-cart functionality.",
+      "files": [
+        "frontend/src/cart/useCart.ts",
+        "frontend/src/marketplace/servicesCatalog.ts",
+        "frontend/src/pages/CartPage.tsx",
+        "frontend/src/pages/ServiceDetailPage.tsx",
+        "frontend/src/pages/ServicesPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-secure-checkout-using-stripe-only-test-mode-supported-with-inr-pricing-after-a-successful-payment-automatically-create-a-project-under-the-client-s-dashboard-and-record-an-order-payment-entry-that-is-visible-in-payments-invoices-views",
+      "featureTitle": "Implement secure checkout using Stripe only (test mode supported) with INR pricing; after a successful payment, automatically create a Project under the Client’s dashboard and record an Order/Payment entry that is visible in Payments/Invoices views.",
+      "files": [
+        "frontend/src/pages/CheckoutPage.tsx",
+        "frontend/src/pages/PaymentFailurePage.tsx",
+        "frontend/src/pages/PaymentSuccessPage.tsx",
+        "frontend/src/pages/PaymentsPage.tsx",
+        "frontend/src/payments/useCreateCheckoutSession.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-6"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-projects-and-client-onboarding-create-a-client-onboarding-form-business-name-niche-goals-budget-timeline-and-auto-link-onboarding-details-to-the-client-s-project-s-ensure-client-can-track-project-status-and-view-deliverables-placeholders",
+      "featureTitle": "Implement Projects and Client Onboarding: create a client onboarding form (Business Name, Niche, Goals, Budget, Timeline) and auto-link onboarding details to the client’s project(s); ensure Client can track project status and view deliverables placeholders.",
+      "files": [
+        "frontend/src/pages/ClientOnboardingPage.tsx",
+        "frontend/src/pages/DashboardPage.tsx",
+        "frontend/src/pages/ProjectDetailPage.tsx",
+        "frontend/src/pages/ProjectsPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-7"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-build-the-lead-management-system-capable-of-handling-up-to-3000-leads-with-channel-fields-email-linkedin-instagram-whatsapp-sms-micro-niche-filtering-50-ultra-specific-micro-niches-structured-scraping-ready-fields-without-implementing-scraping-and-csv-export",
+      "featureTitle": "Build the Lead Management system capable of handling up to 3000 leads with channel fields (Email, LinkedIn, Instagram, WhatsApp, SMS), micro-niche filtering (50 ultra-specific micro-niches), structured “scraping-ready” fields (without implementing scraping), and CSV export.",
+      "files": [
+        "frontend/src/pages/LeadsPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-8"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-the-crm-dashboard-with-pipeline-stages-new-lead-contacted-qualified-proposal-sent-closed-lost-including-task-assignment-follow-up-reminders-in-app-only-notes-and-activity-tracking-integrate-crm-items-with-leads-and-projects-where-appropriate",
+      "featureTitle": "Implement the CRM dashboard with pipeline stages (New Lead, Contacted, Qualified, Proposal Sent, Closed, Lost) including task assignment, follow-up reminders (in-app only), notes, and activity tracking; integrate CRM items with Leads and Projects where appropriate.",
+      "files": [
+        "frontend/src/pages/CRMPage.tsx",
+        "frontend/src/pages/DashboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-9"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-analytics-dashboards-showing-glowing-gradient-charts-for-revenue-active-clients-conversion-rate-top-selling-services-and-lead-source-performance-using-available-on-canister-data-orders-leads-projects-and-or-seeded-demo-data-when-empty",
+      "featureTitle": "Create Analytics dashboards showing glowing gradient charts for revenue, active clients, conversion rate, top-selling services, and lead source performance, using available on-canister data (orders, leads, projects) and/or seeded demo data when empty.",
+      "files": [
+        "frontend/src/pages/AnalyticsPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-10"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-an-automation-center-using-rule-based-non-ai-logic-with-module-cards-for-auto-whatsapp-replies-sequence-builder-non-email-proposal-auto-send-after-qualification-payment-confirmation-automation-and-project-onboarding-auto-trigger-provide-toggles-and-simple-rule-configuration-per-automation-and-record-automation-events-logs",
+      "featureTitle": "Implement an Automation Center using rule-based (non-AI) logic with module cards for: Auto WhatsApp replies, sequence builder (non-email), proposal auto-send after qualification, payment confirmation automation, and project onboarding auto-trigger; provide toggles and simple rule configuration per automation, and record automation events/logs.",
+      "files": [
+        "frontend/src/pages/AutomationPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-11"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-replace-all-disallowed-ai-modules-with-fully-supported-non-ai-generators-that-use-deterministic-templates-rules-no-external-api-calls-for-service-recommendations-proposals-pricing-strategy-closing-scripts-follow-up-messages-email-whatsapp-linkedin-sms-as-text-templates-only-and-lead-qualification-scoring-allow-downloading-the-generated-proposal-as-a-file-pdf-if-feasible-within-the-platform-otherwise-a-downloadable-html-text-document",
+      "featureTitle": "Replace all disallowed AI modules with fully supported, non-AI “Generators” that use deterministic templates/rules (no external API calls) for: service recommendations, proposals, pricing strategy, closing scripts, follow-up messages (Email/WhatsApp/LinkedIn/SMS as text templates only), and lead qualification scoring; allow downloading the generated proposal as a file (PDF if feasible within the platform, otherwise a downloadable HTML/text document).",
+      "files": [
+        "frontend/src/pages/CRMPage.tsx",
+        "frontend/src/pages/GeneratorsPage.tsx",
+        "frontend/src/pages/LeadsPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-12"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-legal-essentials-section-with-editable-templates-for-privacy-policy-terms-conditions-refund-policy-service-agreement-gst-invoice-support-and-disclaimer-only-admin-can-edit-while-others-can-view-as-allowed",
+      "featureTitle": "Implement Legal Essentials section with editable templates for Privacy Policy, Terms & Conditions, Refund Policy, Service Agreement, GST Invoice Support, and Disclaimer; only Admin can edit, while others can view as allowed.",
+      "files": [
+        "frontend/src/pages/LegalPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-13"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-offer-management-with-toggles-for-festival-offer-student-discount-limited-time-deal-and-a-coupon-code-system-apply-offers-coupons-during-checkout-cart-calculations-and-reflect-discounts-in-orders",
+      "featureTitle": "Implement Offer management with toggles for Festival Offer, Student Discount, Limited-Time Deal, and a coupon code system; apply offers/coupons during checkout/cart calculations and reflect discounts in orders.",
+      "files": [
+        "frontend/src/pages/CartPage.tsx",
+        "frontend/src/pages/CheckoutPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-14"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-an-in-app-notification-system-with-a-notification-center-ui-and-glow-unread-indicator-generate-notifications-for-key-events-such-as-payment-success-proposal-generator-creation-crm-reminders-and-project-updates-do-not-implement-email-notifications",
+      "featureTitle": "Create an in-app notification system with a notification center UI and glow unread indicator; generate notifications for key events such as payment success, proposal/generator creation, CRM reminders, and project updates; do not implement email notifications.",
+      "files": [
+        "frontend/src/components/layout/TopNav.tsx",
+        "frontend/src/pages/CRMPage.tsx",
+        "frontend/src/pages/GeneratorsPage.tsx",
+        "frontend/src/pages/PaymentSuccessPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-15"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-define-and-implement-the-backend-data-model-and-apis-single-motoko-actor-to-support-users-roles-services-packages-cart-orders-payments-projects-onboarding-leads-crm-activities-tasks-offers-coupons-legal-pages-notifications-and-generator-logs-include-basic-admin-management-screens-for-viewing-key-records-and-safe-seed-demo-data-for-initial-app-usability",
+      "featureTitle": "Define and implement the backend data model and APIs (single Motoko actor) to support: Users/Roles, Services/Packages, Cart/Orders/Payments, Projects/Onboarding, Leads, CRM Activities/Tasks, Offers/Coupons, Legal Pages, Notifications, and Generator logs; include basic admin management screens for viewing key records and safe seed/demo data for initial app usability.",
+      "files": [
+        "frontend/src/pages/LegalPage.tsx",
+        "frontend/src/pages/ServicesPage.tsx",
+        "frontend/src/pages/SettingsPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0"
+      ],
+      "testIds": [
+        "REQ-16"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

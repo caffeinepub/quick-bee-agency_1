@@ -1,0 +1,380 @@
+{
+  "kind": "build_request",
+  "title": "Fully Supported Quick Bee Agency SaaS (Dark Teal UI, Role-Based Access, Marketplace, Stripe, CRM/Leads/Projects)",
+  "projectName": "Quick Bee Agency",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Implement the premium modern dark UI design system for “Quick Bee Agency” using deep black (#0F0F0F) backgrounds, teal green (#00C2A8) accent color, and smooth teal-to-emerald gradients (#00C2A8 → #00E0B8 → #009688) across buttons, highlights, hover states, and interactive elements; use modern bold sans-serif typography (Inter/Poppins style), rounded 2xl cards, glassmorphism panels (subtle transparency + light blur), thin teal borders, hover-scale animation, and ~300ms transitions; ensure the layout is clean, minimal, fast-loading, and mobile responsive.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Create a fully functional AI-powered Agency SaaS web app called “Quick Bee Agency” with a premium modern dark UI using deep black (#0F0F0F) as the primary background and teal green (#00C2A8) as the main accent color.",
+          "Use smooth teal-to-emerald gradients (#00C2A8 → #00E0B8 → #009688) for buttons, highlights, charts, hover states, and interactive elements.",
+          "Use rounded 2xl cards, glassmorphism panels (light blur + subtle transparency), thin teal borders, hover scale animation, and smooth 300ms transitions.",
+          "The layout must be clean, minimal, mobile responsive, fast-loading, and extremely beginner-friendly like modern SaaS dashboards."
+        ]
+      },
+      "acceptanceCriteria": [
+        "App-wide colors match the specified hex values and gradients for primary/interactive components.",
+        "All primary cards/panels use rounded 2xl styling with subtle glassmorphism and thin teal borders.",
+        "Interactive elements (buttons, cards, nav items) have consistent hover/active transitions (~300ms) and subtle glow/scale effects.",
+        "UI is responsive (sidebar collapses/behaves sensibly on mobile) and remains readable with #EAEAEA / #BDBDBD text colors."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Create the core dashboard layout and navigation structure: a left sidebar navigation with items (Dashboard, Leads, Services, CRM, Automation, Analytics, Payments, Legal, Settings), and a top navbar with a notification bell (glow indicator) and a profile dropdown; include KPI dashboard cards, neon teal progress bars, dark input fields with teal focus rings, gradient primary buttons with hover glow, pricing cards with soft glow borders, AI/generator feature cards, and a subtle animated teal gradient mesh/floating blurred shapes background.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Left sidebar navigation with gradient 3D icons (Dashboard, Leads, Services, CRM, Automation, Analytics, Payments, Legal, Settings)",
+          "Top navbar with notification bell (glow effect) + profile dropdown",
+          "KPI dashboard cards with glowing gradient charts",
+          "Neon teal progress bars",
+          "Dark input fields with teal focus ring",
+          "Gradient primary buttons with hover glow animation",
+          "Modern pricing cards with soft glow borders",
+          "Subtle animated teal gradient mesh or floating blurred shapes in background"
+        ]
+      },
+      "acceptanceCriteria": [
+        "All listed nav sections exist and route to distinct pages/views.",
+        "Top navbar includes notification bell with unread indicator and a profile dropdown.",
+        "Dashboard page includes KPI cards and at least one chart area styled with teal gradient glow (data can be mock/derived).",
+        "Inputs show a teal focus ring; buttons use the specified gradient and have a visible hover glow effect.",
+        "Background includes a subtle animated mesh/floating blur effect without hurting performance."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Add gradient 3D-style iconography across navigation and feature cards: provide a consistent set of teal-to-cyan gradient icons with soft lighting, subtle glow, depth, and realistic shadow effects; use these icons for sidebar items and module cards.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Design must include gradient 3D-style icons with soft lighting, depth, subtle glow, and realistic shadow effects.",
+          "Icons should use teal-to-cyan gradients with soft neon glow to create a futuristic AI SaaS look."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Sidebar navigation items each display a consistent 3D-style gradient icon.",
+        "Feature/module cards (e.g., Generators/Automation) each display a consistent 3D-style gradient icon illustration.",
+        "Icons appear visually cohesive (same style, lighting, glow, shadow language) across the app."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Implement role-based login with a role selection UI (Admin, Manager, Client) and fixed demo credentials for each role; maintain an authenticated session in the frontend and enforce strict role-based access restrictions across navigation and page-level actions.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-4"
+        ],
+        "quotes": [
+          "Include role-based login with role selection (Admin, Manager, Client).",
+          "Add fixed demo credentials for testing: Admin: admin@quickbee.com / Admin123; Manager: manager@quickbee.com / Manager123; Client: client@quickbee.com / Client123",
+          "Strict role-based feature restriction must be enforced.",
+          "ok, build this fully supported version"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Login screen supports selecting a role and signing in using the specified demo credentials.",
+        "After login, the UI only shows navigation items allowed for the user’s role.",
+        "Backend rejects unauthorized calls (role checks enforced server-side) even if frontend is manipulated.",
+        "Admin has full access; Manager cannot edit pricing/core system settings; Client is limited to browsing services/plans, purchasing, and tracking their own projects/invoices/deliverables."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Create the service marketplace with 30 productized services (exact names as provided), each offering Indian student-friendly pricing tiers (Basic, Pro, Premium) within the specified INR ranges; implement service detail view, plan selection, a comparison table, and add-to-cart functionality.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "🛍 SERVICE MARKETPLACE (30 PRODUCTIZED SERVICES)",
+          "Each service must include Indian student-friendly pricing packages: Basic (₹999–₹1,999) Pro (₹1,999–₹2,999) Premium (₹2,999–₹4,999)",
+          "Enable comparison table, add-to-cart"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Marketplace lists all 30 services with consistent card UI and 3D icon styling.",
+        "Each service offers Basic/Pro/Premium tiers with INR prices that fall within the specified ranges.",
+        "Users can add selected service+tier to a cart and view cart totals in INR.",
+        "A comparison table exists to compare at least the three tiers for a service (features can be standardized if needed)."
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Implement secure checkout using Stripe only (test mode supported) with INR pricing; after a successful payment, automatically create a Project under the Client’s dashboard and record an Order/Payment entry that is visible in Payments/Invoices views.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-3",
+          "msg-4"
+        ],
+        "quotes": [
+          "secure checkout via Razorpay or Stripe (test mode supported).",
+          "After successful payment → Automatically create project under Client Dashboard.",
+          "fully supported version of “Quick Bee Agency with indian payment system",
+          "ok, build this fully supported version"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Checkout uses Stripe (test mode) and does not include Razorpay/UPI integration.",
+        "All displayed prices and receipts are in INR.",
+        "On successful payment, a new Project is created and linked to the purchasing Client and the purchased service package.",
+        "Payments/Orders history is viewable by the Client for their own purchases and by Admin for all purchases."
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "Implement Projects and Client Onboarding: create a client onboarding form (Business Name, Niche, Goals, Budget, Timeline) and auto-link onboarding details to the client’s project(s); ensure Client can track project status and view deliverables placeholders.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "📝 CLIENT ONBOARDING FORM Fields: Business Name, Niche, Goals, Budget, Timeline",
+          "Auto-link onboarding to project system."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Client onboarding form includes all specified fields and validates required inputs.",
+        "Onboarding data is stored and linked to the correct Client and Project.",
+        "Client dashboard shows projects with onboarding details accessible per project.",
+        "Deliverables area exists as a placeholder list or uploads placeholder (no external storage assumed)."
+      ]
+    },
+    {
+      "id": "REQ-8",
+      "text": "Build the Lead Management system capable of handling up to 3000 leads with channel fields (Email, LinkedIn, Instagram, WhatsApp, SMS), micro-niche filtering (50 ultra-specific micro-niches), structured “scraping-ready” fields (without implementing scraping), and CSV export.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Include 3000-lead distribution capability across: Email, LinkedIn, Instagram, WhatsApp, SMS",
+          "Add niche filtering (50 ultra-specific micro-niches).",
+          "Add structured database (scraping-ready format, no direct scraping).",
+          "Add CSV export option."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Lead model supports channel identifiers and contact fields for the listed channels.",
+        "UI supports filtering by micro-niche from a list of 50 options.",
+        "Leads can be created/imported manually (no scraping) and stored reliably in backend state.",
+        "Leads list can be exported to CSV from the UI."
+      ]
+    },
+    {
+      "id": "REQ-9",
+      "text": "Implement the CRM dashboard with pipeline stages (New Lead, Contacted, Qualified, Proposal Sent, Closed, Lost) including task assignment, follow-up reminders (in-app only), notes, and activity tracking; integrate CRM items with Leads and Projects where appropriate.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "📈 CRM DASHBOARD Pipeline stages: New Lead, Contacted, Qualified, Proposal Sent, Closed, Lost",
+          "Features: • Task assignment • Automated follow-up reminders • Notes & activity tracking"
+        ]
+      },
+      "acceptanceCriteria": [
+        "CRM pipeline supports all specified stages and allows moving a lead/opportunity between stages.",
+        "Tasks can be assigned (at minimum to a user role/person) and viewed in a task list.",
+        "Follow-up reminders generate in-app notifications (no email).",
+        "Notes and activity events are stored and displayed in a timeline per lead/opportunity."
+      ]
+    },
+    {
+      "id": "REQ-10",
+      "text": "Create Analytics dashboards showing glowing gradient charts for revenue, active clients, conversion rate, top-selling services, and lead source performance, using available on-canister data (orders, leads, projects) and/or seeded demo data when empty.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "📊 ANALYTICS DASHBOARD Show glowing gradient charts for: • Revenue • Active Clients • Conversion Rate • Top-Selling Services • Lead Source Performance"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Analytics page includes chart components for each specified metric.",
+        "Metrics compute from stored data when available (e.g., revenue from paid orders) and fall back to seeded demo data when no records exist.",
+        "Charts match the teal gradient glow styling and are readable on dark background."
+      ]
+    },
+    {
+      "id": "REQ-11",
+      "text": "Implement an Automation Center using rule-based (non-AI) logic with module cards for: Auto WhatsApp replies, sequence builder (non-email), proposal auto-send after qualification, payment confirmation automation, and project onboarding auto-trigger; provide toggles and simple rule configuration per automation, and record automation events/logs.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "⚙ AUTOMATION SYSTEM Add automation center with 3D icon cards: • Auto WhatsApp replies • Email sequence builder • Proposal auto-send after qualification • Payment confirmation automation • Project onboarding auto-trigger"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Automation Center lists all specified automations as cards with toggles (enable/disable).",
+        "Sequence builder exists but does not send email; it can generate in-app tasks/notifications or message templates.",
+        "“Proposal auto-send” is implemented as creating an in-app proposal artifact/notification when status becomes Qualified/Proposal Sent (no email).",
+        "Automation actions are logged and viewable (who/what/when)."
+      ]
+    },
+    {
+      "id": "REQ-12",
+      "text": "Replace all disallowed AI modules with fully supported, non-AI “Generators” that use deterministic templates/rules (no external API calls) for: service recommendations, proposals, pricing strategy, closing scripts, follow-up messages (Email/WhatsApp/LinkedIn/SMS as text templates only), and lead qualification scoring; allow downloading the generated proposal as a file (PDF if feasible within the platform, otherwise a downloadable HTML/text document).",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-2",
+          "msg-4"
+        ],
+        "quotes": [
+          "🤖 AI MODULES (OpenAI Integration) Integrate AI modules...",
+          "OpenAI or external AI APIs are not allowed",
+          "Replace all AI modules with on‑canister simplified rule-based generators (non‑AI)",
+          "ok, build this fully supported version"
+        ]
+      },
+      "acceptanceCriteria": [
+        "No external AI API integrations exist; all generator outputs are produced locally using templates/rules.",
+        "Generators are accessible via UI and produce outputs for each listed generator type.",
+        "Proposal generator supports a downloadable artifact (PDF preferred; otherwise downloadable HTML/text) and is stored/linked to a lead/project.",
+        "Lead qualification scoring is computed deterministically from lead fields and displayed in Leads/CRM."
+      ]
+    },
+    {
+      "id": "REQ-13",
+      "text": "Implement Legal Essentials section with editable templates for Privacy Policy, Terms & Conditions, Refund Policy, Service Agreement, GST Invoice Support, and Disclaimer; only Admin can edit, while others can view as allowed.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "⚖ LEGAL ESSENTIALS SECTION Editable templates for: Privacy Policy, Terms & Conditions, Refund Policy, Service Agreement, GST Invoice Support, Disclaimer",
+          "Admin can edit all legal pages."
+        ]
+      },
+      "acceptanceCriteria": [
+        "All listed legal pages exist and display content from backend storage.",
+        "Admin can edit and save legal templates; changes persist.",
+        "Non-admin users cannot edit legal content and are prevented server-side from updating it."
+      ]
+    },
+    {
+      "id": "REQ-14",
+      "text": "Implement Offer management with toggles for Festival Offer, Student Discount, Limited-Time Deal, and a coupon code system; apply offers/coupons during checkout/cart calculations and reflect discounts in orders.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "🎁 OFFER SYSTEM Add toggle-based offer management: Festival Offer, Student Discount, Limited-Time Deal, Coupon Code System"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Admin can create/enable/disable offers and coupons and set discount rules.",
+        "Cart/checkout supports applying a coupon code and recalculates totals in INR.",
+        "Orders store applied offer/coupon details for later auditing.",
+        "Clients can view discounted totals on their order/invoice screens."
+      ]
+    },
+    {
+      "id": "REQ-15",
+      "text": "Create an in-app notification system with a notification center UI and glow unread indicator; generate notifications for key events such as payment success, proposal/generator creation, CRM reminders, and project updates; do not implement email notifications.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-2"
+        ],
+        "quotes": [
+          "🔔 NOTIFICATION SYSTEM In-app notification center with glow indicator Email notifications for payment, proposal, updates",
+          "Email is disabled for your account → any feature involving email notifications... cannot be built."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Notification bell shows an unread indicator and opens a notification center list.",
+        "Notifications are created for payment success, CRM follow-up reminders, and proposal/generator events.",
+        "Users can mark notifications as read; read/unread state persists.",
+        "No email sending functionality exists."
+      ]
+    },
+    {
+      "id": "REQ-16",
+      "text": "Define and implement the backend data model and APIs (single Motoko actor) to support: Users/Roles, Services/Packages, Cart/Orders/Payments, Projects/Onboarding, Leads, CRM Activities/Tasks, Offers/Coupons, Legal Pages, Notifications, and Generator logs; include basic admin management screens for viewing key records and safe seed/demo data for initial app usability.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1",
+          "msg-4"
+        ],
+        "quotes": [
+          "🗄 DATABASE STRUCTURE Simple, scalable SaaS-ready database with: Users Roles Services Packages Orders Projects Leads CRM Activities AI Logs Payments Offers Legal Pages",
+          "ok, build this fully supported version"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Backend exposes CRUD/query endpoints needed by the frontend for each module listed.",
+        "Data persists across refreshes (stable storage appropriate for the template).",
+        "Demo seed data exists for services (30 items), micro-niches (50), and initial legal templates.",
+        "Admin UI can list/manage core records (at least services, orders/payments, offers, legal templates, users)."
+      ]
+    }
+  ],
+  "constraints": [
+    "Use Stripe only for payments; do not implement Razorpay, UPI, or other Indian payment gateways.",
+    "Do not implement any external AI API integrations (OpenAI/Anthropic/etc.); all “AI” features must be deterministic, on-canister or frontend-only template/rule generators.",
+    "Do not implement any email features (email notifications, email sequences, emailing proposals, etc.); notifications and sequences must be in-app only.",
+    "Backend must remain a single Motoko actor (all logic in backend/main.mo); create migration.mo only if upgrading existing state.",
+    "Do not edit files under frontend immutable paths (frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui); compose them instead.",
+    "Use English for all user-facing text."
+  ],
+  "nonGoals": [
+    "Real WhatsApp/SMS/LinkedIn/Instagram message sending integrations (only template generation and in-app reminders/logs).",
+    "Any web scraping functionality for leads (store scraping-ready fields only).",
+    "Real-time updates via WebSockets/push notifications.",
+    "Third-party auth providers beyond Internet Identity.",
+    "External databases or non-Motoko backend services."
+  ],
+  "imageRequirements": {
+    "required": [
+      "Set of 9 gradient 3D-style sidebar icons with teal-to-cyan gradient, soft lighting, depth, subtle neon glow, realistic shadow (quickbee-icons-sidebar.dim_1024x1024.png)",
+      "Collection of 6 feature/module 3D icons in the same style for Generators, Automation, Analytics, Payments, CRM, Leads (quickbee-icons-modules.dim_1024x1024.png)",
+      "Abstract dark background with subtle animated-looking teal gradient mesh and floating blurred shapes (static image) (quickbee-bg-mesh.dim_1920x1080.png)"
+    ],
+    "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
+  }
+}
