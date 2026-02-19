@@ -1,46 +1,79 @@
-import { useGetAllCRMActivities } from '../hooks/useQueries';
+import { useState, useEffect } from 'react';
+import { useGetAllCRMActivities, useGetAllLeads } from '../hooks/useQueries';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Skeleton } from '../components/ui/skeleton';
 
 const STAGES = ['New Lead', 'Contacted', 'Qualified', 'Proposal Sent', 'Closed', 'Lost'];
 
 export default function CRMPage() {
-  const { data: activities = [] } = useGetAllCRMActivities();
+  const [enableFetch, setEnableFetch] = useState(false);
+  const { data: activities = [], isLoading: activitiesLoading } = useGetAllCRMActivities(enableFetch);
+  const { data: leads = [] } = useGetAllLeads(enableFetch);
 
-  const activitiesByStage = STAGES.map(stage => ({
-    stage,
-    items: activities.filter(a => a.stage === stage)
-  }));
+  // Enable fetching after component mounts
+  useEffect(() => {
+    setEnableFetch(true);
+  }, []);
+
+  const getActivitiesByStage = (stage: string) => {
+    return activities.filter(a => a.stage === stage);
+  };
+
+  const getLeadName = (leadId: bigint | undefined) => {
+    if (!leadId) return 'Unknown';
+    const lead = leads.find(l => l.id === leadId);
+    return lead?.name || 'Unknown';
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">CRM Pipeline</h1>
-        <p className="text-soft-gray mt-1">Manage your sales pipeline</p>
+        <p className="text-soft-gray mt-1">Track your sales pipeline and activities</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {activitiesByStage.map(({ stage, items }) => (
-          <Card key={stage} className="glass-panel border-border">
-            <CardHeader>
-              <CardTitle className="text-sm text-foreground">{stage}</CardTitle>
-              <p className="text-xs text-soft-gray">{items.length} items</p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {items.map((item) => (
-                  <div key={item.id.toString()} className="p-3 bg-secondary/30 rounded border border-border">
-                    <p className="text-sm font-medium text-foreground">{item.activityType}</p>
-                    <p className="text-xs text-soft-gray mt-1">{item.notes}</p>
+      {activitiesLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-64 w-full" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {STAGES.map((stage) => {
+            const stageActivities = getActivitiesByStage(stage);
+            return (
+              <Card key={stage} className="glass-panel border-border">
+                <CardHeader>
+                  <CardTitle className="text-foreground text-lg">
+                    {stage} ({stageActivities.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {stageActivities.length === 0 ? (
+                      <p className="text-soft-gray text-sm">No activities</p>
+                    ) : (
+                      stageActivities.map((activity) => (
+                        <div
+                          key={activity.id.toString()}
+                          className="p-3 bg-secondary/30 rounded-lg border border-border"
+                        >
+                          <p className="text-foreground font-medium text-sm">
+                            {activity.leadId ? getLeadName(activity.leadId) : 'No Lead'}
+                          </p>
+                          <p className="text-soft-gray text-xs mt-1">{activity.activityType}</p>
+                          <p className="text-soft-gray text-xs mt-1 line-clamp-2">{activity.notes}</p>
+                        </div>
+                      ))
+                    )}
                   </div>
-                ))}
-                {items.length === 0 && (
-                  <p className="text-xs text-soft-gray text-center py-4">No items</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

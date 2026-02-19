@@ -1,53 +1,41 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Building QUICK BEE AGENCY OS - a full-stack automation-enabled agency management web app. Starting with Phase 1: Lead Management CRM with downloadable data, black + teal theme, modern minimal UI. Future phases will add proposal generation, payment integration (Razorpay), WhatsApp automation, sequence builder, client portal, and onboarding automation.",
+  "summary": "Service marketplace application with settings and data editing capabilities",
   "architectural_notes": [
-    "Project: QUICK BEE AGENCY OS - agency management automation platform",
-    "Phase 1 focus: Lead Management CRM with downloadable exports",
-    "Future modules planned: WhatsApp automation, proposal generator, Razorpay payment integration, sequence builder, client portal, onboarding automation",
-    "Design system: Black + teal accents, glassmorphism, modern minimal SaaS dashboard",
-    "Lead status workflow: new_lead → qualified → proposal_sent → paid → onboarding → completed",
-    "Database structure: leads table with id, name, phone, email, service_interest, status, created_at"
+    "Service marketplace application with user authentication",
+    "Settings and data editing features for service management"
   ],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-add-csv-export-functionality-to-the-leads-table-allowing-admin-users-to-download-all-lead-data-including-id-name-phone-email-service-interest-status-and-created-at-fields",
-      "title": "Add CSV export functionality to the leads table allowing admin users to download all lead data including id, name, phone, email, service_interest, status, and created_at fields",
+      "id": "feature-add-a-settings-panel-for-each-service-in-the-marketplace-that-allows-administrators-to-configure-service-specific-settings-including-visibility-featured-status-availability-and-custom-metadata",
+      "title": "Add a settings panel for each service in the marketplace that allows administrators to configure service-specific settings including visibility, featured status, availability, and custom metadata",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-integrate-razorpay-payment-gateway-with-automated-payment-flow-generate-payment-links-when-lead-status-changes-to-qualified-listen-for-payment-webhooks-and-automatically-update-lead-status-to-paid-on-successful-payment-confirmation",
-      "title": "Integrate Razorpay payment gateway with automated payment flow: generate payment links when lead status changes to 'qualified', listen for payment webhooks, and automatically update lead status to 'paid' on successful payment confirmation",
+      "id": "feature-implement-data-editing-capabilities-for-service-details-including-title-description-pricing-tiers-basic-pro-premium-features-list-and-category-information",
+      "title": "Implement data editing capabilities for service details including title, description, pricing tiers (Basic, Pro, Premium), features list, and category information",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-razorpay-configuration-panel-in-the-admin-settings-page-allowing-storage-and-editing-of-razorpay-api-key-secret-and-webhook-secret",
-      "title": "Add Razorpay configuration panel in the admin settings page allowing storage and editing of Razorpay API key, secret, and webhook secret",
+      "id": "feature-add-an-edit-service-button-on-the-servicedetailpage-that-opens-an-edit-dialog-for-administrators-to-modify-service-data-and-settings",
+      "title": "Add an 'Edit Service' button on the ServiceDetailPage that opens an edit dialog for administrators to modify service data and settings",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-create-automated-notification-system-that-triggers-when-lead-status-changes-send-notification-when-status-moves-to-qualified-payment-link-ready-paid-payment-confirmed-or-onboarding-project-started",
-      "title": "Create automated notification system that triggers when lead status changes: send notification when status moves to 'qualified' (payment link ready), 'paid' (payment confirmed), or 'onboarding' (project started)",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-bulk-actions-to-leads-table-allowing-admin-to-select-multiple-leads-and-update-their-status-export-selected-leads-or-delete-selected-leads-in-one-operation",
-      "title": "Add bulk actions to leads table allowing admin to select multiple leads and update their status, export selected leads, or delete selected leads in one operation",
+      "id": "feature-create-a-useupdateservice-mutation-hook-in-usequeries-ts-that-calls-the-backend-updateservice-function-and-invalidates-the-services-query-cache-on-success",
+      "title": "Create a useUpdateService mutation hook in useQueries.ts that calls the backend updateService function and invalidates the services query cache on success",
       "reqIds": [
         "REQ-5"
       ],
@@ -57,25 +45,27 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Lead Management CRM with table (id, name, phone, email, service_interest, status, created_at), admin edit status, search/filter by status, lead detail view",
+      "summary": "Add settings functionality to service marketplace",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Make all lead data downloadable (CSV/PDF export)",
+      "summary": "Add data details editing functionality for services",
       "reqIds": [],
       "status": "pending"
     },
     {
-      "id": "AR-3",
-      "summary": "Apply black + teal green theme with glassmorphism cards, soft shadows, smooth animations, responsive design",
-      "reqIds": [],
+      "id": "AR-6",
+      "summary": "Extend the backend Service data structure and add updateService mutation to support persistent storage of service settings and editable fields",
+      "reqIds": [
+        "REQ-4"
+      ],
       "status": "pending"
     }
   ],
   "gameProjectType": "none",
-  "projectName": "QUICK BEE AGENCY OS",
+  "projectName": "Quick Bee Agency",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

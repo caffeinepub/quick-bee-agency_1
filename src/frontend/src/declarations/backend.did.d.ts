@@ -93,6 +93,7 @@ export interface PaymentLink {
   'leadId' : bigint,
   'amount' : bigint,
 }
+export interface PricingTier { 'features' : Array<string>, 'price' : bigint }
 export interface Project {
   'id' : bigint,
   'startTime' : Time,
@@ -103,11 +104,21 @@ export interface Project {
 }
 export interface Service {
   'id' : bigint,
-  'pricePremium' : bigint,
-  'priceBasic' : bigint,
+  'features' : Array<string>,
+  'pricingPro' : PricingTier,
+  'subcategory' : string,
   'name' : string,
+  'pricingBasic' : PricingTier,
   'description' : string,
-  'pricePro' : bigint,
+  'settings' : ServiceSettings,
+  'pricingPremium' : PricingTier,
+  'category' : string,
+}
+export interface ServiceSettings {
+  'customMetadata' : string,
+  'availability' : string,
+  'isFeatured' : boolean,
+  'isVisible' : boolean,
 }
 export interface ShoppingItem {
   'productName' : string,
@@ -150,7 +161,20 @@ export interface http_request_result {
 }
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
-  'addService' : ActorMethod<[string, string, bigint, bigint, bigint], bigint>,
+  'addService' : ActorMethod<
+    [
+      string,
+      string,
+      string,
+      string,
+      PricingTier,
+      PricingTier,
+      PricingTier,
+      Array<string>,
+      ServiceSettings,
+    ],
+    bigint
+  >,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'assignLead' : ActorMethod<[bigint, Principal], undefined>,
   'createCRMActivity' : ActorMethod<
@@ -235,7 +259,18 @@ export interface _SERVICE {
   'updatePaymentLinkStatus' : ActorMethod<[bigint, string], undefined>,
   'updateProjectStatus' : ActorMethod<[bigint, string], undefined>,
   'updateService' : ActorMethod<
-    [bigint, string, string, bigint, bigint, bigint],
+    [
+      bigint,
+      string,
+      string,
+      string,
+      string,
+      PricingTier,
+      PricingTier,
+      PricingTier,
+      Array<string>,
+      ServiceSettings,
+    ],
     undefined
   >,
 }

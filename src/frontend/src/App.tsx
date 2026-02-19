@@ -30,8 +30,6 @@ import { Input } from './components/ui/input';
 import { Label } from './components/ui/label';
 import { Button } from './components/ui/button';
 import { toast } from 'sonner';
-import { useBootstrapWatchdog } from './hooks/useBootstrapWatchdog';
-import BootstrapErrorPanel from './components/bootstrap/BootstrapErrorPanel';
 
 const queryClient = new QueryClient();
 
@@ -193,12 +191,11 @@ const routeTree = rootRoute.addChildren([
 const router = createRouter({ routeTree });
 
 function AppContent() {
-  const { identity, isInitializing } = useInternetIdentity();
+  const { identity } = useInternetIdentity();
   const { data: userProfile, isLoading: profileLoading, isFetched } = useGetCallerUserProfile();
   const saveProfile = useSaveCallerUserProfile();
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: '', email: '', businessName: '' });
-  const { hasTimedOut, reset } = useBootstrapWatchdog();
 
   const isAuthenticated = !!identity;
 
@@ -226,28 +223,6 @@ function AppContent() {
       toast.error('Failed to create profile');
     }
   };
-
-  if (hasTimedOut) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <BootstrapErrorPanel
-          error="Bootstrap timeout: The application took too long to initialize"
-          onRetry={reset}
-        />
-      </div>
-    );
-  }
-
-  if (isInitializing || profileLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-soft-gray">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (!isAuthenticated) {
     return <LoginPage />;

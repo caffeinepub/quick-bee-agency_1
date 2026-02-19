@@ -25,13 +25,29 @@ actor {
     businessName : ?Text;
   };
 
+  public type PricingTier = {
+    price : Nat;
+    features : [Text];
+  };
+
+  public type ServiceSettings = {
+    isVisible : Bool;
+    isFeatured : Bool;
+    availability : Text; // e.g., "24/7", "weekdays", "custom hours"
+    customMetadata : Text;
+  };
+
   public type Service = {
     id : Nat;
     name : Text;
     description : Text;
-    priceBasic : Nat;
-    pricePro : Nat;
-    pricePremium : Nat;
+    category : Text;
+    subcategory : Text;
+    pricingBasic : PricingTier;
+    pricingPro : PricingTier;
+    pricingPremium : PricingTier;
+    features : [Text];
+    settings : ServiceSettings;
   };
 
   public type Project = {
@@ -217,7 +233,7 @@ actor {
     services.get(id);
   };
 
-  public shared ({ caller }) func addService(name : Text, description : Text, priceBasic : Nat, pricePro : Nat, pricePremium : Nat) : async Nat {
+  public shared ({ caller }) func addService(name : Text, description : Text, category : Text, subcategory : Text, pricingBasic : PricingTier, pricingPro : PricingTier, pricingPremium : PricingTier, features : [Text], settings : ServiceSettings) : async Nat {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only admins can add services");
     };
@@ -226,9 +242,13 @@ actor {
       id = nextServiceId;
       name;
       description;
-      priceBasic;
-      pricePro;
-      pricePremium;
+      category;
+      subcategory;
+      pricingBasic;
+      pricingPro;
+      pricingPremium;
+      features;
+      settings;
     };
     services.add(nextServiceId, service);
     let id = nextServiceId;
@@ -236,7 +256,7 @@ actor {
     id;
   };
 
-  public shared ({ caller }) func updateService(id : Nat, name : Text, description : Text, priceBasic : Nat, pricePro : Nat, pricePremium : Nat) : async () {
+  public shared ({ caller }) func updateService(id : Nat, name : Text, description : Text, category : Text, subcategory : Text, pricingBasic : PricingTier, pricingPro : PricingTier, pricingPremium : PricingTier, features : [Text], settings : ServiceSettings) : async () {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only admins can update services");
     };
@@ -245,9 +265,13 @@ actor {
       id;
       name;
       description;
-      priceBasic;
-      pricePro;
-      pricePremium;
+      category;
+      subcategory;
+      pricingBasic;
+      pricingPro;
+      pricingPremium;
+      features;
+      settings;
     };
     services.add(id, service);
   };
@@ -990,4 +1014,3 @@ actor {
     };
   };
 };
-

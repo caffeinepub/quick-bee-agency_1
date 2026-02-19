@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { UserProfile, Service, Project, Order, Lead, CRMActivity, Offer, Coupon, LegalPage, Notification, GeneratorLog, OnboardingData, UserRole, PaymentLink } from '../backend';
+import type { UserProfile, Service, Project, Order, Lead, CRMActivity, Offer, Coupon, LegalPage, Notification, GeneratorLog, OnboardingData, UserRole, PaymentLink, PricingTier, ServiceSettings } from '../backend';
 import { Principal } from '@dfinity/principal';
+import { toast } from 'sonner';
 
+// Critical queries - always enabled when actor is ready
 export function useGetCallerUserProfile() {
   const { actor, isFetching: actorFetching } = useActor();
 
@@ -66,7 +68,8 @@ export function useSaveCallerUserProfile() {
   });
 }
 
-export function useGetAllServices() {
+// Lazy-loaded queries - only fetch when explicitly enabled
+export function useGetAllServices(enabled: boolean = false) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Service[]>({
@@ -75,7 +78,7 @@ export function useGetAllServices() {
       if (!actor) return [];
       return actor.getAllServices();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && enabled,
   });
 }
 
@@ -97,12 +100,33 @@ export function useAddService() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { name: string; description: string; priceBasic: bigint; pricePro: bigint; pricePremium: bigint }) => {
+    mutationFn: async (data: { 
+      name: string; 
+      description: string; 
+      category: string;
+      subcategory: string;
+      pricingBasic: PricingTier;
+      pricingPro: PricingTier;
+      pricingPremium: PricingTier;
+      features: string[];
+      settings: ServiceSettings;
+    }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.addService(data.name, data.description, data.priceBasic, data.pricePro, data.pricePremium);
+      return actor.addService(
+        data.name, 
+        data.description, 
+        data.category,
+        data.subcategory,
+        data.pricingBasic,
+        data.pricingPro,
+        data.pricingPremium,
+        data.features,
+        data.settings
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
+      toast.success('Service added successfully');
     }
   });
 }
@@ -112,17 +136,44 @@ export function useUpdateService() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { id: bigint; name: string; description: string; priceBasic: bigint; pricePro: bigint; pricePremium: bigint }) => {
+    mutationFn: async (data: { 
+      id: bigint; 
+      name: string; 
+      description: string; 
+      category: string;
+      subcategory: string;
+      pricingBasic: PricingTier;
+      pricingPro: PricingTier;
+      pricingPremium: PricingTier;
+      features: string[];
+      settings: ServiceSettings;
+    }) => {
       if (!actor) throw new Error('Actor not available');
-      await actor.updateService(data.id, data.name, data.description, data.priceBasic, data.pricePro, data.pricePremium);
+      await actor.updateService(
+        data.id, 
+        data.name, 
+        data.description, 
+        data.category,
+        data.subcategory,
+        data.pricingBasic,
+        data.pricingPro,
+        data.pricingPremium,
+        data.features,
+        data.settings
+      );
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
+      queryClient.invalidateQueries({ queryKey: ['service', variables.id.toString()] });
+      toast.success('Service updated successfully');
+    },
+    onError: (error) => {
+      toast.error(`Failed to update service: ${error.message}`);
     }
   });
 }
 
-export function useGetProjectsByClient(clientId: Principal | null) {
+export function useGetProjectsByClient(clientId: Principal | null, enabled: boolean = false) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Project[]>({
@@ -131,7 +182,7 @@ export function useGetProjectsByClient(clientId: Principal | null) {
       if (!actor || !clientId) return [];
       return actor.getProjectsByClient(clientId);
     },
-    enabled: !!actor && !isFetching && clientId !== null,
+    enabled: !!actor && !isFetching && clientId !== null && enabled,
   });
 }
 
@@ -163,7 +214,7 @@ export function useCreateProject() {
   });
 }
 
-export function useGetOrdersByClient(clientId: Principal | null) {
+export function useGetOrdersByClient(clientId: Principal | null, enabled: boolean = false) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Order[]>({
@@ -172,11 +223,11 @@ export function useGetOrdersByClient(clientId: Principal | null) {
       if (!actor || !clientId) return [];
       return actor.getOrdersByClient(clientId);
     },
-    enabled: !!actor && !isFetching && clientId !== null,
+    enabled: !!actor && !isFetching && clientId !== null && enabled,
   });
 }
 
-export function useGetAllOrders() {
+export function useGetAllOrders(enabled: boolean = false) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Order[]>({
@@ -185,11 +236,11 @@ export function useGetAllOrders() {
       if (!actor) return [];
       return actor.getAllOrders();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && enabled,
   });
 }
 
-export function useGetAllLeads() {
+export function useGetAllLeads(enabled: boolean = false) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Lead[]>({
@@ -198,7 +249,7 @@ export function useGetAllLeads() {
       if (!actor) return [];
       return actor.getAllLeads();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && enabled,
   });
 }
 
@@ -269,7 +320,7 @@ export function useBulkDeleteLeads() {
   });
 }
 
-export function useGetAllCRMActivities() {
+export function useGetAllCRMActivities(enabled: boolean = false) {
   const { actor, isFetching } = useActor();
 
   return useQuery<CRMActivity[]>({
@@ -278,7 +329,7 @@ export function useGetAllCRMActivities() {
       if (!actor) return [];
       return actor.getAllCRMActivities();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && enabled,
   });
 }
 
@@ -305,7 +356,7 @@ export function useCreateCRMActivity() {
   });
 }
 
-export function useGetAllOffers() {
+export function useGetAllOffers(enabled: boolean = false) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Offer[]>({
@@ -314,7 +365,7 @@ export function useGetAllOffers() {
       if (!actor) return [];
       return actor.getAllOffers();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && enabled,
   });
 }
 
@@ -331,7 +382,7 @@ export function useGetCoupon(code: string | null) {
   });
 }
 
-export function useGetAllLegalPages() {
+export function useGetAllLegalPages(enabled: boolean = false) {
   const { actor, isFetching } = useActor();
 
   return useQuery<LegalPage[]>({
@@ -340,11 +391,11 @@ export function useGetAllLegalPages() {
       if (!actor) return [];
       return actor.getAllLegalPages();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && enabled,
   });
 }
 
-export function useGetMyNotifications() {
+export function useGetMyNotifications(enabled: boolean = false) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Notification[]>({
@@ -353,7 +404,7 @@ export function useGetMyNotifications() {
       if (!actor) return [];
       return actor.getMyNotifications();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && enabled,
   });
 }
 
@@ -372,7 +423,7 @@ export function useMarkNotificationAsRead() {
   });
 }
 
-export function useGetMyGeneratorLogs() {
+export function useGetMyGeneratorLogs(enabled: boolean = false) {
   const { actor, isFetching } = useActor();
 
   return useQuery<GeneratorLog[]>({
@@ -381,7 +432,7 @@ export function useGetMyGeneratorLogs() {
       if (!actor) return [];
       return actor.getMyGeneratorLogs();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && enabled,
   });
 }
 
@@ -426,7 +477,7 @@ export function useSetRazorpayConfiguration() {
   });
 }
 
-export function useGetPaymentLinks() {
+export function useGetPaymentLinks(enabled: boolean = false) {
   const { actor, isFetching } = useActor();
 
   return useQuery<PaymentLink[]>({
@@ -435,7 +486,7 @@ export function useGetPaymentLinks() {
       if (!actor) return [];
       return actor.getPaymentLinks();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && enabled,
   });
 }
 

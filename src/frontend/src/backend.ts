@@ -96,6 +96,10 @@ export interface OnboardingData {
     budget: bigint;
     timeline: string;
 }
+export interface PricingTier {
+    features: Array<string>;
+    price: bigint;
+}
 export interface TransformationOutput {
     status: bigint;
     body: Uint8Array;
@@ -110,11 +114,15 @@ export interface Coupon {
 }
 export interface Service {
     id: bigint;
-    pricePremium: bigint;
-    priceBasic: bigint;
+    features: Array<string>;
+    pricingPro: PricingTier;
+    subcategory: string;
     name: string;
+    pricingBasic: PricingTier;
     description: string;
-    pricePro: bigint;
+    settings: ServiceSettings;
+    pricingPremium: PricingTier;
+    category: string;
 }
 export interface Order {
     id: bigint;
@@ -158,6 +166,12 @@ export interface ShoppingItem {
     quantity: bigint;
     priceInCents: bigint;
     productDescription: string;
+}
+export interface ServiceSettings {
+    customMetadata: string;
+    availability: string;
+    isFeatured: boolean;
+    isVisible: boolean;
 }
 export interface CRMActivity {
     id: bigint;
@@ -242,7 +256,7 @@ export enum UserRole {
 }
 export interface backendInterface {
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
-    addService(name: string, description: string, priceBasic: bigint, pricePro: bigint, pricePremium: bigint): Promise<bigint>;
+    addService(name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings): Promise<bigint>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     assignLead(leadId: bigint, userId: Principal): Promise<void>;
     createCRMActivity(leadId: bigint | null, projectId: bigint | null, activityType: string, stage: string, notes: string, assignedTo: Principal | null, dueDate: Time | null): Promise<bigint>;
@@ -300,7 +314,7 @@ export interface backendInterface {
     updateOrderStatus(id: bigint, status: string): Promise<void>;
     updatePaymentLinkStatus(id: bigint, status: string): Promise<void>;
     updateProjectStatus(id: bigint, status: string): Promise<void>;
-    updateService(id: bigint, name: string, description: string, priceBasic: bigint, pricePro: bigint, pricePremium: bigint): Promise<void>;
+    updateService(id: bigint, name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings): Promise<void>;
 }
 import type { CRMActivity as _CRMActivity, Coupon as _Coupon, Lead as _Lead, LegalPage as _LegalPage, OnboardingData as _OnboardingData, Project as _Project, Service as _Service, StripeSessionStatus as _StripeSessionStatus, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -319,17 +333,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async addService(arg0: string, arg1: string, arg2: bigint, arg3: bigint, arg4: bigint): Promise<bigint> {
+    async addService(arg0: string, arg1: string, arg2: string, arg3: string, arg4: PricingTier, arg5: PricingTier, arg6: PricingTier, arg7: Array<string>, arg8: ServiceSettings): Promise<bigint> {
         if (this.processError) {
             try {
-                const result = await this.actor.addService(arg0, arg1, arg2, arg3, arg4);
+                const result = await this.actor.addService(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.addService(arg0, arg1, arg2, arg3, arg4);
+            const result = await this.actor.addService(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
             return result;
         }
     }
@@ -1131,17 +1145,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async updateService(arg0: bigint, arg1: string, arg2: string, arg3: bigint, arg4: bigint, arg5: bigint): Promise<void> {
+    async updateService(arg0: bigint, arg1: string, arg2: string, arg3: string, arg4: string, arg5: PricingTier, arg6: PricingTier, arg7: PricingTier, arg8: Array<string>, arg9: ServiceSettings): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.updateService(arg0, arg1, arg2, arg3, arg4, arg5);
+                const result = await this.actor.updateService(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.updateService(arg0, arg1, arg2, arg3, arg4, arg5);
+            const result = await this.actor.updateService(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
             return result;
         }
     }

@@ -1,123 +1,120 @@
 {
   "kind": "build_request",
-  "title": "Integrate Razorpay payment automation and enhance lead CRM with CSV export",
-  "projectName": "Quick Bee Agency OS",
+  "title": "Add settings and data editing for services in marketplace",
+  "projectName": "Quick Bee Agency",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add CSV export functionality to the leads table allowing admin users to download all lead data including id, name, phone, email, service_interest, status, and created_at fields",
-      "target": "frontend",
+      "text": "Add a settings panel for each service in the marketplace that allows administrators to configure service-specific settings including visibility, featured status, availability, and custom metadata",
+      "target": "both",
       "source": {
         "messageIds": [
           "msg-latest"
         ],
         "quotes": [
-          "make everything downloadable"
+          "add setting & data details editing in services(service market place"
         ]
       },
       "acceptanceCriteria": [
-        "Export button is visible on the LeadsPage",
-        "Clicking export downloads a CSV file containing all lead records",
-        "CSV includes headers: id, name, phone, email, service_interest, status, created_at",
-        "File is named with timestamp (e.g., leads-export-2024-01-15.csv)"
+        "Settings panel is accessible from the service detail page for admin users",
+        "Settings include toggles for service visibility and featured status",
+        "Settings are persisted in the backend Service data structure",
+        "Changes to settings are immediately reflected in the marketplace view"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Integrate Razorpay payment gateway with automated payment flow: generate payment links when lead status changes to 'qualified', listen for payment webhooks, and automatically update lead status to 'paid' on successful payment confirmation",
+      "text": "Implement data editing capabilities for service details including title, description, pricing tiers (Basic, Pro, Premium), features list, and category information",
       "target": "both",
       "source": {
         "messageIds": [
           "msg-latest"
         ],
         "quotes": [
-          "ok integrate, automate everything you can"
+          "add setting & data details editing in services(service market place"
         ]
       },
       "acceptanceCriteria": [
-        "Admin can configure Razorpay API keys in settings",
-        "When lead status changes to 'qualified', a Razorpay payment link is generated",
-        "Payment link can be copied or sent to the lead",
-        "Backend webhook endpoint receives Razorpay payment confirmations",
-        "Lead status automatically updates to 'paid' when payment succeeds",
-        "Payment amount and transaction ID are recorded with the lead"
+        "Admin users can edit service title, description, and category",
+        "Each pricing tier (Basic, Pro, Premium) can be individually edited with price and features",
+        "Validation ensures required fields are populated before saving",
+        "Edit interface shows current values and provides feedback on successful updates",
+        "Changes are reflected immediately in the ServicesPage marketplace view"
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Add Razorpay configuration panel in the admin settings page allowing storage and editing of Razorpay API key, secret, and webhook secret",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-latest"
-        ],
-        "quotes": [
-          "automate everything you can"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Settings page includes Razorpay configuration section",
-        "Admin can input and save Razorpay key ID, key secret, and webhook secret",
-        "Credentials are securely stored in backend",
-        "Test connection button validates Razorpay credentials"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Create automated notification system that triggers when lead status changes: send notification when status moves to 'qualified' (payment link ready), 'paid' (payment confirmed), or 'onboarding' (project started)",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-latest"
-        ],
-        "quotes": [
-          "automate everything you can"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Status change triggers create notification records in backend",
-        "Notifications appear in the TopNav notifications dropdown",
-        "Notification text clearly indicates the status change and lead name",
-        "Notifications link to the relevant lead detail page",
-        "Admin can view notification history"
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Add bulk actions to leads table allowing admin to select multiple leads and update their status, export selected leads, or delete selected leads in one operation",
+      "text": "Add an 'Edit Service' button on the ServiceDetailPage that opens an edit dialog for administrators to modify service data and settings",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-latest"
         ],
         "quotes": [
-          "automate everything you can"
+          "add setting & data details editing in services(service market place"
         ]
       },
       "acceptanceCriteria": [
-        "Checkbox column added to leads table for multi-select",
-        "Bulk action toolbar appears when leads are selected",
-        "Actions include: Change Status, Export Selected, Delete Selected",
-        "Confirmation dialog shown before destructive operations",
-        "Success message shown after bulk operation completes"
+        "Edit button is visible only to admin users on ServiceDetailPage",
+        "Button opens a modal dialog with form fields for all editable service properties",
+        "Dialog includes tabs or sections for 'Details' and 'Settings'",
+        "Save button commits changes via backend mutation",
+        "Cancel button discards changes and closes dialog"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Extend the backend Service data structure and add updateService mutation to support persistent storage of service settings and editable fields",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ],
+        "quotes": [
+          "add setting & data details editing in services(service market place"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Service type includes fields for visibility, featured status, and custom metadata",
+        "updateService function accepts service ID and updated Service object",
+        "Access control ensures only admin principals can update services",
+        "Updated service data persists across canister upgrades",
+        "Function returns updated Service or error if validation fails"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Create a useUpdateService mutation hook in useQueries.ts that calls the backend updateService function and invalidates the services query cache on success",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ],
+        "quotes": [
+          "add setting & data details editing in services(service market place"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Hook follows the pattern of existing mutation hooks in useQueries.ts",
+        "Mutation invalidates 'services' and individual service queries on success",
+        "Hook handles loading and error states appropriately",
+        "Success callback triggers toast notification confirming the update"
       ]
     }
   ],
   "constraints": [
-    "Use Razorpay for payment integration (not PhonePe or Paytm directly)",
-    "Maintain existing lead data structure in backend/main.mo",
-    "Do not modify Internet Identity hooks or authentication flow",
-    "Keep black + teal green theme consistent across new features",
-    "Ensure all new features are admin-role gated"
+    "Service editing must be restricted to admin users only",
+    "Do not modify the existing Service data structure in ways that break compatibility with existing services",
+    "Settings panel must follow the existing UI patterns using Shadcn components and Tailwind CSS",
+    "Do not change immutable frontend paths: useInternetIdentity.ts, useActor.ts, main.tsx, components/ui"
   ],
   "nonGoals": [
-    "WhatsApp Cloud API integration (future phase)",
-    "Visual workflow builder (future phase)",
-    "Proposal PDF generation (future phase)",
-    "Client portal login system (future phase)",
-    "Email automation integration (future phase)",
-    "CRON-based scheduled automations (future phase)"
+    "Bulk editing of multiple services at once",
+    "Service deletion functionality",
+    "Image upload for service thumbnails or galleries",
+    "Service approval workflow or versioning",
+    "Analytics or usage tracking for services"
   ],
   "imageRequirements": {
     "required": [],

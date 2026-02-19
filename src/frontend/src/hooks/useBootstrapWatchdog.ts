@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const BOOTSTRAP_TIMEOUT_MS = 8000; // 8 seconds
+const BOOTSTRAP_TIMEOUT_MS = 5000; // Reduced from 8 to 5 seconds
 
 export function useBootstrapWatchdog() {
   const [hasTimedOut, setHasTimedOut] = useState(false);

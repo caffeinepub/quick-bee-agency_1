@@ -1,14 +1,26 @@
+import { useState, useEffect } from 'react';
 import { useGetCallerUserProfile, useGetProjectsByClient, useGetAllOrders, useGetCallerUserRole } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { BarChart3, Users, DollarSign, TrendingUp } from 'lucide-react';
+import { Skeleton } from '../components/ui/skeleton';
 
 export default function DashboardPage() {
   const { identity } = useInternetIdentity();
   const { data: userProfile } = useGetCallerUserProfile();
   const { data: userRole } = useGetCallerUserRole();
-  const { data: projects = [] } = useGetProjectsByClient(identity?.getPrincipal() || null);
-  const { data: orders = [] } = useGetAllOrders();
+  const [enableDataFetch, setEnableDataFetch] = useState(false);
+  
+  const { data: projects = [], isLoading: projectsLoading } = useGetProjectsByClient(identity?.getPrincipal() || null, enableDataFetch);
+  const { data: orders = [], isLoading: ordersLoading } = useGetAllOrders(enableDataFetch);
+
+  // Enable data fetching after component mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setEnableDataFetch(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const isAdmin = userRole === 'admin';
   const isUser = userRole === 'user';
@@ -31,8 +43,14 @@ export default function DashboardPage() {
             <DollarSign className="w-5 h-5 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">₹{(totalRevenue / 100).toLocaleString()}</div>
-            <p className="text-xs text-soft-gray mt-1">+12% from last month</p>
+            {ordersLoading ? (
+              <Skeleton className="h-8 w-32" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-foreground">₹{(totalRevenue / 100).toLocaleString()}</div>
+                <p className="text-xs text-soft-gray mt-1">+12% from last month</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -42,8 +60,14 @@ export default function DashboardPage() {
             <BarChart3 className="w-5 h-5 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{activeProjects}</div>
-            <p className="text-xs text-soft-gray mt-1">Across all clients</p>
+            {projectsLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-foreground">{activeProjects}</div>
+                <p className="text-xs text-soft-gray mt-1">Across all clients</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -53,8 +77,14 @@ export default function DashboardPage() {
             <Users className="w-5 h-5 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{orders.length}</div>
-            <p className="text-xs text-soft-gray mt-1">All time</p>
+            {ordersLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-foreground">{orders.length}</div>
+                <p className="text-xs text-soft-gray mt-1">All time</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -76,7 +106,12 @@ export default function DashboardPage() {
             <CardTitle className="text-foreground">Your Projects</CardTitle>
           </CardHeader>
           <CardContent>
-            {projects.length === 0 ? (
+            {projectsLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+              </div>
+            ) : projects.length === 0 ? (
               <p className="text-soft-gray">No projects yet. Browse our services to get started!</p>
             ) : (
               <div className="space-y-3">

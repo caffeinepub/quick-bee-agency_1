@@ -1,159 +1,85 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Integrate Razorpay payment automation and enhance lead CRM with CSV export",
+  "title": "Add settings and data editing for services in marketplace",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add CSV export functionality to the leads table allowing admin users to download all lead data including id, name, phone, email, service_interest, status, and created_at fields",
+      "summary": "Add a settings panel for each service in the marketplace that allows administrators to configure service-specific settings including visibility, featured status, availability, and custom metadata",
       "acceptanceCriteria": [
-        "Export button is visible on the LeadsPage",
-        "Clicking export downloads a CSV file containing all lead records",
-        "CSV includes headers: id, name, phone, email, service_interest, status, created_at",
-        "File is named with timestamp (e.g., leads-export-2024-01-15.csv)"
+        "Settings panel is accessible from the service detail page for admin users",
+        "Settings include toggles for service visibility and featured status",
+        "Settings are persisted in the backend Service data structure",
+        "Changes to settings are immediately reflected in the marketplace view"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/LeadsPage.tsx",
+          "path": "frontend/src/components/services/ServiceSettingsPanel.tsx",
+          "operation": "create",
+          "description": "Create a settings panel component that displays service visibility toggle, featured status toggle, availability dropdown, and custom metadata text field. Use the authorization component to ensure only admin users can view and edit these settings. Include form state management and wire to the useUpdateService mutation hook for persistence."
+        },
+        {
+          "path": "frontend/src/pages/ServiceDetailPage.tsx",
           "operation": "modify",
-          "description": "Add CSV export button to the leads table header that triggers download of all lead data. Implement exportLeadsToCSV utility function that converts lead records to CSV format with headers (id, name, phone, email, microNiche as service_interest, status, createdAt), generates a blob, and triggers browser download with timestamp-based filename. Wire the export button to call this function when clicked. Map the microNiche field to service_interest column in the CSV output."
+          "description": "Import ServiceSettingsPanel and conditionally render it for admin users using isCallerAdmin query. Position the panel below the service details section. Ensure the panel is hidden for non-admin users."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Integrate Razorpay payment gateway with automated payment flow: generate payment links when lead status changes to 'qualified', listen for payment webhooks, and automatically update lead status to 'paid' on successful payment confirmation",
+      "summary": "Implement data editing capabilities for service details including title, description, pricing tiers (Basic, Pro, Premium), features list, and category information",
       "acceptanceCriteria": [
-        "Admin can configure Razorpay API keys in settings",
-        "When lead status changes to 'qualified', a Razorpay payment link is generated",
-        "Payment link can be copied or sent to the lead",
-        "Backend webhook endpoint receives Razorpay payment confirmations",
-        "Lead status automatically updates to 'paid' when payment succeeds",
-        "Payment amount and transaction ID are recorded with the lead"
+        "Admin users can edit service title, description, and category",
+        "Each pricing tier (Basic, Pro, Premium) can be individually edited with price and features",
+        "Validation ensures required fields are populated before saving",
+        "Edit interface shows current values and provides feedback on successful updates",
+        "Changes are reflected immediately in the ServicesPage marketplace view"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Add React Query hooks for Razorpay integration: useIsRazorpayConfigured (query for checking configuration status), useCreatePaymentLink (mutation for generating Razorpay payment links when lead status changes to qualified), useGetPaymentLinks (query for fetching payment links), and useUpdatePaymentLinkStatus (mutation for updating payment link status). These hooks call the corresponding backend methods through the actor."
-        },
-        {
-          "path": "frontend/src/pages/LeadsPage.tsx",
-          "operation": "modify",
-          "description": "Integrate Razorpay payment link generation into the lead status update flow. When a lead status is changed to 'qualified', automatically trigger payment link creation via useCreatePaymentLink hook. Display the generated payment link in a dialog with copy-to-clipboard functionality. Show payment status indicator for leads with associated payment links. Add a column or badge showing payment link status for qualified/paid leads."
-        },
-        {
-          "path": "frontend/src/components/leads/PaymentLinkDialog.tsx",
+          "path": "frontend/src/components/services/ServiceEditDialog.tsx",
           "operation": "create",
-          "description": "Create a dialog component that displays generated Razorpay payment links with copy-to-clipboard button. Show payment link URL, amount, status, and creation timestamp. Include visual confirmation when link is copied. Provide options to regenerate or resend the link. Use shadcn/ui Dialog component for consistent styling with the black + teal green theme."
-        },
-        {
-          "path": "frontend/src/pages/PaymentsPage.tsx",
-          "operation": "modify",
-          "description": "Extend the payments page to include Razorpay payment link tracking alongside Stripe orders. Add a section showing all payment links with their status (pending, paid, expired). Display lead name, amount, creation date, and payment status for each link. Include filtering by status and search by lead name. Show transaction ID for completed payments."
+          "description": "Create a comprehensive edit dialog component with form sections for service details (name, description, category, subcategory) and pricing tiers (Basic, Pro, Premium). Each pricing tier includes price input and feature list editor. Include form validation for required fields (name, description, category) and price values. Use Dialog, Input, Textarea, and Button components from shadcn/ui. Wire to useUpdateService mutation with loading states and success/error feedback using toast notifications."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Add Razorpay configuration panel in the admin settings page allowing storage and editing of Razorpay API key, secret, and webhook secret",
+      "summary": "Add an 'Edit Service' button on the ServiceDetailPage that opens an edit dialog for administrators to modify service data and settings",
       "acceptanceCriteria": [
-        "Settings page includes Razorpay configuration section",
-        "Admin can input and save Razorpay key ID, key secret, and webhook secret",
-        "Credentials are securely stored in backend",
-        "Test connection button validates Razorpay credentials"
+        "Edit button is visible only to admin users on ServiceDetailPage",
+        "Button opens a modal dialog with form fields for all editable service properties",
+        "Dialog includes tabs or sections for 'Details' and 'Settings'",
+        "Save button commits changes via backend mutation",
+        "Cancel button discards changes and closes dialog"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/settings/RazorpayConfigPanel.tsx",
-          "operation": "create",
-          "description": "Create a Razorpay configuration panel component for admin settings. Include password-type input fields for API key, API secret, and webhook secret. Add a 'Test Connection' button that validates credentials by checking configuration status. Show success/error feedback after saving or testing. Use shadcn/ui Form components and maintain black + teal green theme. Include a toggle to show/hide sensitive credential values."
+          "path": "frontend/src/pages/ServiceDetailPage.tsx",
+          "operation": "modify",
+          "description": "Import ServiceEditDialog component and add an 'Edit Service' button in the header section that is conditionally rendered for admin users only (using isCallerAdmin query). Add state to manage dialog open/close. Pass the current service data to the dialog component. Position the button prominently near the service title."
         },
         {
-          "path": "frontend/src/pages/SettingsPage.tsx",
+          "path": "frontend/src/components/services/ServiceEditDialog.tsx",
           "operation": "modify",
-          "description": "Import and render the RazorpayConfigPanel component within the admin settings page. Place it alongside the existing Stripe configuration section. Ensure the panel is only visible to admin users (already gated by SettingsPage role check). Add a section header for 'Payment Gateway Configuration' that groups both Stripe and Razorpay panels. Check isRazorpayConfigured status on load to show current configuration state."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Add useSetRazorpayConfiguration mutation hook that calls the backend setRazorpayConfiguration method with apiKey, apiSecret, and webhookSecret parameters. Include optimistic updates and query invalidation for isRazorpayConfigured after successful configuration."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Create automated notification system that triggers when lead status changes: send notification when status moves to 'qualified' (payment link ready), 'paid' (payment confirmed), or 'onboarding' (project started)",
-      "acceptanceCriteria": [
-        "Status change triggers create notification records in backend",
-        "Notifications appear in the TopNav notifications dropdown",
-        "Notification text clearly indicates the status change and lead name",
-        "Notifications link to the relevant lead detail page",
-        "Admin can view notification history"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/layout/TopNav.tsx",
-          "operation": "modify",
-          "description": "Enhance the notifications dropdown to display lead status change notifications. Show notification message, timestamp, and read/unread indicator. Make each notification clickable, linking to the relevant lead detail page using the leadId from the notification. Add mark-as-read functionality when notifications are clicked. Poll or refresh notifications when new status changes occur. Ensure notifications are filtered by notificationType to show only lead-related updates."
-        },
-        {
-          "path": "frontend/src/pages/LeadsPage.tsx",
-          "operation": "modify",
-          "description": "After successfully updating a lead status to 'qualified', 'paid', or 'onboarding', trigger a notification optimistically in the UI. The backend will create the actual notification record. Invalidate the notifications query to refresh the TopNav dropdown. Provide visual feedback (toast or badge) when a status change triggers a notification."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Add useMarkNotificationAsRead mutation hook that calls the backend markNotificationAsRead method. Invalidate the getMyNotifications query after marking as read to refresh the notification list in TopNav. Ensure the mutation includes optimistic updates for immediate UI feedback."
-        },
-        {
-          "path": "frontend/src/pages/NotificationsPage.tsx",
-          "operation": "create",
-          "description": "Create a dedicated notifications history page for admins. Display all notifications with filtering by type, read/unread status, and date range. Show full notification details including message, type, timestamp, and related lead information. Include bulk mark-as-read action. Link each notification to its related lead or project. Use shadcn/ui Table and Badge components with black + teal green theme."
-        },
-        {
-          "path": "frontend/src/components/layout/SidebarNav.tsx",
-          "operation": "modify",
-          "description": "Add a 'Notifications' menu item to the admin sidebar navigation that links to the new NotificationsPage. Place it in the CRM/Admin section, visible only to admin users. Include a notification count badge if there are unread notifications."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Register the /notifications route in the router configuration, mapping it to the NotificationsPage component. Ensure the route is admin-gated and includes proper loading states."
+          "description": "Enhance the ServiceEditDialog to include tabbed sections using Tabs component from shadcn/ui. Create 'Details' tab containing service name, description, category, subcategory, pricing tiers, and features. Create 'Settings' tab containing visibility toggle, featured status toggle, availability dropdown, and custom metadata field. Implement Cancel button that closes dialog without saving and Save button that validates and submits via useUpdateService mutation."
         }
       ]
     },
     {
       "id": "REQ-5",
-      "summary": "Add bulk actions to leads table allowing admin to select multiple leads and update their status, export selected leads, or delete selected leads in one operation",
+      "summary": "Create a useUpdateService mutation hook in useQueries.ts that calls the backend updateService function and invalidates the services query cache on success",
       "acceptanceCriteria": [
-        "Checkbox column added to leads table for multi-select",
-        "Bulk action toolbar appears when leads are selected",
-        "Actions include: Change Status, Export Selected, Delete Selected",
-        "Confirmation dialog shown before destructive operations",
-        "Success message shown after bulk operation completes"
+        "Hook follows the pattern of existing mutation hooks in useQueries.ts",
+        "Mutation invalidates 'services' and individual service queries on success",
+        "Hook handles loading and error states appropriately",
+        "Success callback triggers toast notification confirming the update"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/LeadsPage.tsx",
-          "operation": "modify",
-          "description": "Add checkbox column to the leads table for multi-select functionality. Implement selection state management tracking selected lead IDs. Display a bulk actions toolbar when one or more leads are selected, showing action buttons for 'Change Status', 'Export Selected', and 'Delete Selected'. Wire each action to its corresponding handler function. Show confirmation dialogs for destructive operations (status change, delete). Display success/error toasts after bulk operations complete. Clear selections after successful operations. Ensure export selected uses the same CSV format as full export but filters to selected leads only."
-        },
-        {
-          "path": "frontend/src/components/leads/BulkActionsToolbar.tsx",
-          "operation": "create",
-          "description": "Create a toolbar component that appears above the leads table when leads are selected. Display count of selected leads and action buttons for Change Status (opens status picker dialog), Export Selected (triggers CSV download), and Delete Selected (shows confirmation). Use shadcn/ui Button and Dialog components. Style with black + teal green theme. Include cancel/clear selection button."
-        },
-        {
-          "path": "frontend/src/components/leads/BulkStatusChangeDialog.tsx",
-          "operation": "create",
-          "description": "Create a dialog for bulk status updates. Show list of selected leads with current statuses. Provide dropdown to select new status (new, contacted, qualified, paid, onboarding, completed, lost). Include confirmation step showing which leads will be updated. Call updateLead mutation for each selected lead with the new status. Show progress indicator during bulk update. Display summary of successful/failed updates. Use shadcn/ui Dialog and Select components."
-        },
-        {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Add useBulkDeleteLeads mutation hook that accepts an array of lead IDs and calls deleteLead for each ID. Implement with Promise.all for concurrent deletions. Invalidate getAllLeads query after completion. Return success/failure counts for UI feedback."
+          "description": "Add useUpdateService mutation hook that accepts service ID and updated service data (name, description, category, subcategory, pricing tiers, features, settings). Call actor.updateService with the provided parameters. On success, invalidate both ['services'] query key and ['service', serviceId] query key to refresh marketplace and detail views. Include onSuccess callback that displays a success toast notification. Handle loading and error states following existing mutation patterns in the file."
         }
       ]
     }

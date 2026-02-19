@@ -8,6 +8,16 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const PricingTier = IDL.Record({
+  'features' : IDL.Vec(IDL.Text),
+  'price' : IDL.Nat,
+});
+export const ServiceSettings = IDL.Record({
+  'customMetadata' : IDL.Text,
+  'availability' : IDL.Text,
+  'isFeatured' : IDL.Bool,
+  'isVisible' : IDL.Bool,
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
@@ -92,11 +102,15 @@ export const Project = IDL.Record({
 });
 export const Service = IDL.Record({
   'id' : IDL.Nat,
-  'pricePremium' : IDL.Nat,
-  'priceBasic' : IDL.Nat,
+  'features' : IDL.Vec(IDL.Text),
+  'pricingPro' : PricingTier,
+  'subcategory' : IDL.Text,
   'name' : IDL.Text,
+  'pricingBasic' : PricingTier,
   'description' : IDL.Text,
-  'pricePro' : IDL.Nat,
+  'settings' : ServiceSettings,
+  'pricingPremium' : PricingTier,
+  'category' : IDL.Text,
 });
 export const UserProfile = IDL.Record({
   'name' : IDL.Text,
@@ -158,7 +172,17 @@ export const TransformationOutput = IDL.Record({
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addService' : IDL.Func(
-      [IDL.Text, IDL.Text, IDL.Nat, IDL.Nat, IDL.Nat],
+      [
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        PricingTier,
+        PricingTier,
+        PricingTier,
+        IDL.Vec(IDL.Text),
+        ServiceSettings,
+      ],
       [IDL.Nat],
       [],
     ),
@@ -284,7 +308,18 @@ export const idlService = IDL.Service({
   'updatePaymentLinkStatus' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'updateProjectStatus' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'updateService' : IDL.Func(
-      [IDL.Nat, IDL.Text, IDL.Text, IDL.Nat, IDL.Nat, IDL.Nat],
+      [
+        IDL.Nat,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        PricingTier,
+        PricingTier,
+        PricingTier,
+        IDL.Vec(IDL.Text),
+        ServiceSettings,
+      ],
       [],
       [],
     ),
@@ -293,6 +328,16 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const PricingTier = IDL.Record({
+    'features' : IDL.Vec(IDL.Text),
+    'price' : IDL.Nat,
+  });
+  const ServiceSettings = IDL.Record({
+    'customMetadata' : IDL.Text,
+    'availability' : IDL.Text,
+    'isFeatured' : IDL.Bool,
+    'isVisible' : IDL.Bool,
+  });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
@@ -377,11 +422,15 @@ export const idlFactory = ({ IDL }) => {
   });
   const Service = IDL.Record({
     'id' : IDL.Nat,
-    'pricePremium' : IDL.Nat,
-    'priceBasic' : IDL.Nat,
+    'features' : IDL.Vec(IDL.Text),
+    'pricingPro' : PricingTier,
+    'subcategory' : IDL.Text,
     'name' : IDL.Text,
+    'pricingBasic' : PricingTier,
     'description' : IDL.Text,
-    'pricePro' : IDL.Nat,
+    'settings' : ServiceSettings,
+    'pricingPremium' : PricingTier,
+    'category' : IDL.Text,
   });
   const UserProfile = IDL.Record({
     'name' : IDL.Text,
@@ -440,7 +489,17 @@ export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'addService' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Nat, IDL.Nat, IDL.Nat],
+        [
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          PricingTier,
+          PricingTier,
+          PricingTier,
+          IDL.Vec(IDL.Text),
+          ServiceSettings,
+        ],
         [IDL.Nat],
         [],
       ),
@@ -574,7 +633,18 @@ export const idlFactory = ({ IDL }) => {
     'updatePaymentLinkStatus' : IDL.Func([IDL.Nat, IDL.Text], [], []),
     'updateProjectStatus' : IDL.Func([IDL.Nat, IDL.Text], [], []),
     'updateService' : IDL.Func(
-        [IDL.Nat, IDL.Text, IDL.Text, IDL.Nat, IDL.Nat, IDL.Nat],
+        [
+          IDL.Nat,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          PricingTier,
+          PricingTier,
+          PricingTier,
+          IDL.Vec(IDL.Text),
+          ServiceSettings,
+        ],
         [],
         [],
       ),

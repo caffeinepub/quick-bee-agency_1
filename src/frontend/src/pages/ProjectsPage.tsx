@@ -1,10 +1,18 @@
+import { useState, useEffect } from 'react';
 import { useGetProjectsByClient } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Skeleton } from '../components/ui/skeleton';
 
 export default function ProjectsPage() {
   const { identity } = useInternetIdentity();
-  const { data: projects = [] } = useGetProjectsByClient(identity?.getPrincipal() || null);
+  const [enableFetch, setEnableFetch] = useState(false);
+  const { data: projects = [], isLoading } = useGetProjectsByClient(identity?.getPrincipal() || null, enableFetch);
+
+  // Enable fetching after component mounts
+  useEffect(() => {
+    setEnableFetch(true);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -14,7 +22,12 @@ export default function ProjectsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {projects.length === 0 ? (
+        {isLoading ? (
+          <>
+            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </>
+        ) : projects.length === 0 ? (
           <Card className="glass-panel border-border col-span-full">
             <CardContent className="py-12 text-center">
               <p className="text-soft-gray">No projects yet. Purchase a service to get started!</p>

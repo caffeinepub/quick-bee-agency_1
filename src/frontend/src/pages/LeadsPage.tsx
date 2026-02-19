@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGetAllLeads, useCreateLead, useUpdateLead, useDeleteLead, useBulkDeleteLeads, useCreatePaymentLink, useGetPaymentLinks } from '../hooks/useQueries';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -12,6 +12,7 @@ import { Plus, Download, Edit, Trash2 } from 'lucide-react';
 import BulkActionsToolbar from '../components/leads/BulkActionsToolbar';
 import BulkStatusChangeDialog from '../components/leads/BulkStatusChangeDialog';
 import PaymentLinkDialog from '../components/leads/PaymentLinkDialog';
+import { Skeleton } from '../components/ui/skeleton';
 import type { Lead } from '../backend';
 
 const MICRO_NICHES = [
@@ -34,8 +35,9 @@ const CHANNELS = ['Email', 'LinkedIn', 'Instagram', 'WhatsApp', 'SMS'];
 const STATUSES = ['new', 'contacted', 'qualified', 'paid', 'onboarding', 'completed', 'lost'];
 
 export default function LeadsPage() {
-  const { data: leads = [] } = useGetAllLeads();
-  const { data: paymentLinks = [] } = useGetPaymentLinks();
+  const [enableFetch, setEnableFetch] = useState(false);
+  const { data: leads = [], isLoading: leadsLoading } = useGetAllLeads(enableFetch);
+  const { data: paymentLinks = [] } = useGetPaymentLinks(enableFetch);
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
@@ -58,6 +60,11 @@ export default function LeadsPage() {
     microNiche: MICRO_NICHES[0],
     status: 'new'
   });
+
+  // Enable fetching after component mounts
+  useEffect(() => {
+    setEnableFetch(true);
+  }, []);
 
   const handleCreateSubmit = async () => {
     if (!formData.name || !formData.email) {
@@ -197,6 +204,10 @@ export default function LeadsPage() {
     }
   };
 
+  const handleClearSelection = () => {
+    setSelectedLeadIds(new Set());
+  };
+
   const getPaymentLinkForLead = (leadId: bigint) => {
     return paymentLinks.find(pl => pl.leadId === leadId);
   };
@@ -220,7 +231,7 @@ export default function LeadsPage() {
                 Add Lead
               </Button>
             </DialogTrigger>
-            <DialogContent className="glass-panel border-border">
+            <DialogContent className="glass-panel border-border max-w-md">
               <DialogHeader>
                 <DialogTitle className="text-foreground">Add New Lead</DialogTitle>
               </DialogHeader>
@@ -255,27 +266,35 @@ export default function LeadsPage() {
                 </div>
                 <div>
                   <Label htmlFor="channel">Channel</Label>
-                  <Select value={formData.channel} onValueChange={(v) => setFormData({ ...formData, channel: v })}>
+                  <Select value={formData.channel} onValueChange={(value) => setFormData({ ...formData, channel: value })}>
                     <SelectTrigger className="bg-input border-border">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {CHANNELS.map(ch => <SelectItem key={ch} value={ch}>{ch}</SelectItem>)}
+                      {CHANNELS.map(channel => (
+                        <SelectItem key={channel} value={channel}>{channel}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="niche">Micro Niche</Label>
-                  <Select value={formData.microNiche} onValueChange={(v) => setFormData({ ...formData, microNiche: v })}>
+                  <Label htmlFor="microNiche">Micro Niche</Label>
+                  <Select value={formData.microNiche} onValueChange={(value) => setFormData({ ...formData, microNiche: value })}>
                     <SelectTrigger className="bg-input border-border">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {MICRO_NICHES.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                      {MICRO_NICHES.map(niche => (
+                        <SelectItem key={niche} value={niche}>{niche}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <Button onClick={handleCreateSubmit} disabled={createLead.isPending} className="w-full gradient-teal text-black font-semibold">
+                <Button
+                  onClick={handleCreateSubmit}
+                  disabled={createLead.isPending}
+                  className="w-full gradient-teal text-black font-semibold"
+                >
                   {createLead.isPending ? 'Creating...' : 'Create Lead'}
                 </Button>
               </div>
@@ -287,96 +306,94 @@ export default function LeadsPage() {
       {selectedLeadIds.size > 0 && (
         <BulkActionsToolbar
           selectedCount={selectedLeadIds.size}
+          onChangeStatus={() => setIsBulkStatusOpen(true)}
           onExport={() => handleExportCSV(true)}
           onDelete={handleBulkDelete}
-          onChangeStatus={() => setIsBulkStatusOpen(true)}
-          onClear={() => setSelectedLeadIds(new Set())}
+          onClear={handleClearSelection}
         />
       )}
 
       <Card className="glass-panel border-border">
         <CardHeader>
-          <CardTitle className="text-foreground flex items-center gap-3">
-            <Checkbox
-              checked={selectedLeadIds.size === leads.length && leads.length > 0}
-              onCheckedChange={handleSelectAll}
-            />
-            All Leads ({leads.length})
-          </CardTitle>
+          <CardTitle className="text-foreground">All Leads ({leads.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {leads.length === 0 ? (
-              <p className="text-soft-gray text-center py-8">No leads yet. Add your first lead to get started.</p>
-            ) : (
-              leads.map((lead) => {
-                const paymentLink = getPaymentLinkForLead(lead.id);
-                return (
-                  <div key={lead.id.toString()} className="p-4 bg-secondary/30 rounded-lg border border-border">
-                    <div className="flex items-start gap-3">
+          {leadsLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : leads.length === 0 ? (
+            <p className="text-soft-gray text-center py-8">No leads yet. Add your first lead to get started!</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left p-3">
                       <Checkbox
-                        checked={selectedLeadIds.has(lead.id.toString())}
-                        onCheckedChange={(checked) => handleSelectLead(lead.id.toString(), checked as boolean)}
-                        className="mt-1"
+                        checked={selectedLeadIds.size === leads.length && leads.length > 0}
+                        onCheckedChange={handleSelectAll}
                       />
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-semibold text-foreground">{lead.name}</p>
-                            <p className="text-sm text-soft-gray">{lead.email}</p>
-                            {lead.phone && <p className="text-sm text-soft-gray">{lead.phone}</p>}
-                            <div className="flex gap-2 mt-2 flex-wrap">
-                              <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded border border-primary/30">
-                                {lead.channel}
-                              </span>
-                              <span className="px-2 py-1 bg-secondary text-soft-gray text-xs rounded border border-border">
-                                {lead.microNiche}
-                              </span>
-                              {paymentLink && (
-                                <span className={`px-2 py-1 text-xs rounded border ${
-                                  paymentLink.status === 'paid'
-                                    ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                                    : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                                }`}>
-                                  Payment: {paymentLink.status}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="px-3 py-1 bg-accent/20 text-accent text-xs rounded-full border border-accent/30">
-                              {lead.status}
-                            </span>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleEdit(lead)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDelete(lead.id)}
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
+                    </th>
+                    <th className="text-left p-3 text-soft-gray font-medium">Name</th>
+                    <th className="text-left p-3 text-soft-gray font-medium">Email</th>
+                    <th className="text-left p-3 text-soft-gray font-medium">Channel</th>
+                    <th className="text-left p-3 text-soft-gray font-medium">Niche</th>
+                    <th className="text-left p-3 text-soft-gray font-medium">Status</th>
+                    <th className="text-left p-3 text-soft-gray font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leads.map((lead) => (
+                    <tr key={lead.id.toString()} className="border-b border-border/50 hover:bg-secondary/20">
+                      <td className="p-3">
+                        <Checkbox
+                          checked={selectedLeadIds.has(lead.id.toString())}
+                          onCheckedChange={(checked) => handleSelectLead(lead.id.toString(), checked as boolean)}
+                        />
+                      </td>
+                      <td className="p-3 text-foreground">{lead.name}</td>
+                      <td className="p-3 text-soft-gray">{lead.email}</td>
+                      <td className="p-3 text-soft-gray">{lead.channel}</td>
+                      <td className="p-3 text-soft-gray">{lead.microNiche}</td>
+                      <td className="p-3">
+                        <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full border border-primary/30">
+                          {lead.status}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEdit(lead)}
+                            className="text-primary hover:text-primary/80"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDelete(lead.id)}
+                            className="text-destructive hover:text-destructive/80"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="glass-panel border-border">
+        <DialogContent className="glass-panel border-border max-w-md">
           <DialogHeader>
             <DialogTitle className="text-foreground">Edit Lead</DialogTitle>
           </DialogHeader>
@@ -411,38 +428,48 @@ export default function LeadsPage() {
             </div>
             <div>
               <Label htmlFor="edit-channel">Channel</Label>
-              <Select value={formData.channel} onValueChange={(v) => setFormData({ ...formData, channel: v })}>
+              <Select value={formData.channel} onValueChange={(value) => setFormData({ ...formData, channel: value })}>
                 <SelectTrigger className="bg-input border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CHANNELS.map(ch => <SelectItem key={ch} value={ch}>{ch}</SelectItem>)}
+                  {CHANNELS.map(channel => (
+                    <SelectItem key={channel} value={channel}>{channel}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label htmlFor="edit-niche">Micro Niche</Label>
-              <Select value={formData.microNiche} onValueChange={(v) => setFormData({ ...formData, microNiche: v })}>
+              <Label htmlFor="edit-microNiche">Micro Niche</Label>
+              <Select value={formData.microNiche} onValueChange={(value) => setFormData({ ...formData, microNiche: value })}>
                 <SelectTrigger className="bg-input border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {MICRO_NICHES.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                  {MICRO_NICHES.map(niche => (
+                    <SelectItem key={niche} value={niche}>{niche}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label htmlFor="edit-status">Status</Label>
-              <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
                 <SelectTrigger className="bg-input border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  {STATUSES.map(status => (
+                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleEditSubmit} disabled={updateLead.isPending} className="w-full gradient-teal text-black font-semibold">
+            <Button
+              onClick={handleEditSubmit}
+              disabled={updateLead.isPending}
+              className="w-full gradient-teal text-black font-semibold"
+            >
               {updateLead.isPending ? 'Updating...' : 'Update Lead'}
             </Button>
           </div>
@@ -460,11 +487,13 @@ export default function LeadsPage() {
         }}
       />
 
-      <PaymentLinkDialog
-        open={isPaymentLinkOpen}
-        onOpenChange={setIsPaymentLinkOpen}
-        paymentLink={currentPaymentLink}
-      />
+      {currentPaymentLink && (
+        <PaymentLinkDialog
+          open={isPaymentLinkOpen}
+          onOpenChange={setIsPaymentLinkOpen}
+          paymentLink={currentPaymentLink}
+        />
+      )}
     </div>
   );
 }
