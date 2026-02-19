@@ -7,9 +7,15 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import BootstrapErrorPanel from '../components/bootstrap/BootstrapErrorPanel';
 import { toast } from 'sonner';
 
-export default function LoginPage() {
+interface LoginPageProps {
+  bootstrapError?: string;
+  onRetry?: () => void;
+}
+
+export default function LoginPage({ bootstrapError, onRetry }: LoginPageProps) {
   const { login, loginStatus, identity } = useInternetIdentity();
   const { data: userProfile } = useGetCallerUserProfile();
   const saveProfile = useSaveCallerUserProfile();
@@ -56,7 +62,6 @@ export default function LoginPage() {
       await saveProfile.mutateAsync({
         name: name.trim(),
         email,
-        role: selectedRole,
         businessName: businessName.trim() || undefined
       });
       toast.success('Profile created successfully');
@@ -73,6 +78,14 @@ export default function LoginPage() {
         </div>
         
         <div className="glass-panel rounded-2xl p-8 w-full max-w-md relative z-10">
+          {bootstrapError && onRetry && (
+            <BootstrapErrorPanel
+              error={bootstrapError}
+              onRetry={onRetry}
+              context="login"
+            />
+          )}
+
           <h1 className="text-3xl font-bold text-[#00C2A8] mb-2">Complete Your Profile</h1>
           <p className="text-soft-gray mb-6">Tell us a bit about yourself</p>
 
@@ -119,6 +132,14 @@ export default function LoginPage() {
       </div>
       
       <div className="glass-panel rounded-2xl p-8 w-full max-w-md relative z-10">
+        {bootstrapError && onRetry && (
+          <BootstrapErrorPanel
+            error={bootstrapError}
+            onRetry={onRetry}
+            context="login"
+          />
+        )}
+
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-[#00C2A8] mb-2">Quick Bee Agency</h1>
           <p className="text-soft-gray">AI-Powered Agency Management</p>

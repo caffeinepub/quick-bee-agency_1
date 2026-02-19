@@ -1,695 +1,159 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Quick Bee Agency — Frontend Implementation Plan",
+  "title": "Integrate Razorpay payment automation and enhance lead CRM with CSV export",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Establish the premium dark teal design system (colors, gradients, typography, glassmorphism cards, transitions, responsiveness) app-wide.",
+      "summary": "Add CSV export functionality to the leads table allowing admin users to download all lead data including id, name, phone, email, service_interest, status, and created_at fields",
       "acceptanceCriteria": [
-        "App-wide colors match the specified hex values and gradients for primary/interactive components.",
-        "All primary cards/panels use rounded 2xl styling with subtle glassmorphism and thin teal borders.",
-        "Interactive elements (buttons, cards, nav items) have consistent hover/active transitions (~300ms) and subtle glow/scale effects.",
-        "UI is responsive (sidebar collapses/behaves sensibly on mobile) and remains readable with #EAEAEA / #BDBDBD text colors."
+        "Export button is visible on the LeadsPage",
+        "Clicking export downloads a CSV file containing all lead records",
+        "CSV includes headers: id, name, phone, email, service_interest, status, created_at",
+        "File is named with timestamp (e.g., leads-export-2024-01-15.csv)"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/index.css",
-          "operation": "create",
-          "description": "Create global styles and CSS variables for the Quick Bee dark theme (deep black background #0F0F0F, teal accent #00C2A8, teal→emerald gradients, glassmorphism panel styling, thin teal borders, readable text colors, and global ~300ms transitions)."
-        },
-        {
-          "path": "frontend/tailwind.config.js",
+          "path": "frontend/src/pages/LeadsPage.tsx",
           "operation": "modify",
-          "description": "Extend Tailwind theme tokens to support Quick Bee brand colors/gradients, 2xl card radius defaults, and consistent animation/transition utilities aligned with the design system."
-        },
-        {
-          "path": "frontend/src/components/quickbee/QuickBeeThemeProvider.tsx",
-          "operation": "create",
-          "description": "Add a lightweight theme wrapper to apply dark mode class, global background treatment, and shared layout spacing without modifying immutable files."
-        },
-        {
-          "path": "frontend/src/components/quickbee/QuickBeeUI.tsx",
-          "operation": "create",
-          "description": "Create reusable presentational building blocks (GradientButton, GlassCard, TealInput, ProgressBar, GlowBadge) that implement the specified rounded/glass/teal-border/hover-scale styling for consistent use across pages."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "create",
-          "description": "Create the application root component that applies the QuickBeeThemeProvider and wires the router + shared layout so the design system is enforced app-wide."
+          "description": "Add CSV export button to the leads table header that triggers download of all lead data. Implement exportLeadsToCSV utility function that converts lead records to CSV format with headers (id, name, phone, email, microNiche as service_interest, status, createdAt), generates a blob, and triggers browser download with timestamp-based filename. Wire the export button to call this function when clicked. Map the microNiche field to service_interest column in the CSV output."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Build the core dashboard layout (sidebar + top navbar), required routes/pages, and dashboard UI sections including KPI cards, progress bars, inputs, buttons, pricing cards, and background mesh.",
+      "summary": "Integrate Razorpay payment gateway with automated payment flow: generate payment links when lead status changes to 'qualified', listen for payment webhooks, and automatically update lead status to 'paid' on successful payment confirmation",
       "acceptanceCriteria": [
-        "All listed nav sections exist and route to distinct pages/views.",
-        "Top navbar includes notification bell with unread indicator and a profile dropdown.",
-        "Dashboard page includes KPI cards and at least one chart area styled with teal gradient glow (data can be mock/derived).",
-        "Inputs show a teal focus ring; buttons use the specified gradient and have a visible hover glow effect.",
-        "Background includes a subtle animated mesh/floating blur effect without hurting performance."
+        "Admin can configure Razorpay API keys in settings",
+        "When lead status changes to 'qualified', a Razorpay payment link is generated",
+        "Payment link can be copied or sent to the lead",
+        "Backend webhook endpoint receives Razorpay payment confirmations",
+        "Lead status automatically updates to 'paid' when payment succeeds",
+        "Payment amount and transaction ID are recorded with the lead"
       ],
       "file_operations": [
         {
-          "path": "frontend/public/assets/generated/quickbee-bg-mesh.dim_1920x1080.png",
-          "operation": "create",
-          "description": "Add the generated static abstract dark background mesh asset at the exact path frontend/public/assets/generated/quickbee-bg-mesh.dim_1920x1080.png for use as the global backdrop."
-        },
-        {
-          "path": "frontend/src/components/layout/AppShell.tsx",
-          "operation": "create",
-          "description": "Create the main authenticated app shell with a responsive left sidebar (collapsible on mobile) and a top navbar containing notifications + profile dropdown, using Quick Bee styling."
-        },
-        {
-          "path": "frontend/src/components/layout/SidebarNav.tsx",
-          "operation": "create",
-          "description": "Implement the sidebar navigation with the required items (Dashboard, Leads, Services, CRM, Automation, Analytics, Payments, Legal, Settings) and responsive behavior."
-        },
-        {
-          "path": "frontend/src/components/layout/TopNav.tsx",
-          "operation": "create",
-          "description": "Implement the top navbar with notification bell (glow/unread indicator) and a profile dropdown (name + role + logout)."
-        },
-        {
-          "path": "frontend/src/router.tsx",
-          "operation": "create",
-          "description": "Create the app router configuration and define distinct routes for all required nav sections plus payment success/failure pages; ensure pages render within AppShell where appropriate."
-        },
-        {
-          "path": "frontend/src/pages/DashboardPage.tsx",
-          "operation": "create",
-          "description": "Build the dashboard page with KPI cards, a teal-glow chart area (mock/derived data allowed), neon teal progress bars, and feature cards using the shared design system components."
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add React Query hooks for Razorpay integration: useIsRazorpayConfigured (query for checking configuration status), useCreatePaymentLink (mutation for generating Razorpay payment links when lead status changes to qualified), useGetPaymentLinks (query for fetching payment links), and useUpdatePaymentLinkStatus (mutation for updating payment link status). These hooks call the corresponding backend methods through the actor."
         },
         {
           "path": "frontend/src/pages/LeadsPage.tsx",
-          "operation": "create",
-          "description": "Create the Leads page shell view (list, filters, actions) wired to the global layout and styling; detailed lead management behavior is implemented under REQ-8."
+          "operation": "modify",
+          "description": "Integrate Razorpay payment link generation into the lead status update flow. When a lead status is changed to 'qualified', automatically trigger payment link creation via useCreatePaymentLink hook. Display the generated payment link in a dialog with copy-to-clipboard functionality. Show payment status indicator for leads with associated payment links. Add a column or badge showing payment link status for qualified/paid leads."
         },
         {
-          "path": "frontend/src/pages/ServicesPage.tsx",
+          "path": "frontend/src/components/leads/PaymentLinkDialog.tsx",
           "operation": "create",
-          "description": "Create the Services/Marketplace listing page shell wired to the global layout and styling; detailed marketplace/cart behavior is implemented under REQ-5."
-        },
-        {
-          "path": "frontend/src/pages/CRMPage.tsx",
-          "operation": "create",
-          "description": "Create the CRM dashboard page shell wired to the global layout and styling; detailed pipeline behavior is implemented under REQ-9."
-        },
-        {
-          "path": "frontend/src/pages/AutomationPage.tsx",
-          "operation": "create",
-          "description": "Create the Automation Center page shell wired to the global layout and styling; detailed automation toggles/logs are implemented under REQ-11."
-        },
-        {
-          "path": "frontend/src/pages/AnalyticsPage.tsx",
-          "operation": "create",
-          "description": "Create the Analytics page shell wired to the global layout and styling; detailed charting behavior is implemented under REQ-10."
+          "description": "Create a dialog component that displays generated Razorpay payment links with copy-to-clipboard button. Show payment link URL, amount, status, and creation timestamp. Include visual confirmation when link is copied. Provide options to regenerate or resend the link. Use shadcn/ui Dialog component for consistent styling with the black + teal green theme."
         },
         {
           "path": "frontend/src/pages/PaymentsPage.tsx",
-          "operation": "create",
-          "description": "Create the Payments/Invoices page shell wired to the global layout and styling; detailed order/payment history behavior is implemented under REQ-6."
-        },
-        {
-          "path": "frontend/src/pages/LegalPage.tsx",
-          "operation": "create",
-          "description": "Create the Legal Essentials page shell wired to the global layout and styling; detailed template view/edit behavior is implemented under REQ-13."
-        },
-        {
-          "path": "frontend/src/pages/SettingsPage.tsx",
-          "operation": "create",
-          "description": "Create the Settings/admin area page shell wired to the global layout and styling; detailed admin screens are implemented under REQ-16."
-        },
-        {
-          "path": "frontend/src/components/quickbee/BackgroundMesh.tsx",
-          "operation": "create",
-          "description": "Implement a subtle background layer that uses frontend/public/assets/generated/quickbee-bg-mesh.dim_1920x1080.png plus lightweight CSS animation for floating blurred shapes/mesh feel without heavy runtime cost."
+          "operation": "modify",
+          "description": "Extend the payments page to include Razorpay payment link tracking alongside Stripe orders. Add a section showing all payment links with their status (pending, paid, expired). Display lead name, amount, creation date, and payment status for each link. Include filtering by status and search by lead name. Show transaction ID for completed payments."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Add consistent gradient 3D-style iconography for sidebar items and module/feature cards using the provided generated icon sets.",
+      "summary": "Add Razorpay configuration panel in the admin settings page allowing storage and editing of Razorpay API key, secret, and webhook secret",
       "acceptanceCriteria": [
-        "Sidebar navigation items each display a consistent 3D-style gradient icon.",
-        "Feature/module cards (e.g., Generators/Automation) each display a consistent 3D-style gradient icon illustration.",
-        "Icons appear visually cohesive (same style, lighting, glow, shadow language) across the app."
+        "Settings page includes Razorpay configuration section",
+        "Admin can input and save Razorpay key ID, key secret, and webhook secret",
+        "Credentials are securely stored in backend",
+        "Test connection button validates Razorpay credentials"
       ],
       "file_operations": [
         {
-          "path": "frontend/public/assets/generated/quickbee-icons-sidebar.dim_1024x1024.png",
+          "path": "frontend/src/components/settings/RazorpayConfigPanel.tsx",
           "operation": "create",
-          "description": "Add the generated sidebar icon sprite sheet asset at frontend/public/assets/generated/quickbee-icons-sidebar.dim_1024x1024.png for consistent nav icons."
+          "description": "Create a Razorpay configuration panel component for admin settings. Include password-type input fields for API key, API secret, and webhook secret. Add a 'Test Connection' button that validates credentials by checking configuration status. Show success/error feedback after saving or testing. Use shadcn/ui Form components and maintain black + teal green theme. Include a toggle to show/hide sensitive credential values."
         },
         {
-          "path": "frontend/public/assets/generated/quickbee-icons-modules.dim_1024x1024.png",
-          "operation": "create",
-          "description": "Add the generated module icon sprite sheet asset at frontend/public/assets/generated/quickbee-icons-modules.dim_1024x1024.png for module/feature card icons."
-        },
-        {
-          "path": "frontend/src/components/quickbee/QuickBeeIcons.tsx",
-          "operation": "create",
-          "description": "Create an icon helper that renders consistent 3D-style gradient icons by mapping nav/module keys to positions within the generated sprite images; keep sizing/shadows consistent across the app."
-        },
-        {
-          "path": "frontend/src/components/layout/SidebarNav.tsx",
+          "path": "frontend/src/pages/SettingsPage.tsx",
           "operation": "modify",
-          "description": "Wire sidebar items to render the new QuickBeeIcons for each required nav entry (Dashboard, Leads, Services, CRM, Automation, Analytics, Payments, Legal, Settings)."
+          "description": "Import and render the RazorpayConfigPanel component within the admin settings page. Place it alongside the existing Stripe configuration section. Ensure the panel is only visible to admin users (already gated by SettingsPage role check). Add a section header for 'Payment Gateway Configuration' that groups both Stripe and Razorpay panels. Check isRazorpayConfigured status on load to show current configuration state."
         },
         {
-          "path": "frontend/src/pages/DashboardPage.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Update dashboard feature cards to display module icons via QuickBeeIcons for a cohesive icon language."
+          "description": "Add useSetRazorpayConfiguration mutation hook that calls the backend setRazorpayConfiguration method with apiKey, apiSecret, and webhookSecret parameters. Include optimistic updates and query invalidation for isRazorpayConfigured after successful configuration."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Implement role-based login UI (Admin/Manager/Client) with demo credentials, maintain an authenticated session in the frontend, and enforce role-based navigation/action restrictions.",
+      "summary": "Create automated notification system that triggers when lead status changes: send notification when status moves to 'qualified' (payment link ready), 'paid' (payment confirmed), or 'onboarding' (project started)",
       "acceptanceCriteria": [
-        "Login screen supports selecting a role and signing in using the specified demo credentials.",
-        "After login, the UI only shows navigation items allowed for the user’s role.",
-        "Backend rejects unauthorized calls (role checks enforced server-side) even if frontend is manipulated.",
-        "Admin has full access; Manager cannot edit pricing/core system settings; Client is limited to browsing services/plans, purchasing, and tracking their own projects/invoices/deliverables."
+        "Status change triggers create notification records in backend",
+        "Notifications appear in the TopNav notifications dropdown",
+        "Notification text clearly indicates the status change and lead name",
+        "Notifications link to the relevant lead detail page",
+        "Admin can view notification history"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/auth/demoCredentials.ts",
-          "operation": "create",
-          "description": "Define the fixed demo credential map for Admin (admin@quickbee.com/Admin123), Manager (manager@quickbee.com/Manager123), Client (client@quickbee.com/Client123) and role selection options."
+          "path": "frontend/src/components/layout/TopNav.tsx",
+          "operation": "modify",
+          "description": "Enhance the notifications dropdown to display lead status change notifications. Show notification message, timestamp, and read/unread indicator. Make each notification clickable, linking to the relevant lead detail page using the leadId from the notification. Add mark-as-read functionality when notifications are clicked. Poll or refresh notifications when new status changes occur. Ensure notifications are filtered by notificationType to show only lead-related updates."
         },
         {
-          "path": "frontend/src/auth/useSession.ts",
-          "operation": "create",
-          "description": "Create a frontend session hook that persists selected demo role + email in localStorage/sessionStorage, coordinates with Internet Identity login/logout, and clears cached app data on logout. Use the selected-components 'authorization' guidance for profile handling; verify the component's usage instructions before implementing."
+          "path": "frontend/src/pages/LeadsPage.tsx",
+          "operation": "modify",
+          "description": "After successfully updating a lead status to 'qualified', 'paid', or 'onboarding', trigger a notification optimistically in the UI. The backend will create the actual notification record. Invalidate the notifications query to refresh the TopNav dropdown. Provide visual feedback (toast or badge) when a status change triggers a notification."
         },
         {
-          "path": "frontend/src/auth/RequireRole.tsx",
-          "operation": "create",
-          "description": "Add a route/page wrapper for strict UI gating (Admin/Manager/Client) to restrict pages and actions; show an Access Denied view when role is insufficient."
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add useMarkNotificationAsRead mutation hook that calls the backend markNotificationAsRead method. Invalidate the getMyNotifications query after marking as read to refresh the notification list in TopNav. Ensure the mutation includes optimistic updates for immediate UI feedback."
         },
         {
-          "path": "frontend/src/pages/LoginPage.tsx",
+          "path": "frontend/src/pages/NotificationsPage.tsx",
           "operation": "create",
-          "description": "Implement the login screen with role selection UI and demo credential validation; on success, trigger Internet Identity login flow and then save/load user profile; do not expose principal ids."
+          "description": "Create a dedicated notifications history page for admins. Display all notifications with filtering by type, read/unread status, and date range. Show full notification details including message, type, timestamp, and related lead information. Include bulk mark-as-read action. Link each notification to its related lead or project. Use shadcn/ui Table and Badge components with black + teal green theme."
         },
         {
           "path": "frontend/src/components/layout/SidebarNav.tsx",
           "operation": "modify",
-          "description": "Apply role-based filtering so navigation items and admin-only areas are not visible/accessible for restricted roles."
+          "description": "Add a 'Notifications' menu item to the admin sidebar navigation that links to the new NotificationsPage. Place it in the CRM/Admin section, visible only to admin users. Include a notification count badge if there are unread notifications."
         },
         {
-          "path": "frontend/src/components/layout/TopNav.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Wire profile dropdown to show user name/role and provide logout that clears frontend caches (including react-query cache) per authorization component guidance; verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/router.tsx",
-          "operation": "modify",
-          "description": "Wire LoginPage as the entry for unauthenticated users and apply RequireRole guards to restricted routes (e.g., Settings/admin management)."
+          "description": "Register the /notifications route in the router configuration, mapping it to the NotificationsPage component. Ensure the route is admin-gated and includes proper loading states."
         }
       ]
     },
     {
       "id": "REQ-5",
-      "summary": "Create the service marketplace with 30 services, tiered INR pricing, service detail + comparison, plan selection, and cart support.",
+      "summary": "Add bulk actions to leads table allowing admin to select multiple leads and update their status, export selected leads, or delete selected leads in one operation",
       "acceptanceCriteria": [
-        "Marketplace lists all 30 services with consistent card UI and 3D icon styling.",
-        "Each service offers Basic/Pro/Premium tiers with INR prices that fall within the specified ranges.",
-        "Users can add selected service+tier to a cart and view cart totals in INR.",
-        "A comparison table exists to compare at least the three tiers for a service (features can be standardized if needed)."
+        "Checkbox column added to leads table for multi-select",
+        "Bulk action toolbar appears when leads are selected",
+        "Actions include: Change Status, Export Selected, Delete Selected",
+        "Confirmation dialog shown before destructive operations",
+        "Success message shown after bulk operation completes"
       ],
       "file_operations": [
-        {
-          "path": "frontend/src/marketplace/servicesCatalog.ts",
-          "operation": "create",
-          "description": "Create the fixed catalog list for the 30 productized service names (exact names per BuildRequest source) and default descriptions/features used for comparison when backend data is empty."
-        },
-        {
-          "path": "frontend/src/marketplace/pricing.ts",
-          "operation": "create",
-          "description": "Add helpers to format INR amounts, validate tier prices within the required ranges, and compute cart totals/discounted totals."
-        },
-        {
-          "path": "frontend/src/cart/useCart.ts",
-          "operation": "create",
-          "description": "Implement a cart hook (serviceId + tier + quantity) persisted in localStorage, exposing add/remove/update and computed INR totals."
-        },
-        {
-          "path": "frontend/src/pages/ServicesPage.tsx",
-          "operation": "modify",
-          "description": "Implement the marketplace list UI with consistent service cards, 3D icon styling, tier price display in INR, and navigation to a service detail view."
-        },
-        {
-          "path": "frontend/src/pages/ServiceDetailPage.tsx",
-          "operation": "create",
-          "description": "Create a service detail view with plan selection (Basic/Pro/Premium), a tier comparison table, and add-to-cart actions."
-        },
-        {
-          "path": "frontend/src/pages/CartPage.tsx",
-          "operation": "create",
-          "description": "Create a cart page showing selected services/tiers, totals in INR, and a checkout call-to-action that integrates with Stripe flow (wired under REQ-6)."
-        },
-        {
-          "path": "frontend/src/router.tsx",
-          "operation": "modify",
-          "description": "Register routes for ServiceDetailPage and CartPage, and ensure navigation from ServicesPage to details/cart."
-        }
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "summary": "Implement Stripe-only checkout (test mode), INR display, payment success/failure pages, and post-payment UI flows (project/order visibility).",
-      "acceptanceCriteria": [
-        "Checkout uses Stripe (test mode) and does not include Razorpay/UPI integration.",
-        "All displayed prices and receipts are in INR.",
-        "On successful payment, a new Project is created and linked to the purchasing Client and the purchased service package.",
-        "Payments/Orders history is viewable by the Client for their own purchases and by Admin for all purchases."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/payments/PaymentSetup.tsx",
-          "operation": "create",
-          "description": "Implement an admin-only Stripe configuration UI using isStripeConfigured/setStripeConfiguration and role guards. Use the selected-components 'stripe' guidance; verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/payments/useCreateCheckoutSession.ts",
-          "operation": "create",
-          "description": "Create a checkout session hook that calls createCheckoutSession, parses the returned JSON safely, validates session.url, and redirects via window.location.href (not router). Use the selected-components 'stripe' guidance; verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/pages/CheckoutPage.tsx",
-          "operation": "create",
-          "description": "Create a checkout page that converts the cart to ShoppingItem[] in INR (paise/cents) and initiates Stripe redirect using useCreateCheckoutSession; ensure no Razorpay/UPI UI exists."
-        },
-        {
-          "path": "frontend/src/pages/PaymentSuccessPage.tsx",
-          "operation": "create",
-          "description": "Create a payment success view that reads session identifiers from URL params as needed, checks status via getStripeSessionStatus when available, and guides the user to their Projects/Payments views."
-        },
-        {
-          "path": "frontend/src/pages/PaymentFailurePage.tsx",
-          "operation": "create",
-          "description": "Create a payment failure view that shows an in-app error state and provides navigation back to cart/checkout."
-        },
-        {
-          "path": "frontend/src/pages/PaymentsPage.tsx",
-          "operation": "modify",
-          "description": "Implement the orders/payments history UI showing INR amounts; filter by role so Clients see only their own purchases while Admin can see all."
-        },
-        {
-          "path": "frontend/src/router.tsx",
-          "operation": "modify",
-          "description": "Register /payment-success and /payment-failure routes as required by the Stripe component usage, plus wire CheckoutPage route from the cart."
-        }
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "summary": "Implement client onboarding form, link onboarding details to projects, and allow clients to track project status and deliverables placeholders.",
-      "acceptanceCriteria": [
-        "Client onboarding form includes all specified fields and validates required inputs.",
-        "Onboarding data is stored and linked to the correct Client and Project.",
-        "Client dashboard shows projects with onboarding details accessible per project.",
-        "Deliverables area exists as a placeholder list or uploads placeholder (no external storage assumed)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/projects/onboardingSchema.ts",
-          "operation": "create",
-          "description": "Create validation helpers for onboarding fields (Business Name, Niche, Goals, Budget, Timeline) and INR budget input constraints."
-        },
-        {
-          "path": "frontend/src/pages/ClientOnboardingPage.tsx",
-          "operation": "create",
-          "description": "Implement the client onboarding form UI with required fields, dark inputs with teal focus rings, and submit behavior to associate onboarding data to a selected/new project."
-        },
-        {
-          "path": "frontend/src/pages/ProjectsPage.tsx",
-          "operation": "create",
-          "description": "Create a projects list view for clients/managers/admin showing project status, access to onboarding details, and a deliverables placeholder section per project."
-        },
-        {
-          "path": "frontend/src/pages/ProjectDetailPage.tsx",
-          "operation": "create",
-          "description": "Create a project detail view including onboarding detail readout, status timeline, and deliverables placeholders; enforce that Clients can only access their own projects in the UI."
-        },
-        {
-          "path": "frontend/src/router.tsx",
-          "operation": "modify",
-          "description": "Register routes for ProjectsPage, ProjectDetailPage, and ClientOnboardingPage and wire navigation from dashboard/payments success to onboarding/projects."
-        },
-        {
-          "path": "frontend/src/pages/DashboardPage.tsx",
-          "operation": "modify",
-          "description": "Add client-focused project tracking section (status cards and onboarding prompts) to the dashboard for Client role."
-        }
-      ]
-    },
-    {
-      "id": "REQ-8",
-      "summary": "Build Lead Management UI for up to 3000 leads with channel fields, 50 micro-niche filter, scraping-ready fields (no scraping), and CSV export.",
-      "acceptanceCriteria": [
-        "Lead model supports channel identifiers and contact fields for the listed channels.",
-        "UI supports filtering by micro-niche from a list of 50 options.",
-        "Leads can be created/imported manually (no scraping) and stored reliably in backend state.",
-        "Leads list can be exported to CSV from the UI."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/leads/microNiches.ts",
-          "operation": "create",
-          "description": "Define the list of 50 ultra-specific micro-niches used for filtering and lead creation."
-        },
-        {
-          "path": "frontend/src/leads/csvExport.ts",
-          "operation": "create",
-          "description": "Implement CSV export helpers for leads (including channel fields) with safe escaping and consistent column ordering."
-        },
-        {
-          "path": "frontend/src/leads/leadScoring.ts",
-          "operation": "create",
-          "description": "Add deterministic lead qualification scoring utilities reused by Leads/CRM (also supports REQ-12 scoring display)."
-        },
         {
           "path": "frontend/src/pages/LeadsPage.tsx",
           "operation": "modify",
-          "description": "Implement leads list UI with channel display (Email, LinkedIn, Instagram, WhatsApp, SMS), micro-niche filter dropdown, create/edit modal/forms for manual entry, and a CSV export action for up to 3000 leads."
+          "description": "Add checkbox column to the leads table for multi-select functionality. Implement selection state management tracking selected lead IDs. Display a bulk actions toolbar when one or more leads are selected, showing action buttons for 'Change Status', 'Export Selected', and 'Delete Selected'. Wire each action to its corresponding handler function. Show confirmation dialogs for destructive operations (status change, delete). Display success/error toasts after bulk operations complete. Clear selections after successful operations. Ensure export selected uses the same CSV format as full export but filters to selected leads only."
         },
         {
-          "path": "frontend/src/components/leads/LeadForm.tsx",
+          "path": "frontend/src/components/leads/BulkActionsToolbar.tsx",
           "operation": "create",
-          "description": "Create a lead create/edit form component with required fields, teal focus rings, and validation; keep it in-app only with no scraping features."
-        }
-      ]
-    },
-    {
-      "id": "REQ-9",
-      "summary": "Implement CRM pipeline UI with required stages, move items between stages, tasks/reminders, notes, and activity timeline integrated with leads/projects.",
-      "acceptanceCriteria": [
-        "CRM pipeline supports all specified stages and allows moving a lead/opportunity between stages.",
-        "Tasks can be assigned (at minimum to a user role/person) and viewed in a task list.",
-        "Follow-up reminders generate in-app notifications (no email).",
-        "Notes and activity events are stored and displayed in a timeline per lead/opportunity."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/crm/stages.ts",
-          "operation": "create",
-          "description": "Define the CRM pipeline stages (New Lead, Contacted, Qualified, Proposal Sent, Closed, Lost) and shared labels."
+          "description": "Create a toolbar component that appears above the leads table when leads are selected. Display count of selected leads and action buttons for Change Status (opens status picker dialog), Export Selected (triggers CSV download), and Delete Selected (shows confirmation). Use shadcn/ui Button and Dialog components. Style with black + teal green theme. Include cancel/clear selection button."
         },
         {
-          "path": "frontend/src/components/crm/PipelineBoard.tsx",
+          "path": "frontend/src/components/leads/BulkStatusChangeDialog.tsx",
           "operation": "create",
-          "description": "Create a pipeline board UI for moving leads/opportunities across stages with a performant layout suitable for dark UI."
+          "description": "Create a dialog for bulk status updates. Show list of selected leads with current statuses. Provide dropdown to select new status (new, contacted, qualified, paid, onboarding, completed, lost). Include confirmation step showing which leads will be updated. Call updateLead mutation for each selected lead with the new status. Show progress indicator during bulk update. Display summary of successful/failed updates. Use shadcn/ui Dialog and Select components."
         },
         {
-          "path": "frontend/src/components/crm/ActivityTimeline.tsx",
-          "operation": "create",
-          "description": "Create an activity timeline component that renders notes, tasks, and stage changes per lead/opportunity."
-        },
-        {
-          "path": "frontend/src/components/crm/TaskList.tsx",
-          "operation": "create",
-          "description": "Create a task list view (from CRM activities) showing assignment and due dates, supporting follow-up reminders via in-app notifications only."
-        },
-        {
-          "path": "frontend/src/pages/CRMPage.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Implement the CRM dashboard: pipeline board, item detail panel (notes/tasks), and integration points to open a related Lead or Project view; ensure role restrictions on who can assign/update."
-        },
-        {
-          "path": "frontend/src/pages/DashboardPage.tsx",
-          "operation": "modify",
-          "description": "Add a dashboard section summarizing upcoming tasks/reminders and recent CRM activity for the current user."
-        }
-      ]
-    },
-    {
-      "id": "REQ-10",
-      "summary": "Create Analytics dashboards with teal-glow charts for key metrics computed from available data or seeded demo data when empty.",
-      "acceptanceCriteria": [
-        "Analytics page includes chart components for each specified metric.",
-        "Metrics compute from stored data when available (e.g., revenue from paid orders) and fall back to seeded demo data when no records exist.",
-        "Charts match the teal gradient glow styling and are readable on dark background."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/analytics/demoData.ts",
-          "operation": "create",
-          "description": "Provide seeded demo datasets for revenue, active clients, conversion, top-selling services, and lead source performance to use when on-canister data is empty."
-        },
-        {
-          "path": "frontend/src/components/analytics/GlowChart.tsx",
-          "operation": "create",
-          "description": "Implement lightweight chart components (e.g., SVG-based) styled with teal gradient glow and dark background readability for the required metrics."
-        },
-        {
-          "path": "frontend/src/analytics/metrics.ts",
-          "operation": "create",
-          "description": "Implement metric calculation helpers that derive analytics from available orders/leads/projects data and fall back to demoData when empty."
-        },
-        {
-          "path": "frontend/src/pages/AnalyticsPage.tsx",
-          "operation": "modify",
-          "description": "Render all required analytics charts (revenue, active clients, conversion rate, top-selling services, lead source performance) using GlowChart and computed/demo data."
-        }
-      ]
-    },
-    {
-      "id": "REQ-11",
-      "summary": "Build the Automation Center UI with rule-based toggles/config, in-app sequence builder (non-email), proposal/payment/onboarding triggers, and automation logs view.",
-      "acceptanceCriteria": [
-        "Automation Center lists all specified automations as cards with toggles (enable/disable).",
-        "Sequence builder exists but does not send email; it can generate in-app tasks/notifications or message templates.",
-        "“Proposal auto-send” is implemented as creating an in-app proposal artifact/notification when status becomes Qualified/Proposal Sent (no email).",
-        "Automation actions are logged and viewable (who/what/when)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/automation/automations.ts",
-          "operation": "create",
-          "description": "Define the set of automation modules (Auto WhatsApp replies, sequence builder (non-email), proposal auto-send after qualification, payment confirmation automation, project onboarding auto-trigger) and their default configurations."
-        },
-        {
-          "path": "frontend/src/automation/useAutomationState.ts",
-          "operation": "create",
-          "description": "Implement a frontend automation state store (localStorage-backed) for toggles and basic rule configuration; ensure no external integrations are attempted."
-        },
-        {
-          "path": "frontend/src/components/automation/AutomationCard.tsx",
-          "operation": "create",
-          "description": "Create a 3D-icon module card UI with enable/disable toggles and simple config UI, using the Quick Bee design system and module icons."
-        },
-        {
-          "path": "frontend/src/components/automation/AutomationLogs.tsx",
-          "operation": "create",
-          "description": "Create a log viewer UI for automation events (who/what/when) sourced from persisted local logs and/or existing generator logs where reused."
-        },
-        {
-          "path": "frontend/src/pages/AutomationPage.tsx",
-          "operation": "modify",
-          "description": "Implement the Automation Center page rendering all automation cards, rule configuration panels, and a logs section; ensure sequence builder remains in-app only (no email sending)."
-        }
-      ]
-    },
-    {
-      "id": "REQ-12",
-      "summary": "Replace disallowed AI with deterministic Generators (templates/rules) for recommendations, proposals, pricing strategy, scripts, follow-ups, and lead qualification scoring; support proposal download.",
-      "acceptanceCriteria": [
-        "No external AI API integrations exist; all generator outputs are produced locally using templates/rules.",
-        "Generators are accessible via UI and produce outputs for each listed generator type.",
-        "Proposal generator supports a downloadable artifact (PDF preferred; otherwise downloadable HTML/text) and is stored/linked to a lead/project.",
-        "Lead qualification scoring is computed deterministically from lead fields and displayed in Leads/CRM."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/generators/templates.ts",
-          "operation": "create",
-          "description": "Implement deterministic templates/rules for all generator types (service recommendations, proposals, pricing strategy, closing scripts, follow-up messages for Email/WhatsApp/LinkedIn/SMS as text templates only, and qualification scoring) with no external API calls."
-        },
-        {
-          "path": "frontend/src/generators/download.ts",
-          "operation": "create",
-          "description": "Add client-side download helpers for generated proposals as a downloadable HTML/text document (and PDF only if feasible purely client-side without external services)."
-        },
-        {
-          "path": "frontend/src/pages/GeneratorsPage.tsx",
-          "operation": "create",
-          "description": "Create a Generators page with cards/forms for each generator type, showing outputs and allowing proposal download; log generator runs using existing backend generator log capabilities where available."
-        },
-        {
-          "path": "frontend/src/pages/LeadsPage.tsx",
-          "operation": "modify",
-          "description": "Display deterministic qualification score on leads list/detail using the shared lead scoring utilities; ensure it is visible and consistent with generator logic."
-        },
-        {
-          "path": "frontend/src/pages/CRMPage.tsx",
-          "operation": "modify",
-          "description": "Display qualification score and allow generating proposal artifacts from CRM when leads reach Qualified/Proposal Sent; ensure the feature remains in-app only (no email)."
-        },
-        {
-          "path": "frontend/src/router.tsx",
-          "operation": "modify",
-          "description": "Register a route for GeneratorsPage and wire navigation access according to role restrictions."
-        }
-      ]
-    },
-    {
-      "id": "REQ-13",
-      "summary": "Implement Legal Essentials section with viewable templates for all users and editable templates for Admin only.",
-      "acceptanceCriteria": [
-        "All listed legal pages exist and display content from backend storage.",
-        "Admin can edit and save legal templates; changes persist.",
-        "Non-admin users cannot edit legal content and are prevented server-side from updating it."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/legal/legalPages.ts",
-          "operation": "create",
-          "description": "Define the required legal template types (Privacy Policy, Terms & Conditions, Refund Policy, Service Agreement, GST Invoice Support, Disclaimer) and UI labels."
-        },
-        {
-          "path": "frontend/src/components/legal/LegalEditor.tsx",
-          "operation": "create",
-          "description": "Create a legal content editor/viewer component that supports Admin edit mode (title/content) and read-only mode for other roles."
-        },
-        {
-          "path": "frontend/src/pages/LegalPage.tsx",
-          "operation": "modify",
-          "description": "Implement the Legal Essentials page to list legal templates and open a viewer/editor; enforce Admin-only editing in the UI and handle authorization failures gracefully."
-        }
-      ]
-    },
-    {
-      "id": "REQ-14",
-      "summary": "Implement offer management (toggles, coupons) and apply offers/coupons to cart/checkout totals and order summaries in INR.",
-      "acceptanceCriteria": [
-        "Admin can create/enable/disable offers and coupons and set discount rules.",
-        "Cart/checkout supports applying a coupon code and recalculates totals in INR.",
-        "Orders store applied offer/coupon details for later auditing.",
-        "Clients can view discounted totals on their order/invoice screens."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/offers/discounts.ts",
-          "operation": "create",
-          "description": "Implement discount calculation helpers that combine active offers and optional coupon codes and produce INR totals suitable for cart/checkout UI."
-        },
-        {
-          "path": "frontend/src/components/offers/CouponApplyForm.tsx",
-          "operation": "create",
-          "description": "Create a coupon code apply UI component used in cart/checkout, validating codes and updating totals in INR."
-        },
-        {
-          "path": "frontend/src/pages/CartPage.tsx",
-          "operation": "modify",
-          "description": "Add coupon apply flow and display discounted totals in INR; show the applied coupon and discount breakdown."
-        },
-        {
-          "path": "frontend/src/pages/CheckoutPage.tsx",
-          "operation": "modify",
-          "description": "Ensure checkout reflects discounted totals and uses the discounted amount when initiating Stripe session; keep all prices in INR."
-        },
-        {
-          "path": "frontend/src/components/admin/OffersAdminPanel.tsx",
-          "operation": "create",
-          "description": "Implement an Admin-only offer/coupon management panel (create/toggle) and wire it into Settings; enforce role-based UI access."
-        }
-      ]
-    },
-    {
-      "id": "REQ-15",
-      "summary": "Create in-app notification system UI (bell + center) with persistent read/unread state and generation for key events; no email notifications.",
-      "acceptanceCriteria": [
-        "Notification bell shows an unread indicator and opens a notification center list.",
-        "Notifications are created for payment success, CRM follow-up reminders, and proposal/generator events.",
-        "Users can mark notifications as read; read/unread state persists.",
-        "No email sending functionality exists."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/notifications/useNotifications.ts",
-          "operation": "create",
-          "description": "Create a notifications hook that fetches current user's notifications, computes unread count, and marks as read; ensure no email features are introduced. Use the selected-components 'authorization' guidance for authenticated flows; verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/components/notifications/NotificationCenter.tsx",
-          "operation": "create",
-          "description": "Create a notification center popover/panel UI listing notifications with read/unread styling and actions to mark as read."
-        },
-        {
-          "path": "frontend/src/components/layout/TopNav.tsx",
-          "operation": "modify",
-          "description": "Wire the notification bell unread indicator and open/close behavior to NotificationCenter; apply the teal glow indicator styling."
-        },
-        {
-          "path": "frontend/src/pages/PaymentSuccessPage.tsx",
-          "operation": "modify",
-          "description": "On successful payment confirmation, trigger an in-app notification creation flow (no email) and guide the user to projects/payments."
-        },
-        {
-          "path": "frontend/src/pages/CRMPage.tsx",
-          "operation": "modify",
-          "description": "When creating/updating CRM reminders/tasks in the UI, generate in-app notifications only and display them via the notification center."
-        },
-        {
-          "path": "frontend/src/pages/GeneratorsPage.tsx",
-          "operation": "modify",
-          "description": "When a generator output/proposal is created, generate an in-app notification and ensure it appears in the notification center."
-        }
-      ]
-    },
-    {
-      "id": "REQ-16",
-      "summary": "Implement frontend admin management screens and seed/demo usability behaviors (services, orders/payments, offers, legal templates, users) using available backend capabilities.",
-      "acceptanceCriteria": [
-        "Backend exposes CRUD/query endpoints needed by the frontend for each module listed.",
-        "Data persists across refreshes (stable storage appropriate for the template).",
-        "Demo seed data exists for services (30 items), micro-niches (50), and initial legal templates.",
-        "Admin UI can list/manage core records (at least services, orders/payments, offers, legal templates, users)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/admin/AdminGuard.tsx",
-          "operation": "create",
-          "description": "Create an Admin-only guard wrapper used by Settings/admin routes and panels to prevent non-admin UI access and to render a friendly access denied state."
-        },
-        {
-          "path": "frontend/src/components/admin/ServicesAdminPanel.tsx",
-          "operation": "create",
-          "description": "Implement an admin services management panel (list/create/update/delete) that also validates required INR tier ranges for Basic/Pro/Premium before saving."
-        },
-        {
-          "path": "frontend/src/components/admin/OrdersAdminPanel.tsx",
-          "operation": "create",
-          "description": "Implement an admin orders/payments panel to list orders and payment statuses; include basic filtering and detail drawer."
-        },
-        {
-          "path": "frontend/src/components/admin/LegalAdminPanel.tsx",
-          "operation": "create",
-          "description": "Implement an admin legal templates panel that links into the Legal editor experience for create/update of required templates."
-        },
-        {
-          "path": "frontend/src/components/admin/UsersAdminPanel.tsx",
-          "operation": "create",
-          "description": "Implement a minimal admin users panel to view user profiles/roles and support role assignment UI where available."
-        },
-        {
-          "path": "frontend/src/pages/SettingsPage.tsx",
-          "operation": "modify",
-          "description": "Wire SettingsPage to include admin management tabs/panels (Stripe setup, Services, Orders/Payments, Offers/Coupons, Legal, Users) with AdminGuard; ensure Managers/Clients cannot access restricted panels."
-        },
-        {
-          "path": "frontend/src/pages/ServicesPage.tsx",
-          "operation": "modify",
-          "description": "Implement frontend fallback behavior: if backend services list is empty/unavailable, display the 30-item catalog from servicesCatalog to ensure initial app usability."
-        },
-        {
-          "path": "frontend/src/pages/LegalPage.tsx",
-          "operation": "modify",
-          "description": "Implement frontend fallback behavior to render required legal template sections even before content exists, prompting Admin to create/edit templates."
+          "description": "Add useBulkDeleteLeads mutation hook that accepts an array of lead IDs and calls deleteLead for each ID. Implement with Promise.all for concurrent deletions. Invalidate getAllLeads query after completion. Return success/failure counts for UI feedback."
         }
       ]
     }

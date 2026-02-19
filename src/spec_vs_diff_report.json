@@ -1,234 +1,79 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-17T20:26:06.168Z",
-  "summary": "Diff adds an initial backend data model and a frontend shell with routing, sidebar/topnav, cart/checkout UI, and notifications UI. However, many BuildRequest modules are only stubbed or not evidenced (3D icon set, full UI system details, marketplace details/comparison, onboarding form, leads micro-niches/CSV, CRM tasks/reminders/timeline, analytics charts/metrics computation, automation rules/logs, deterministic generators with downloadable artifacts, legal templates editing, offers/coupons, and seed/demo data + stable persistence). There are also signs of disallowed/incorrect content in the services catalog (AI/email offerings) and use of non-3D icons.",
+  "generatedAt": "2026-02-19T07:22:52.334Z",
+  "summary": "The diff implements all 5 core requirements: CSV export (REQ-1), Razorpay payment automation (REQ-2), Razorpay configuration panel (REQ-3), notification system (REQ-4), and bulk actions (REQ-5). However, some acceptance criteria are partially implemented or missing evidence in the provided diff truncations.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "Premium modern dark UI design system with specified hex colors/gradients, rounded 2xl cards, glassmorphism, thin teal borders, consistent ~300ms transitions, glow/scale effects, responsive behavior.",
-      "reason": "Some styling primitives exist (glass-panel, gradients, dark background), but the diff does not evidence app-wide adherence to the exact hex gradient system or responsiveness like a collapsing mobile sidebar; also most pages/components are not shown and icons/cards are not consistently 2xl across the app.",
+      "id": "REQ-2",
+      "requirement": "Backend webhook endpoint receives Razorpay payment confirmations",
+      "reason": "The backend/main.mo file is truncated before showing webhook endpoint implementation. While PaymentLink types exist, no HTTP outcall handler or webhook route verification is visible.",
       "evidence": [
-        "frontend/src/index.css",
-        "frontend/src/components/layout/AppShell.tsx",
-        "frontend/src/components/layout/SidebarNav.tsx"
+        "backend/main.mo"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "Core dashboard layout/nav: sidebar items (Dashboard, Leads, Services, CRM, Automation, Analytics, Payments, Legal, Settings) routed to distinct pages; top navbar with notification bell + unread glow and profile dropdown; dashboard KPI cards + chart area; neon progress bars; teal focus rings; pricing cards; generator feature cards; subtle animated mesh/blur background.",
-      "reason": "Sidebar/topnav/notification UI and routes are present, but no evidence of dashboard KPI cards + chart area, progress bars, pricing cards, generator feature cards, or animated mesh effect (only a static background image).",
+      "requirement": "Lead status automatically updates to 'paid' when payment succeeds",
+      "reason": "No automated status update logic visible in truncated backend code. The PaymentLink type exists but webhook processing logic is not shown.",
       "evidence": [
-        "frontend/src/App.tsx",
-        "frontend/src/components/layout/AppShell.tsx",
-        "frontend/src/components/layout/TopNav.tsx",
-        "frontend/src/pages/AnalyticsPage.tsx"
+        "backend/main.mo"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Payment amount and transaction ID are recorded with the lead",
+      "reason": "PaymentLink structure includes amount but no transactionId field visible. Lead type does not show payment metadata fields in the truncated code.",
+      "evidence": [
+        "backend/main.mo",
+        "backend/migration.mo"
       ]
     },
     {
       "id": "REQ-3",
-      "requirement": "Use consistent teal-to-cyan gradient 3D-style icons with glow/depth/shadow for sidebar and module cards.",
-      "reason": "Sidebar and module cards use lucide-react flat line icons, and there is no evidence of the required 3D gradient icon assets being used.",
+      "requirement": "Test connection button validates Razorpay credentials",
+      "reason": "RazorpayConfigPanel.tsx is truncated before showing test connection button implementation. Form exists but validation button logic is missing.",
       "evidence": [
-        "frontend/src/components/layout/SidebarNav.tsx",
-        "frontend/src/pages/AutomationPage.tsx"
+        "frontend/src/components/settings/RazorpayConfigPanel.tsx"
       ]
     },
     {
       "id": "REQ-4",
-      "requirement": "Role-based login with role selection UI + fixed demo credentials; authenticated session; strict role-based access enforced in backend and reflected in frontend navigation/actions.",
-      "reason": "Frontend demo credentials and sidebar filtering exist, but there is no evidence of a role-selection login UI implementation or backend server-side role checks for module APIs (diff truncation prevents confirmation).",
+      "requirement": "Notifications link to the relevant lead detail page",
+      "reason": "TopNav and NotificationsPage navigate to /leads list page, not individual lead detail pages. No lead/:id route navigation is shown.",
       "evidence": [
-        "frontend/src/auth/demoCredentials.ts",
-        "frontend/src/components/layout/SidebarNav.tsx",
-        "backend/main.mo"
+        "frontend/src/components/layout/TopNav.tsx",
+        "frontend/src/pages/NotificationsPage.tsx"
       ]
     },
     {
       "id": "REQ-5",
-      "requirement": "Service marketplace with 30 productized services (exact provided names), INR pricing tiers (Basic/Pro/Premium within specified ranges), service detail view, plan selection, comparison table, add-to-cart.",
-      "reason": "A 30-item catalog exists but names/descriptions do not match the requirement of “exact names as provided” (not evidenced), pricing tiers/range enforcement and comparison table are not evidenced; service detail UI is referenced by route but not shown in diff summary.",
+      "requirement": "Confirmation dialog shown before destructive operations",
+      "reason": "BulkActionsToolbar calls onDelete directly without confirmation. BulkStatusChangeDialog exists for status changes but no delete confirmation dialog is visible.",
       "evidence": [
-        "frontend/src/marketplace/servicesCatalog.ts",
-        "frontend/src/App.tsx",
-        "frontend/src/pages/CartPage.tsx"
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "requirement": "Stripe-only checkout in INR; after payment success, auto-create Project linked to client and record Order/Payment visible in Payments/Invoices.",
-      "reason": "Checkout page creates a Stripe checkout session and uses INR, but there is no evidence of post-payment success handling that creates projects and persists orders/payments, nor of Payments/Invoices views implementation (routes exist but pages not shown).",
-      "evidence": [
-        "frontend/src/pages/CheckoutPage.tsx",
-        "frontend/src/App.tsx",
-        "backend/main.mo"
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "requirement": "Client onboarding form (Business Name, Niche, Goals, Budget, Timeline) stored and linked to projects; client can track project status and deliverables placeholders.",
-      "reason": "Client onboarding page is a placeholder and does not include the required form fields, validation, storage, or linkage to projects; deliverables placeholders are not evidenced.",
-      "evidence": [
-        "frontend/src/pages/ClientOnboardingPage.tsx",
-        "backend/main.mo"
-      ]
-    },
-    {
-      "id": "REQ-8",
-      "requirement": "Lead management up to 3000 leads with channel fields, 50 micro-niche filtering list, scraping-ready fields (no scraping), manual create/import, CSV export.",
-      "reason": "Backend includes a Lead type with channel and microNiche fields, but there is no evidence of the 50 micro-niche list, filtering UI, CSV export, or import/create flows.",
-      "evidence": [
-        "backend/main.mo",
-        "frontend/src/App.tsx"
-      ]
-    },
-    {
-      "id": "REQ-9",
-      "requirement": "CRM pipeline with stages, moving between stages, task assignment, follow-up reminders with in-app notifications, notes, activity timeline, integration with leads/projects.",
-      "reason": "CRM page only displays activities grouped by stage; there is no evidence of drag/move between stages, task assignment UI/list, reminder scheduling producing notifications, or timeline views.",
-      "evidence": [
-        "frontend/src/pages/CRMPage.tsx",
-        "backend/main.mo"
-      ]
-    },
-    {
-      "id": "REQ-10",
-      "requirement": "Analytics dashboards with glowing gradient charts for revenue, active clients, conversion rate, top-selling services, lead source performance; compute from on-canister data with seeded fallback.",
-      "reason": "Analytics page shows static KPI cards only; no chart components, no computation from stored orders/leads/projects, and no seeded fallback logic is evidenced.",
-      "evidence": [
-        "frontend/src/pages/AnalyticsPage.tsx"
-      ]
-    },
-    {
-      "id": "REQ-11",
-      "requirement": "Automation Center with rule-based toggles/config per automation; sequence builder (non-email); proposal auto-send as in-app artifact/notification; payment confirmation automation; onboarding auto-trigger; automation logs.",
-      "reason": "Automation page renders static cards with Switch components but no persisted enable/disable state, no rule configuration UI, no event/log recording, and no backend integration is evidenced.",
-      "evidence": [
-        "frontend/src/pages/AutomationPage.tsx",
-        "backend/main.mo"
-      ]
-    },
-    {
-      "id": "REQ-12",
-      "requirement": "Deterministic (non-AI) Generators for recommendations/proposals/pricing/closing scripts/follow-ups and deterministic lead scoring; downloadable proposal artifact linked to lead/project; no external AI APIs.",
-      "reason": "GeneratorLog type exists but there is no evidence of generator UIs, deterministic generation logic, lead scoring display, or downloadable proposal artifacts. Additionally, service catalog includes AI-branded offerings, conflicting with the requirement to replace disallowed AI modules.",
-      "evidence": [
-        "backend/main.mo",
-        "frontend/src/marketplace/servicesCatalog.ts",
-        "frontend/src/App.tsx"
-      ]
-    },
-    {
-      "id": "REQ-13",
-      "requirement": "Legal Essentials pages with editable templates stored in backend; Admin-only edit enforced server-side; others view-only.",
-      "reason": "Legal route exists and backend has LegalPage type, but there is no evidence of pages/templates, editing UI, persistence, or admin-only enforcement implementation.",
-      "evidence": [
-        "frontend/src/App.tsx",
-        "backend/main.mo"
-      ]
-    },
-    {
-      "id": "REQ-14",
-      "requirement": "Offer management toggles (Festival, Student, Limited-Time), coupon code system; apply in cart/checkout; store discount details in orders; show on invoices.",
-      "reason": "Backend defines Offer/Coupon types, but cart/checkout UI does not show coupon application logic (input exists in CartPage but truncated and no application logic is evidenced), and no discount persistence in orders/invoices is evidenced.",
-      "evidence": [
-        "backend/main.mo",
-        "frontend/src/pages/CartPage.tsx",
-        "frontend/src/pages/CheckoutPage.tsx"
-      ]
-    },
-    {
-      "id": "REQ-15",
-      "requirement": "In-app notifications with center UI, unread indicator, mark read persists; generate notifications for payment success, proposal/generator creation, CRM reminders, project updates; no email.",
-      "reason": "Notification UI with unread count and mark-as-read action is present, and backend has Notification type; however, the diff does not evidence notification generation for the specified events (payments/generators/reminders/project updates) or persistence implementation details.",
-      "evidence": [
-        "frontend/src/components/layout/TopNav.tsx",
-        "backend/main.mo"
-      ]
-    },
-    {
-      "id": "REQ-16",
-      "requirement": "Backend data model + CRUD/query APIs in a single Motoko actor for all modules; stable persistence; seed/demo data for 30 services, 50 micro-niches, initial legal templates; admin management screens.",
-      "reason": "Types/state Maps are defined, but CRUD/query endpoints, stable storage usage, seed/demo data, micro-niches list, and admin management screens are not evidenced in the truncated backend and missing frontend pages.",
-      "evidence": [
-        "backend/main.mo",
-        "frontend/src/hooks/useQueries.ts"
+        "frontend/src/components/leads/BulkActionsToolbar.tsx",
+        "frontend/src/pages/LeadsPage.tsx"
       ]
     }
   ],
-  "hallucinated_features": [
-    {
-      "description": "Marketplace service catalog includes AI-branded offerings (e.g., “AI Content Creation”, “AI Image Generation”, “AI Proposal Generator”) despite the requirement to avoid external AI integrations and replace AI modules with deterministic generators.",
-      "reason": "BuildRequest requires deterministic non-AI generators and explicitly bans external AI APIs; adding AI-branded services is not requested and conflicts with the intent.",
-      "evidence": [
-        "frontend/src/marketplace/servicesCatalog.ts"
-      ]
-    },
-    {
-      "description": "Marketplace service catalog includes an “Email Marketing Setup” service even though the project explicitly disallows implementing email features (notifications/sequences/emailing proposals).",
-      "reason": "While a service name alone is not an email feature implementation, it is an unrequested addition that directly conflicts with the “do not implement any email features” constraint and risks implying email automation capability.",
-      "evidence": [
-        "frontend/src/marketplace/servicesCatalog.ts"
-      ]
-    },
-    {
-      "description": "Use of lucide-react flat icons for navigation and modules instead of the requested 3D gradient icon set.",
-      "reason": "REQ-3 asks for a cohesive 3D gradient iconography system; the diff implements a different icon approach not requested.",
-      "evidence": [
-        "frontend/src/components/layout/SidebarNav.tsx",
-        "frontend/src/pages/AutomationPage.tsx"
-      ]
-    },
-    {
-      "description": "Access control initialization via a URL secret parameter (`caffeineAdminToken`) and `_initializeAccessControlWithSecret` call from the frontend actor hook.",
-      "reason": "BuildRequest specifies demo credentials/roles and role-based restrictions; it does not request a secret-token-based access control initialization flow via URL parameters.",
-      "evidence": [
-        "frontend/src/hooks/useActor.ts"
-      ]
-    }
-  ],
-  "confidence": 0.74,
+  "hallucinated_features": [],
+  "confidence": 0.65,
   "changed_files": [
-    "all_files_summary.json",
     "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/index.css",
-    "frontend/index.html",
     "frontend/src/App.tsx",
-    "frontend/src/auth/demoCredentials.ts",
-    "frontend/src/auth/useSession.ts",
-    "frontend/src/cart/useCart.ts",
-    "frontend/src/components/layout/AppShell.tsx",
     "frontend/src/components/layout/SidebarNav.tsx",
     "frontend/src/components/layout/TopNav.tsx",
-    "frontend/src/hooks/useActor.ts",
-    "frontend/src/hooks/useInternetIdentity.ts",
+    "frontend/src/components/leads/BulkActionsToolbar.tsx",
+    "frontend/src/components/leads/BulkStatusChangeDialog.tsx",
+    "frontend/src/components/leads/PaymentLinkDialog.tsx",
+    "frontend/src/components/settings/RazorpayConfigPanel.tsx",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/index.css",
-    "frontend/src/main.tsx",
-    "frontend/src/marketplace/servicesCatalog.ts",
-    "frontend/src/pages/AnalyticsPage.tsx",
-    "frontend/src/pages/AutomationPage.tsx",
-    "frontend/src/pages/CRMPage.tsx",
-    "frontend/src/pages/CartPage.tsx",
-    "frontend/src/pages/CheckoutPage.tsx",
-    "frontend/src/pages/ClientOnboardingPage.tsx",
-    "frontend/src/pages/DashboardPage.tsx",
-    "frontend/src/pages/GeneratorsPage.tsx",
     "frontend/src/pages/LeadsPage.tsx",
-    "frontend/src/pages/LegalPage.tsx",
-    "frontend/src/pages/LoginPage.tsx",
-    "frontend/src/pages/PaymentFailurePage.tsx",
-    "frontend/src/pages/PaymentSuccessPage.tsx",
+    "frontend/src/pages/NotificationsPage.tsx",
     "frontend/src/pages/PaymentsPage.tsx",
-    "frontend/src/pages/ProjectDetailPage.tsx",
-    "frontend/src/pages/ProjectsPage.tsx",
-    "frontend/src/pages/ServiceDetailPage.tsx",
-    "frontend/src/pages/ServicesPage.tsx",
     "frontend/src/pages/SettingsPage.tsx",
-    "frontend/src/payments/useCreateCheckoutSession.ts",
-    "frontend/src/utils/urlParams.ts",
-    "frontend/tailwind.config.js",
     "project_state.json"
   ]
 }

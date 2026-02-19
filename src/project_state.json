@@ -1,141 +1,55 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Build a fully supported version of the “Quick Bee Agency” AI-powered agency SaaS dashboard with dark teal/black futuristic UI, role-based access (Admin/Manager/Client), service marketplace and checkout (Stripe only), CRM/leads/projects/analytics/automation, and non-AI rule-based generators within platform constraints (no email, no external AI APIs).",
+  "summary": "Building QUICK BEE AGENCY OS - a full-stack automation-enabled agency management web app. Starting with Phase 1: Lead Management CRM with downloadable data, black + teal theme, modern minimal UI. Future phases will add proposal generation, payment integration (Razorpay), WhatsApp automation, sequence builder, client portal, and onboarding automation.",
   "architectural_notes": [
-    "Platform constraints for this build: Stripe-only payments (test mode supported); no Razorpay/UPI.",
-    "No external AI APIs (e.g., OpenAI/Anthropic); replace “AI modules” with rule-based/on-platform generators.",
-    "Email features disabled; implement notifications as in-app only and avoid email sequences/alerts."
+    "Project: QUICK BEE AGENCY OS - agency management automation platform",
+    "Phase 1 focus: Lead Management CRM with downloadable exports",
+    "Future modules planned: WhatsApp automation, proposal generator, Razorpay payment integration, sequence builder, client portal, onboarding automation",
+    "Design system: Black + teal accents, glassmorphism, modern minimal SaaS dashboard",
+    "Lead status workflow: new_lead → qualified → proposal_sent → paid → onboarding → completed",
+    "Database structure: leads table with id, name, phone, email, service_interest, status, created_at"
   ],
   "known_issues": [],
   "isFixRequest": false,
-  "imageRequirements": "## Required Images\n- Set of 9 gradient 3D-style sidebar icons with teal-to-cyan gradient, soft lighting, depth, subtle neon glow, realistic shadow (quickbee-icons-sidebar.dim_1024x1024.png)\n- Collection of 6 feature/module 3D icons in the same style for Generators, Automation, Analytics, Payments, CRM, Leads (quickbee-icons-modules.dim_1024x1024.png)\n- Abstract dark background with subtle animated-looking teal gradient mesh and floating blurred shapes (static image) (quickbee-bg-mesh.dim_1920x1080.png)",
   "existing_features": [
     {
-      "id": "feature-implement-the-premium-modern-dark-ui-design-system-for-quick-bee-agency-using-deep-black-0f0f0f-backgrounds-teal-green-00c2a8-accent-color-and-smooth-teal-to-emerald-gradients-00c2a8-00e0b8-009688-across-buttons-highlights-hover-states-and-interactive-elements-use-modern-bold-sans-serif-typography-inter-poppins-style-rounded-2xl-cards-glassmorphism-panels-subtle-transparency-light-blur-thin-teal-borders-hover-scale-animation-and-300ms-transitions-ensure-the-layout-is-clean-minimal-fast-loading-and-mobile-responsive",
-      "title": "Implement the premium modern dark UI design system for “Quick Bee Agency” using deep black (#0F0F0F) backgrounds, teal green (#00C2A8) accent color, and smooth teal-to-emerald gradients (#00C2A8 → #00E0B8 → #009688) across buttons, highlights, hover states, and interactive elements; use modern bold sans-serif typography (Inter/Poppins style), rounded 2xl cards, glassmorphism panels (subtle transparency + light blur), thin teal borders, hover-scale animation, and ~300ms transitions; ensure the layout is clean, minimal, fast-loading, and mobile responsive.",
+      "id": "feature-add-csv-export-functionality-to-the-leads-table-allowing-admin-users-to-download-all-lead-data-including-id-name-phone-email-service-interest-status-and-created-at-fields",
+      "title": "Add CSV export functionality to the leads table allowing admin users to download all lead data including id, name, phone, email, service_interest, status, and created_at fields",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-create-the-core-dashboard-layout-and-navigation-structure-a-left-sidebar-navigation-with-items-dashboard-leads-services-crm-automation-analytics-payments-legal-settings-and-a-top-navbar-with-a-notification-bell-glow-indicator-and-a-profile-dropdown-include-kpi-dashboard-cards-neon-teal-progress-bars-dark-input-fields-with-teal-focus-rings-gradient-primary-buttons-with-hover-glow-pricing-cards-with-soft-glow-borders-ai-generator-feature-cards-and-a-subtle-animated-teal-gradient-mesh-floating-blurred-shapes-background",
-      "title": "Create the core dashboard layout and navigation structure: a left sidebar navigation with items (Dashboard, Leads, Services, CRM, Automation, Analytics, Payments, Legal, Settings), and a top navbar with a notification bell (glow indicator) and a profile dropdown; include KPI dashboard cards, neon teal progress bars, dark input fields with teal focus rings, gradient primary buttons with hover glow, pricing cards with soft glow borders, AI/generator feature cards, and a subtle animated teal gradient mesh/floating blurred shapes background.",
+      "id": "feature-integrate-razorpay-payment-gateway-with-automated-payment-flow-generate-payment-links-when-lead-status-changes-to-qualified-listen-for-payment-webhooks-and-automatically-update-lead-status-to-paid-on-successful-payment-confirmation",
+      "title": "Integrate Razorpay payment gateway with automated payment flow: generate payment links when lead status changes to 'qualified', listen for payment webhooks, and automatically update lead status to 'paid' on successful payment confirmation",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-gradient-3d-style-iconography-across-navigation-and-feature-cards-provide-a-consistent-set-of-teal-to-cyan-gradient-icons-with-soft-lighting-subtle-glow-depth-and-realistic-shadow-effects-use-these-icons-for-sidebar-items-and-module-cards",
-      "title": "Add gradient 3D-style iconography across navigation and feature cards: provide a consistent set of teal-to-cyan gradient icons with soft lighting, subtle glow, depth, and realistic shadow effects; use these icons for sidebar items and module cards.",
+      "id": "feature-add-razorpay-configuration-panel-in-the-admin-settings-page-allowing-storage-and-editing-of-razorpay-api-key-secret-and-webhook-secret",
+      "title": "Add Razorpay configuration panel in the admin settings page allowing storage and editing of Razorpay API key, secret, and webhook secret",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-implement-role-based-login-with-a-role-selection-ui-admin-manager-client-and-fixed-demo-credentials-for-each-role-maintain-an-authenticated-session-in-the-frontend-and-enforce-strict-role-based-access-restrictions-across-navigation-and-page-level-actions",
-      "title": "Implement role-based login with a role selection UI (Admin, Manager, Client) and fixed demo credentials for each role; maintain an authenticated session in the frontend and enforce strict role-based access restrictions across navigation and page-level actions.",
+      "id": "feature-create-automated-notification-system-that-triggers-when-lead-status-changes-send-notification-when-status-moves-to-qualified-payment-link-ready-paid-payment-confirmed-or-onboarding-project-started",
+      "title": "Create automated notification system that triggers when lead status changes: send notification when status moves to 'qualified' (payment link ready), 'paid' (payment confirmed), or 'onboarding' (project started)",
       "reqIds": [
         "REQ-4"
       ],
       "version": 1
     },
     {
-      "id": "feature-create-the-service-marketplace-with-30-productized-services-exact-names-as-provided-each-offering-indian-student-friendly-pricing-tiers-basic-pro-premium-within-the-specified-inr-ranges-implement-service-detail-view-plan-selection-a-comparison-table-and-add-to-cart-functionality",
-      "title": "Create the service marketplace with 30 productized services (exact names as provided), each offering Indian student-friendly pricing tiers (Basic, Pro, Premium) within the specified INR ranges; implement service detail view, plan selection, a comparison table, and add-to-cart functionality.",
+      "id": "feature-add-bulk-actions-to-leads-table-allowing-admin-to-select-multiple-leads-and-update-their-status-export-selected-leads-or-delete-selected-leads-in-one-operation",
+      "title": "Add bulk actions to leads table allowing admin to select multiple leads and update their status, export selected leads, or delete selected leads in one operation",
       "reqIds": [
         "REQ-5"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-secure-checkout-using-stripe-only-test-mode-supported-with-inr-pricing-after-a-successful-payment-automatically-create-a-project-under-the-client-s-dashboard-and-record-an-order-payment-entry-that-is-visible-in-payments-invoices-views",
-      "title": "Implement secure checkout using Stripe only (test mode supported) with INR pricing; after a successful payment, automatically create a Project under the Client’s dashboard and record an Order/Payment entry that is visible in Payments/Invoices views.",
-      "reqIds": [
-        "REQ-6"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-projects-and-client-onboarding-create-a-client-onboarding-form-business-name-niche-goals-budget-timeline-and-auto-link-onboarding-details-to-the-client-s-project-s-ensure-client-can-track-project-status-and-view-deliverables-placeholders",
-      "title": "Implement Projects and Client Onboarding: create a client onboarding form (Business Name, Niche, Goals, Budget, Timeline) and auto-link onboarding details to the client’s project(s); ensure Client can track project status and view deliverables placeholders.",
-      "reqIds": [
-        "REQ-7"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-build-the-lead-management-system-capable-of-handling-up-to-3000-leads-with-channel-fields-email-linkedin-instagram-whatsapp-sms-micro-niche-filtering-50-ultra-specific-micro-niches-structured-scraping-ready-fields-without-implementing-scraping-and-csv-export",
-      "title": "Build the Lead Management system capable of handling up to 3000 leads with channel fields (Email, LinkedIn, Instagram, WhatsApp, SMS), micro-niche filtering (50 ultra-specific micro-niches), structured “scraping-ready” fields (without implementing scraping), and CSV export.",
-      "reqIds": [
-        "REQ-8"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-the-crm-dashboard-with-pipeline-stages-new-lead-contacted-qualified-proposal-sent-closed-lost-including-task-assignment-follow-up-reminders-in-app-only-notes-and-activity-tracking-integrate-crm-items-with-leads-and-projects-where-appropriate",
-      "title": "Implement the CRM dashboard with pipeline stages (New Lead, Contacted, Qualified, Proposal Sent, Closed, Lost) including task assignment, follow-up reminders (in-app only), notes, and activity tracking; integrate CRM items with Leads and Projects where appropriate.",
-      "reqIds": [
-        "REQ-9"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-create-analytics-dashboards-showing-glowing-gradient-charts-for-revenue-active-clients-conversion-rate-top-selling-services-and-lead-source-performance-using-available-on-canister-data-orders-leads-projects-and-or-seeded-demo-data-when-empty",
-      "title": "Create Analytics dashboards showing glowing gradient charts for revenue, active clients, conversion rate, top-selling services, and lead source performance, using available on-canister data (orders, leads, projects) and/or seeded demo data when empty.",
-      "reqIds": [
-        "REQ-10"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-an-automation-center-using-rule-based-non-ai-logic-with-module-cards-for-auto-whatsapp-replies-sequence-builder-non-email-proposal-auto-send-after-qualification-payment-confirmation-automation-and-project-onboarding-auto-trigger-provide-toggles-and-simple-rule-configuration-per-automation-and-record-automation-events-logs",
-      "title": "Implement an Automation Center using rule-based (non-AI) logic with module cards for: Auto WhatsApp replies, sequence builder (non-email), proposal auto-send after qualification, payment confirmation automation, and project onboarding auto-trigger; provide toggles and simple rule configuration per automation, and record automation events/logs.",
-      "reqIds": [
-        "REQ-11"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-replace-all-disallowed-ai-modules-with-fully-supported-non-ai-generators-that-use-deterministic-templates-rules-no-external-api-calls-for-service-recommendations-proposals-pricing-strategy-closing-scripts-follow-up-messages-email-whatsapp-linkedin-sms-as-text-templates-only-and-lead-qualification-scoring-allow-downloading-the-generated-proposal-as-a-file-pdf-if-feasible-within-the-platform-otherwise-a-downloadable-html-text-document",
-      "title": "Replace all disallowed AI modules with fully supported, non-AI “Generators” that use deterministic templates/rules (no external API calls) for: service recommendations, proposals, pricing strategy, closing scripts, follow-up messages (Email/WhatsApp/LinkedIn/SMS as text templates only), and lead qualification scoring; allow downloading the generated proposal as a file (PDF if feasible within the platform, otherwise a downloadable HTML/text document).",
-      "reqIds": [
-        "REQ-12"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-legal-essentials-section-with-editable-templates-for-privacy-policy-terms-conditions-refund-policy-service-agreement-gst-invoice-support-and-disclaimer-only-admin-can-edit-while-others-can-view-as-allowed",
-      "title": "Implement Legal Essentials section with editable templates for Privacy Policy, Terms & Conditions, Refund Policy, Service Agreement, GST Invoice Support, and Disclaimer; only Admin can edit, while others can view as allowed.",
-      "reqIds": [
-        "REQ-13"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-offer-management-with-toggles-for-festival-offer-student-discount-limited-time-deal-and-a-coupon-code-system-apply-offers-coupons-during-checkout-cart-calculations-and-reflect-discounts-in-orders",
-      "title": "Implement Offer management with toggles for Festival Offer, Student Discount, Limited-Time Deal, and a coupon code system; apply offers/coupons during checkout/cart calculations and reflect discounts in orders.",
-      "reqIds": [
-        "REQ-14"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-create-an-in-app-notification-system-with-a-notification-center-ui-and-glow-unread-indicator-generate-notifications-for-key-events-such-as-payment-success-proposal-generator-creation-crm-reminders-and-project-updates-do-not-implement-email-notifications",
-      "title": "Create an in-app notification system with a notification center UI and glow unread indicator; generate notifications for key events such as payment success, proposal/generator creation, CRM reminders, and project updates; do not implement email notifications.",
-      "reqIds": [
-        "REQ-15"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-define-and-implement-the-backend-data-model-and-apis-single-motoko-actor-to-support-users-roles-services-packages-cart-orders-payments-projects-onboarding-leads-crm-activities-tasks-offers-coupons-legal-pages-notifications-and-generator-logs-include-basic-admin-management-screens-for-viewing-key-records-and-safe-seed-demo-data-for-initial-app-usability",
-      "title": "Define and implement the backend data model and APIs (single Motoko actor) to support: Users/Roles, Services/Packages, Cart/Orders/Payments, Projects/Onboarding, Leads, CRM Activities/Tasks, Offers/Coupons, Legal Pages, Notifications, and Generator logs; include basic admin management screens for viewing key records and safe seed/demo data for initial app usability.",
-      "reqIds": [
-        "REQ-16"
       ],
       "version": 1
     }
@@ -143,85 +57,25 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Implement premium dark SaaS UI (deep black + teal/emerald gradients), sidebar/nav layout, KPI cards/charts, glassmorphism panels, 3D-style gradient icons, responsive design, smooth transitions/hover effects",
+      "summary": "Lead Management CRM with table (id, name, phone, email, service_interest, status, created_at), admin edit status, search/filter by status, lead detail view",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Role-based login system with fixed demo credentials (Admin/Manager/Client) and strict access control across modules",
+      "summary": "Make all lead data downloadable (CSV/PDF export)",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-3",
-      "summary": "Service marketplace with 30 productized services and Indian pricing tiers (Basic/Pro/Premium), comparison table and add-to-cart",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Payments + checkout using Stripe (test mode) and post-payment workflow to auto-create a client project and show invoices/orders",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Lead management system (up to 3000 leads) with micro-niche filtering, structured DB format, and CSV export",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-6",
-      "summary": "CRM dashboard with pipeline stages, task assignment, follow-up reminders (non-email), notes and activity tracking",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-7",
-      "summary": "Analytics dashboard with revenue, active clients, conversion rate, top-selling services, and lead source performance charts",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-8",
-      "summary": "Automation center with rule-based (non-AI) automations: WhatsApp replies, sequence builder (non-email), proposal auto-send logic, payment confirmation automation, project onboarding triggers",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-9",
-      "summary": "Client onboarding form (business name, niche, goals, budget, timeline) auto-linked to project system",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-10",
-      "summary": "Legal essentials section with editable templates (Privacy Policy, Terms, Refund, Service Agreement, GST invoice support, Disclaimer) editable by Admin",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-11",
-      "summary": "Offer system with toggles (Festival Offer, Student Discount, Limited-Time Deal) and coupon codes",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-12",
-      "summary": "Notification system: in-app notification center (no email) for payment/proposal/updates",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-13",
-      "summary": "Define scalable SaaS-ready database structure for Users/Roles/Services/Packages/Orders/Projects/Leads/CRM Activities/Payments/Offers/Legal Pages/AI(or rule-gen) logs",
+      "summary": "Apply black + teal green theme with glassmorphism cards, soft shadows, smooth animations, responsive design",
       "reqIds": [],
       "status": "pending"
     }
   ],
   "gameProjectType": "none",
-  "projectName": "Quick Bee Agency",
+  "projectName": "QUICK BEE AGENCY OS",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

@@ -1,18 +1,22 @@
+import { useState } from 'react';
+import { useGetCallerUserRole, useGetMyNotifications, useMarkNotificationAsRead } from '../../hooks/useQueries';
 import { useInternetIdentity } from '../../hooks/useInternetIdentity';
-import { useGetCallerUserProfile, useGetMyNotifications } from '../../hooks/useQueries';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Bell, User, LogOut } from 'lucide-react';
-import { useMarkNotificationAsRead } from '../../hooks/useQueries';
+import { Badge } from '../ui/badge';
+import { useNavigate } from '@tanstack/react-router';
 
 export default function TopNav() {
-  const { clear } = useInternetIdentity();
-  const { data: userProfile } = useGetCallerUserProfile();
+  const { data: userRole } = useGetCallerUserRole();
   const { data: notifications = [] } = useGetMyNotifications();
   const markAsRead = useMarkNotificationAsRead();
+  const { clear } = useInternetIdentity();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [notifOpen, setNotifOpen] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -21,60 +25,102 @@ export default function TopNav() {
     queryClient.clear();
   };
 
-  const handleMarkAsRead = async (id: bigint) => {
-    await markAsRead.mutateAsync(id);
+  const handleNotificationClick = async (notification: typeof notifications[0]) => {
+    if (!notification.isRead) {
+      await markAsRead.mutateAsync(notification.id);
+    }
+    setNotifOpen(false);
+    
+    // Navigate to relevant page based on notification type
+    if (notification.notificationType.includes('lead')) {
+      navigate({ to: '/leads' });
+    } else if (notification.notificationType.includes('payment')) {
+      navigate({ to: '/payments' });
+    }
   };
 
   return (
-    <header className="h-16 glass-panel border-b border-border flex items-center justify-between px-6">
-      <div className="flex-1" />
+    <div className="h-16 glass-panel border-b border-border flex items-center justify-between px-6">
+      <div className="flex items-center gap-4">
+        <h2 className="text-xl font-bold gradient-text">Quick Bee Agency OS</h2>
+      </div>
 
       <div className="flex items-center gap-4">
-        <Popover>
+        <Popover open={notifOpen} onOpenChange={setNotifOpen}>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary rounded-full text-xs flex items-center justify-center text-black font-bold shadow-lg shadow-primary/50">
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                >
                   {unreadCount}
-                </span>
+                </Badge>
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 glass-panel border-border">
-            <h3 className="font-semibold mb-3 text-foreground">Notifications</h3>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
+          <PopoverContent className="glass-panel border-border w-80 p-0" align="end">
+            <div className="p-4 border-b border-border">
+              <h3 className="font-semibold text-foreground">Notifications</h3>
+              <p className="text-xs text-soft-gray">{unreadCount} unread</p>
+            </div>
+            <div className="max-h-96 overflow-y-auto">
               {notifications.length === 0 ? (
-                <p className="text-sm text-soft-gray">No notifications</p>
+                <p className="text-soft-gray text-center py-8 text-sm">No notifications</p>
               ) : (
                 notifications.map((notif) => (
-                  <div
+                  <button
                     key={notif.id.toString()}
-                    className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                      notif.isRead ? 'bg-secondary/30' : 'bg-primary/10 border border-primary/30'
+                    onClick={() => handleNotificationClick(notif)}
+                    className={`w-full text-left p-4 border-b border-border hover:bg-secondary/30 transition-colors ${
+                      !notif.isRead ? 'bg-primary/5' : ''
                     }`}
-                    onClick={() => !notif.isRead && handleMarkAsRead(notif.id)}
                   >
-                    <p className="text-sm text-foreground">{notif.message}</p>
-                    <p className="text-xs text-soft-gray mt-1">{notif.notificationType}</p>
-                  </div>
+                    <div className="flex items-start gap-2">
+                      {!notif.isRead && (
+                        <div className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground">{notif.message}</p>
+                        <p className="text-xs text-soft-gray mt-1">
+                          {new Date(Number(notif.createdAt) / 1000000).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
                 ))
               )}
             </div>
+            {notifications.length > 0 && (
+              <div className="p-2 border-t border-border">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    setNotifOpen(false);
+                    navigate({ to: '/notifications' });
+                  }}
+                >
+                  View All Notifications
+                </Button>
+              </div>
+            )}
           </PopoverContent>
         </Popover>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2">
+            <Button variant="ghost" size="icon">
               <User className="w-5 h-5" />
-              <div className="text-left hidden md:block">
-                <p className="text-sm font-medium">{userProfile?.name || 'User'}</p>
-                <p className="text-xs text-soft-gray">{userProfile?.role || 'Client'}</p>
-              </div>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="glass-panel border-border">
+            <DropdownMenuLabel className="text-foreground">
+              Role: {userRole || 'Loading...'}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
               <LogOut className="w-4 h-4 mr-2" />
               Logout
@@ -82,6 +128,6 @@ export default function TopNav() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </header>
+    </div>
   );
 }

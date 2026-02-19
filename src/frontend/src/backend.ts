@@ -214,6 +214,19 @@ export interface Project {
     onboardingData?: OnboardingData;
     serviceId: bigint;
 }
+export interface PaymentLink {
+    id: bigint;
+    status: string;
+    createdAt: Time;
+    createdBy: Principal;
+    leadId: bigint;
+    amount: bigint;
+}
+export interface UserProfile {
+    name: string;
+    businessName?: string;
+    email: string;
+}
 export interface GeneratorLog {
     id: bigint;
     inputData: string;
@@ -221,12 +234,6 @@ export interface GeneratorLog {
     createdAt: Time;
     outputData: string;
     generatorType: string;
-}
-export interface UserProfile {
-    name: string;
-    role: string;
-    businessName?: string;
-    email: string;
 }
 export enum UserRole {
     admin = "admin",
@@ -247,6 +254,7 @@ export interface backendInterface {
     createNotification(userId: Principal, message: string, notificationType: string): Promise<bigint>;
     createOffer(name: string, discountPercent: bigint, offerType: string): Promise<bigint>;
     createOrder(projectId: bigint, amount: bigint): Promise<bigint>;
+    createPaymentLink(leadId: bigint, amount: bigint): Promise<bigint>;
     createProject(clientId: Principal, serviceId: bigint, onboardingData: OnboardingData | null): Promise<bigint>;
     deleteLead(id: bigint): Promise<void>;
     deleteService(id: bigint): Promise<void>;
@@ -267,17 +275,21 @@ export interface backendInterface {
     getMyGeneratorLogs(): Promise<Array<GeneratorLog>>;
     getMyLeads(): Promise<Array<Lead>>;
     getMyNotifications(): Promise<Array<Notification>>;
+    getMyPaymentLinks(): Promise<Array<PaymentLink>>;
     getOrdersByClient(clientId: Principal): Promise<Array<Order>>;
     getOrdersByProject(projectId: bigint): Promise<Array<Order>>;
+    getPaymentLinks(): Promise<Array<PaymentLink>>;
     getProject(id: bigint): Promise<Project | null>;
     getProjectsByClient(clientId: Principal): Promise<Array<Project>>;
     getService(id: bigint): Promise<Service | null>;
     getStripeSessionStatus(sessionId: string): Promise<StripeSessionStatus>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
+    isRazorpayConfigured(): Promise<boolean>;
     isStripeConfigured(): Promise<boolean>;
     markNotificationAsRead(id: bigint): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    setRazorpayConfiguration(apiKey: string, apiSecret: string, webhookSecret: string): Promise<void>;
     setStripeConfiguration(config: StripeConfiguration): Promise<void>;
     toggleCoupon(code: string, isActive: boolean): Promise<void>;
     toggleOffer(id: bigint, isActive: boolean): Promise<void>;
@@ -286,6 +298,7 @@ export interface backendInterface {
     updateLead(id: bigint, name: string, email: string, phone: string | null, channel: string, microNiche: string, status: string): Promise<void>;
     updateLegalPage(id: bigint, title: string, content: string): Promise<void>;
     updateOrderStatus(id: bigint, status: string): Promise<void>;
+    updatePaymentLinkStatus(id: bigint, status: string): Promise<void>;
     updateProjectStatus(id: bigint, status: string): Promise<void>;
     updateService(id: bigint, name: string, description: string, priceBasic: bigint, pricePro: bigint, pricePremium: bigint): Promise<void>;
 }
@@ -471,6 +484,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.createOrder(arg0, arg1);
+            return result;
+        }
+    }
+    async createPaymentLink(arg0: bigint, arg1: bigint): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createPaymentLink(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createPaymentLink(arg0, arg1);
             return result;
         }
     }
@@ -754,6 +781,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getMyPaymentLinks(): Promise<Array<PaymentLink>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getMyPaymentLinks();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getMyPaymentLinks();
+            return result;
+        }
+    }
     async getOrdersByClient(arg0: Principal): Promise<Array<Order>> {
         if (this.processError) {
             try {
@@ -779,6 +820,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getOrdersByProject(arg0);
+            return result;
+        }
+    }
+    async getPaymentLinks(): Promise<Array<PaymentLink>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getPaymentLinks();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getPaymentLinks();
             return result;
         }
     }
@@ -866,6 +921,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async isRazorpayConfigured(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.isRazorpayConfigured();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.isRazorpayConfigured();
+            return result;
+        }
+    }
     async isStripeConfigured(): Promise<boolean> {
         if (this.processError) {
             try {
@@ -905,6 +974,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.saveCallerUserProfile(to_candid_UserProfile_n36(this._uploadFile, this._downloadFile, arg0));
+            return result;
+        }
+    }
+    async setRazorpayConfiguration(arg0: string, arg1: string, arg2: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setRazorpayConfiguration(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.setRazorpayConfiguration(arg0, arg1, arg2);
             return result;
         }
     }
@@ -1017,6 +1100,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.updateOrderStatus(arg0, arg1);
+            return result;
+        }
+    }
+    async updatePaymentLinkStatus(arg0: bigint, arg1: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updatePaymentLinkStatus(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updatePaymentLinkStatus(arg0, arg1);
             return result;
         }
     }
@@ -1198,18 +1295,15 @@ function from_candid_record_n20(_uploadFile: (file: ExternalBlob) => Promise<Uin
 }
 function from_candid_record_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     name: string;
-    role: string;
     businessName: [] | [string];
     email: string;
 }): {
     name: string;
-    role: string;
     businessName?: string;
     email: string;
 } {
     return {
         name: value.name,
-        role: value.role,
         businessName: record_opt_to_undefined(from_candid_opt_n17(_uploadFile, _downloadFile, value.businessName)),
         email: value.email
     };
@@ -1314,18 +1408,15 @@ function to_candid_opt_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Arra
 }
 function to_candid_record_n37(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     name: string;
-    role: string;
     businessName?: string;
     email: string;
 }): {
     name: string;
-    role: string;
     businessName: [] | [string];
     email: string;
 } {
     return {
         name: value.name,
-        role: value.role,
         businessName: value.businessName ? candid_some(value.businessName) : candid_none(),
         email: value.email
     };

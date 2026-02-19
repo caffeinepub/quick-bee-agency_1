@@ -85,6 +85,14 @@ export interface Order {
   'projectId' : bigint,
   'amount' : bigint,
 }
+export interface PaymentLink {
+  'id' : bigint,
+  'status' : string,
+  'createdAt' : Time,
+  'createdBy' : Principal,
+  'leadId' : bigint,
+  'amount' : bigint,
+}
 export interface Project {
   'id' : bigint,
   'startTime' : Time,
@@ -128,7 +136,6 @@ export interface TransformationOutput {
 }
 export interface UserProfile {
   'name' : string,
-  'role' : string,
   'businessName' : [] | [string],
   'email' : string,
 }
@@ -172,6 +179,7 @@ export interface _SERVICE {
   'createNotification' : ActorMethod<[Principal, string, string], bigint>,
   'createOffer' : ActorMethod<[string, bigint, string], bigint>,
   'createOrder' : ActorMethod<[bigint, bigint], bigint>,
+  'createPaymentLink' : ActorMethod<[bigint, bigint], bigint>,
   'createProject' : ActorMethod<
     [Principal, bigint, [] | [OnboardingData]],
     bigint
@@ -195,17 +203,21 @@ export interface _SERVICE {
   'getMyGeneratorLogs' : ActorMethod<[], Array<GeneratorLog>>,
   'getMyLeads' : ActorMethod<[], Array<Lead>>,
   'getMyNotifications' : ActorMethod<[], Array<Notification>>,
+  'getMyPaymentLinks' : ActorMethod<[], Array<PaymentLink>>,
   'getOrdersByClient' : ActorMethod<[Principal], Array<Order>>,
   'getOrdersByProject' : ActorMethod<[bigint], Array<Order>>,
+  'getPaymentLinks' : ActorMethod<[], Array<PaymentLink>>,
   'getProject' : ActorMethod<[bigint], [] | [Project]>,
   'getProjectsByClient' : ActorMethod<[Principal], Array<Project>>,
   'getService' : ActorMethod<[bigint], [] | [Service]>,
   'getStripeSessionStatus' : ActorMethod<[string], StripeSessionStatus>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'isRazorpayConfigured' : ActorMethod<[], boolean>,
   'isStripeConfigured' : ActorMethod<[], boolean>,
   'markNotificationAsRead' : ActorMethod<[bigint], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'setRazorpayConfiguration' : ActorMethod<[string, string, string], undefined>,
   'setStripeConfiguration' : ActorMethod<[StripeConfiguration], undefined>,
   'toggleCoupon' : ActorMethod<[string, boolean], undefined>,
   'toggleOffer' : ActorMethod<[bigint, boolean], undefined>,
@@ -220,6 +232,7 @@ export interface _SERVICE {
   >,
   'updateLegalPage' : ActorMethod<[bigint, string, string], undefined>,
   'updateOrderStatus' : ActorMethod<[bigint, string], undefined>,
+  'updatePaymentLinkStatus' : ActorMethod<[bigint, string], undefined>,
   'updateProjectStatus' : ActorMethod<[bigint, string], undefined>,
   'updateService' : ActorMethod<
     [bigint, string, string, bigint, bigint, bigint],

@@ -1,4 +1,4 @@
-import { useGetCallerUserProfile, useGetProjectsByClient, useGetAllOrders } from '../hooks/useQueries';
+import { useGetCallerUserProfile, useGetProjectsByClient, useGetAllOrders, useGetCallerUserRole } from '../hooks/useQueries';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { BarChart3, Users, DollarSign, TrendingUp } from 'lucide-react';
@@ -6,12 +6,13 @@ import { BarChart3, Users, DollarSign, TrendingUp } from 'lucide-react';
 export default function DashboardPage() {
   const { identity } = useInternetIdentity();
   const { data: userProfile } = useGetCallerUserProfile();
+  const { data: userRole } = useGetCallerUserRole();
   const { data: projects = [] } = useGetProjectsByClient(identity?.getPrincipal() || null);
   const { data: orders = [] } = useGetAllOrders();
 
-  const isAdmin = userProfile?.role === 'Admin';
-  const isManager = userProfile?.role === 'Manager';
-  const isClient = userProfile?.role === 'Client';
+  const isAdmin = userRole === 'admin';
+  const isUser = userRole === 'user';
+  const isGuest = userRole === 'guest';
 
   const totalRevenue = orders.reduce((sum, order) => sum + Number(order.amount), 0);
   const activeProjects = projects.filter(p => p.status === 'Active').length;
@@ -69,7 +70,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {isClient && (
+      {isGuest && (
         <Card className="glass-panel border-border">
           <CardHeader>
             <CardTitle className="text-foreground">Your Projects</CardTitle>

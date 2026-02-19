@@ -132,6 +132,19 @@ export interface Project {
     onboardingData?: OnboardingData;
     serviceId: bigint;
 }
+export interface PaymentLink {
+    id: bigint;
+    status: string;
+    createdAt: Time;
+    createdBy: Principal;
+    leadId: bigint;
+    amount: bigint;
+}
+export interface UserProfile {
+    name: string;
+    businessName?: string;
+    email: string;
+}
 export interface GeneratorLog {
     id: bigint;
     inputData: string;
@@ -139,12 +152,6 @@ export interface GeneratorLog {
     createdAt: Time;
     outputData: string;
     generatorType: string;
-}
-export interface UserProfile {
-    name: string;
-    role: string;
-    businessName?: string;
-    email: string;
 }
 export enum UserRole {
     admin = "admin",
@@ -164,6 +171,7 @@ export interface backendInterface {
     createNotification(userId: Principal, message: string, notificationType: string): Promise<bigint>;
     createOffer(name: string, discountPercent: bigint, offerType: string): Promise<bigint>;
     createOrder(projectId: bigint, amount: bigint): Promise<bigint>;
+    createPaymentLink(leadId: bigint, amount: bigint): Promise<bigint>;
     createProject(clientId: Principal, serviceId: bigint, onboardingData: OnboardingData | null): Promise<bigint>;
     deleteLead(id: bigint): Promise<void>;
     deleteService(id: bigint): Promise<void>;
@@ -184,17 +192,21 @@ export interface backendInterface {
     getMyGeneratorLogs(): Promise<Array<GeneratorLog>>;
     getMyLeads(): Promise<Array<Lead>>;
     getMyNotifications(): Promise<Array<Notification>>;
+    getMyPaymentLinks(): Promise<Array<PaymentLink>>;
     getOrdersByClient(clientId: Principal): Promise<Array<Order>>;
     getOrdersByProject(projectId: bigint): Promise<Array<Order>>;
+    getPaymentLinks(): Promise<Array<PaymentLink>>;
     getProject(id: bigint): Promise<Project | null>;
     getProjectsByClient(clientId: Principal): Promise<Array<Project>>;
     getService(id: bigint): Promise<Service | null>;
     getStripeSessionStatus(sessionId: string): Promise<StripeSessionStatus>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
+    isRazorpayConfigured(): Promise<boolean>;
     isStripeConfigured(): Promise<boolean>;
     markNotificationAsRead(id: bigint): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    setRazorpayConfiguration(apiKey: string, apiSecret: string, webhookSecret: string): Promise<void>;
     setStripeConfiguration(config: StripeConfiguration): Promise<void>;
     toggleCoupon(code: string, isActive: boolean): Promise<void>;
     toggleOffer(id: bigint, isActive: boolean): Promise<void>;
@@ -203,6 +215,7 @@ export interface backendInterface {
     updateLead(id: bigint, name: string, email: string, phone: string | null, channel: string, microNiche: string, status: string): Promise<void>;
     updateLegalPage(id: bigint, title: string, content: string): Promise<void>;
     updateOrderStatus(id: bigint, status: string): Promise<void>;
+    updatePaymentLinkStatus(id: bigint, status: string): Promise<void>;
     updateProjectStatus(id: bigint, status: string): Promise<void>;
     updateService(id: bigint, name: string, description: string, priceBasic: bigint, pricePro: bigint, pricePremium: bigint): Promise<void>;
 }

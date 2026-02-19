@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { UserProfile, Service, Project, Order, Lead, CRMActivity, Offer, Coupon, LegalPage, Notification, GeneratorLog, OnboardingData } from '../backend';
+import type { UserProfile, Service, Project, Order, Lead, CRMActivity, Offer, Coupon, LegalPage, Notification, GeneratorLog, OnboardingData, UserRole, PaymentLink } from '../backend';
 import { Principal } from '@dfinity/principal';
 
 export function useGetCallerUserProfile() {
@@ -21,6 +21,34 @@ export function useGetCallerUserProfile() {
     isLoading: actorFetching || query.isLoading,
     isFetched: !!actor && query.isFetched,
   };
+}
+
+export function useGetCallerUserRole() {
+  const { actor, isFetching: actorFetching } = useActor();
+
+  return useQuery<UserRole>({
+    queryKey: ['currentUserRole'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.getCallerUserRole();
+    },
+    enabled: !!actor && !actorFetching,
+    retry: false,
+  });
+}
+
+export function useIsCallerAdmin() {
+  const { actor, isFetching: actorFetching } = useActor();
+
+  return useQuery<boolean>({
+    queryKey: ['isCallerAdmin'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.isCallerAdmin();
+    },
+    enabled: !!actor && !actorFetching,
+    retry: false,
+  });
 }
 
 export function useSaveCallerUserProfile() {
@@ -200,6 +228,43 @@ export function useUpdateLead() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allLeads'] });
+      queryClient.invalidateQueries({ queryKey: ['myNotifications'] });
+      queryClient.invalidateQueries({ queryKey: ['paymentLinks'] });
+    }
+  });
+}
+
+export function useDeleteLead() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      await actor.deleteLead(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allLeads'] });
+    }
+  });
+}
+
+export function useBulkDeleteLeads() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (ids: bigint[]) => {
+      if (!actor) throw new Error('Actor not available');
+      const results = await Promise.allSettled(
+        ids.map(id => actor.deleteLead(id))
+      );
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failureCount = results.filter(r => r.status === 'rejected').length;
+      return { successCount, failureCount };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allLeads'] });
     }
   });
 }
@@ -253,21 +318,6 @@ export function useGetAllOffers() {
   });
 }
 
-export function useCreateOffer() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: { name: string; discountPercent: bigint; offerType: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.createOffer(data.name, data.discountPercent, data.offerType);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['offers'] });
-    }
-  });
-}
-
 export function useGetCoupon(code: string | null) {
   const { actor, isFetching } = useActor();
 
@@ -277,7 +327,7 @@ export function useGetCoupon(code: string | null) {
       if (!actor || !code) return null;
       return actor.getCoupon(code);
     },
-    enabled: !!actor && !isFetching && !!code,
+    enabled: !!actor && !isFetching && code !== null,
   });
 }
 
@@ -291,36 +341,6 @@ export function useGetAllLegalPages() {
       return actor.getAllLegalPages();
     },
     enabled: !!actor && !isFetching,
-  });
-}
-
-export function useCreateLegalPage() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: { title: string; content: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.createLegalPage(data.title, data.content);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['legalPages'] });
-    }
-  });
-}
-
-export function useUpdateLegalPage() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: { id: bigint; title: string; content: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      await actor.updateLegalPage(data.id, data.title, data.content);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['legalPages'] });
-    }
   });
 }
 
@@ -352,18 +372,16 @@ export function useMarkNotificationAsRead() {
   });
 }
 
-export function useCreateGeneratorLog() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
+export function useGetMyGeneratorLogs() {
+  const { actor, isFetching } = useActor();
 
-  return useMutation({
-    mutationFn: async (data: { generatorType: string; inputData: string; outputData: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.createGeneratorLog(data.generatorType, data.inputData, data.outputData);
+  return useQuery<GeneratorLog[]>({
+    queryKey: ['myGeneratorLogs'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getMyGeneratorLogs();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['generatorLogs'] });
-    }
+    enabled: !!actor && !isFetching,
   });
 }
 
@@ -371,11 +389,84 @@ export function useIsStripeConfigured() {
   const { actor, isFetching } = useActor();
 
   return useQuery<boolean>({
-    queryKey: ['stripeConfigured'],
+    queryKey: ['isStripeConfigured'],
     queryFn: async () => {
       if (!actor) return false;
       return actor.isStripeConfigured();
     },
     enabled: !!actor && !isFetching,
+  });
+}
+
+export function useIsRazorpayConfigured() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<boolean>({
+    queryKey: ['isRazorpayConfigured'],
+    queryFn: async () => {
+      if (!actor) return false;
+      return actor.isRazorpayConfigured();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useSetRazorpayConfiguration() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { apiKey: string; apiSecret: string; webhookSecret: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      await actor.setRazorpayConfiguration(data.apiKey, data.apiSecret, data.webhookSecret);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['isRazorpayConfigured'] });
+    }
+  });
+}
+
+export function useGetPaymentLinks() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<PaymentLink[]>({
+    queryKey: ['paymentLinks'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getPaymentLinks();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useCreatePaymentLink() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { leadId: bigint; amount: bigint }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.createPaymentLink(data.leadId, data.amount);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['paymentLinks'] });
+    }
+  });
+}
+
+export function useUpdatePaymentLinkStatus() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { id: bigint; status: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      await actor.updatePaymentLinkStatus(data.id, data.status);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['paymentLinks'] });
+      queryClient.invalidateQueries({ queryKey: ['allLeads'] });
+      queryClient.invalidateQueries({ queryKey: ['myNotifications'] });
+    }
   });
 }

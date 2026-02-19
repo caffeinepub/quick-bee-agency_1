@@ -1,55 +1,92 @@
-import { Link, useLocation } from '@tanstack/react-router';
-import { useGetCallerUserProfile } from '../../hooks/useQueries';
-import { LayoutDashboard, Users, ShoppingBag, Briefcase, Zap, BarChart3, CreditCard, FileText, Settings } from 'lucide-react';
+import { useNavigate, useRouterState } from '@tanstack/react-router';
+import { useGetCallerUserRole } from '../../hooks/useQueries';
+import { UserRole } from '../../backend';
+import {
+  LayoutDashboard,
+  ShoppingBag,
+  FolderKanban,
+  Users,
+  Activity,
+  Zap,
+  BarChart3,
+  CreditCard,
+  FileText,
+  Settings,
+  Sparkles,
+  Bell
+} from 'lucide-react';
 
-const navItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['Admin', 'Manager', 'Client'] },
-  { path: '/leads', label: 'Leads', icon: Users, roles: ['Admin', 'Manager'] },
-  { path: '/services', label: 'Services', icon: ShoppingBag, roles: ['Admin', 'Manager', 'Client'] },
-  { path: '/crm', label: 'CRM', icon: Briefcase, roles: ['Admin', 'Manager'] },
-  { path: '/automation', label: 'Automation', icon: Zap, roles: ['Admin', 'Manager'] },
-  { path: '/analytics', label: 'Analytics', icon: BarChart3, roles: ['Admin', 'Manager'] },
-  { path: '/payments', label: 'Payments', icon: CreditCard, roles: ['Admin', 'Manager', 'Client'] },
-  { path: '/legal', label: 'Legal', icon: FileText, roles: ['Admin', 'Manager', 'Client'] },
-  { path: '/settings', label: 'Settings', icon: Settings, roles: ['Admin'] },
+const menuItems = [
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: [UserRole.admin, UserRole.user] },
+  { path: '/services', label: 'Services', icon: ShoppingBag, roles: [UserRole.admin, UserRole.user] },
+  { path: '/projects', label: 'Projects', icon: FolderKanban, roles: [UserRole.admin, UserRole.user] },
+  { path: '/leads', label: 'Leads', icon: Users, roles: [UserRole.admin] },
+  { path: '/crm', label: 'CRM Pipeline', icon: Activity, roles: [UserRole.admin] },
+  { path: '/automation', label: 'Automation', icon: Zap, roles: [UserRole.admin] },
+  { path: '/analytics', label: 'Analytics', icon: BarChart3, roles: [UserRole.admin] },
+  { path: '/payments', label: 'Payments', icon: CreditCard, roles: [UserRole.admin] },
+  { path: '/notifications', label: 'Notifications', icon: Bell, roles: [UserRole.admin, UserRole.user] },
+  { path: '/generators', label: 'Generators', icon: Sparkles, roles: [UserRole.admin] },
+  { path: '/legal', label: 'Legal', icon: FileText, roles: [UserRole.admin, UserRole.user] },
+  { path: '/settings', label: 'Settings', icon: Settings, roles: [UserRole.admin] },
 ];
 
 export default function SidebarNav() {
-  const location = useLocation();
-  const { data: userProfile } = useGetCallerUserProfile();
+  const navigate = useNavigate();
+  const routerState = useRouterState();
+  const { data: userRole } = useGetCallerUserRole();
 
-  const userRole = userProfile?.role || 'Client';
+  const currentPath = routerState.location.pathname;
 
-  const filteredItems = navItems.filter(item => item.roles.includes(userRole));
+  const filteredMenuItems = menuItems.filter(item =>
+    userRole && item.roles.includes(userRole)
+  );
 
   return (
-    <aside className="w-64 glass-panel border-r border-border shrink-0">
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-[#00C2A8]">Quick Bee</h1>
-        <p className="text-xs text-soft-gray">Agency Platform</p>
+    <div className="w-64 glass-panel border-r border-border h-screen flex flex-col">
+      <div className="p-6 border-b border-border">
+        <h1 className="text-2xl font-bold gradient-text">Quick Bee</h1>
+        <p className="text-xs text-soft-gray mt-1">Agency OS</p>
       </div>
 
-      <nav className="px-3 space-y-1">
-        {filteredItems.map((item) => {
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        {filteredMenuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.path;
-          
+          const isActive = currentPath === item.path;
+
           return (
-            <Link
+            <button
               key={item.path}
-              to={item.path}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 ${
+              onClick={() => navigate({ to: item.path })}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 isActive
-                  ? 'bg-primary/20 text-primary border border-primary/30'
-                  : 'text-soft-gray hover:bg-secondary hover:text-foreground'
+                  ? 'gradient-teal text-black font-semibold'
+                  : 'text-soft-gray hover:bg-secondary/50'
               }`}
             >
               <Icon className="w-5 h-5" />
-              <span className="font-medium">{item.label}</span>
-            </Link>
+              <span>{item.label}</span>
+            </button>
           );
         })}
       </nav>
-    </aside>
+
+      <div className="p-4 border-t border-border">
+        <p className="text-xs text-soft-gray text-center">
+          Built with ❤️ using{' '}
+          <a
+            href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            caffeine.ai
+          </a>
+        </p>
+        <p className="text-xs text-soft-gray text-center mt-1">
+          © {new Date().getFullYear()}
+        </p>
+      </div>
+    </div>
   );
 }
