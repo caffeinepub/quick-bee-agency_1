@@ -1,13 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Add settings and data editing capabilities for services in the marketplace, allowing administrators to configure and modify service details.
+**Goal:** Add editable payment link and QR code options for services and payment pages.
 
 **Planned changes:**
-- Add settings panel for each service with controls for visibility, featured status, availability, and custom metadata
-- Implement data editing for service details including title, description, pricing tiers (Basic, Pro, Premium), features list, and category
-- Add "Edit Service" button on ServiceDetailPage that opens an edit dialog for administrators
-- Extend backend Service data structure and add updateService mutation to persist service settings and editable fields
-- Create useUpdateService mutation hook in useQueries.ts to handle service updates and cache invalidation
+- Add UI controls in ServicesPage to edit payment links and QR codes for each service
+- Extend Service data model to include paymentLinkUrl and qrCodeDataUrl fields
+- Create React Query mutations for updating service payment information
+- Update ServiceDetailPage to display payment link and QR code with edit options
+- Ensure PaymentsPage displays editable payment links using existing EditPaymentLinkDialog
 
-**User-visible outcome:** Administrators can click an "Edit Service" button on any service detail page to open a dialog where they can modify service information (title, description, pricing, features) and configure settings (visibility, featured status). Changes are saved to the backend and immediately reflected in the marketplace view.
+**User-visible outcome:** Users can add and edit payment links and QR codes for individual services, view them on service detail pages, and manage payment links in the payments section with copy and download options.

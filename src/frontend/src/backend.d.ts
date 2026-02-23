@@ -32,6 +32,7 @@ export interface Coupon {
 }
 export interface Service {
     id: bigint;
+    qrCodeDataUrl?: string;
     features: Array<string>;
     pricingPro: PricingTier;
     subcategory: string;
@@ -41,6 +42,7 @@ export interface Service {
     settings: ServiceSettings;
     pricingPremium: PricingTier;
     category: string;
+    paymentLinkUrl?: string;
 }
 export interface Order {
     id: bigint;
@@ -148,11 +150,13 @@ export interface Project {
 }
 export interface PaymentLink {
     id: bigint;
+    qrCodeDataUrl?: string;
     status: string;
     createdAt: Time;
     createdBy: Principal;
     leadId: bigint;
     amount: bigint;
+    paymentLinkUrl?: string;
 }
 export interface UserProfile {
     name: string;
@@ -173,7 +177,6 @@ export enum UserRole {
     guest = "guest"
 }
 export interface backendInterface {
-    addService(name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings): Promise<bigint>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     assignLead(leadId: bigint, userId: Principal): Promise<void>;
     createCRMActivity(leadId: bigint | null, projectId: bigint | null, activityType: string, stage: string, notes: string, assignedTo: Principal | null, dueDate: Time | null): Promise<bigint>;
@@ -187,6 +190,7 @@ export interface backendInterface {
     createOrder(projectId: bigint, amount: bigint): Promise<bigint>;
     createPaymentLink(leadId: bigint, amount: bigint): Promise<bigint>;
     createProject(clientId: Principal, serviceId: bigint, onboardingData: OnboardingData | null): Promise<bigint>;
+    createService(name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings, paymentLinkUrl: string | null, qrCodeDataUrl: string | null): Promise<bigint>;
     deleteLead(id: bigint): Promise<void>;
     deleteService(id: bigint): Promise<void>;
     getAllCRMActivities(): Promise<Array<CRMActivity>>;
@@ -220,6 +224,8 @@ export interface backendInterface {
     isStripeConfigured(): Promise<boolean>;
     markNotificationAsRead(id: bigint): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    setPaymentLinkQrCode(id: bigint, qrCodeDataUrl: string): Promise<void>;
+    setPaymentLinkUrl(id: bigint, url: string): Promise<void>;
     setRazorpayConfiguration(apiKey: string, apiSecret: string, webhookSecret: string): Promise<void>;
     setStripeConfiguration(config: StripeConfiguration): Promise<void>;
     toggleCoupon(code: string, isActive: boolean): Promise<void>;
@@ -231,5 +237,6 @@ export interface backendInterface {
     updateOrderStatus(id: bigint, status: string): Promise<void>;
     updatePaymentLinkStatus(id: bigint, status: string): Promise<void>;
     updateProjectStatus(id: bigint, status: string): Promise<void>;
-    updateService(id: bigint, name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings): Promise<void>;
+    updateService(id: bigint, name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings, paymentLinkUrl: string | null, qrCodeDataUrl: string | null): Promise<void>;
+    updateServicePaymentInfo(id: bigint, paymentLinkUrl: string | null, qrCodeDataUrl: string | null): Promise<void>;
 }

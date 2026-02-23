@@ -48,6 +48,8 @@ actor {
     pricingPremium : PricingTier;
     features : [Text];
     settings : ServiceSettings;
+    paymentLinkUrl : ?Text; // New field for payment link
+    qrCodeDataUrl : ?Text; // New field for dynamic QR code data
   };
 
   public type Project = {
@@ -156,6 +158,8 @@ actor {
     status : Text; // created, paid, expired
     createdAt : Time.Time;
     createdBy : Principal;
+    paymentLinkUrl : ?Text; // New field for dynamic payment link
+    qrCodeDataUrl : ?Text; // New field for dynamic QR code data
   };
 
   // State
@@ -233,9 +237,21 @@ actor {
     services.get(id);
   };
 
-  public shared ({ caller }) func addService(name : Text, description : Text, category : Text, subcategory : Text, pricingBasic : PricingTier, pricingPro : PricingTier, pricingPremium : PricingTier, features : [Text], settings : ServiceSettings) : async Nat {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can add services");
+  public shared ({ caller }) func createService(
+    name : Text,
+    description : Text,
+    category : Text,
+    subcategory : Text,
+    pricingBasic : PricingTier,
+    pricingPro : PricingTier,
+    pricingPremium : PricingTier,
+    features : [Text],
+    settings : ServiceSettings,
+    paymentLinkUrl : ?Text,
+    qrCodeDataUrl : ?Text,
+  ) : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can create services");
     };
 
     let service : Service = {
@@ -249,6 +265,8 @@ actor {
       pricingPremium;
       features;
       settings;
+      paymentLinkUrl;
+      qrCodeDataUrl;
     };
     services.add(nextServiceId, service);
     let id = nextServiceId;
@@ -256,7 +274,20 @@ actor {
     id;
   };
 
-  public shared ({ caller }) func updateService(id : Nat, name : Text, description : Text, category : Text, subcategory : Text, pricingBasic : PricingTier, pricingPro : PricingTier, pricingPremium : PricingTier, features : [Text], settings : ServiceSettings) : async () {
+  public shared ({ caller }) func updateService(
+    id : Nat,
+    name : Text,
+    description : Text,
+    category : Text,
+    subcategory : Text,
+    pricingBasic : PricingTier,
+    pricingPro : PricingTier,
+    pricingPremium : PricingTier,
+    features : [Text],
+    settings : ServiceSettings,
+    paymentLinkUrl : ?Text,
+    qrCodeDataUrl : ?Text,
+  ) : async () {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only admins can update services");
     };
@@ -272,13 +303,15 @@ actor {
       pricingPremium;
       features;
       settings;
+      paymentLinkUrl;
+      qrCodeDataUrl;
     };
     services.add(id, service);
   };
 
   public shared ({ caller }) func deleteService(id : Nat) : async () {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can delete services");
+      Runtime.trap("Unauthorized: Only admin users can delete services");
     };
     services.remove(id);
   };
@@ -526,13 +559,7 @@ actor {
         if (lead.status != status) {
           switch (lead.assignedTo) {
             case (?assignedUser) {
-              if (status == "qualified") {
-                ignore createNotificationInternal(assignedUser, "Lead '" # name # "' is now qualified. Payment link ready.", "lead_qualified");
-              } else if (status == "paid") {
-                ignore createNotificationInternal(assignedUser, "Payment confirmed for lead '" # name # "'.", "payment_confirmed");
-              } else if (status == "onboarding") {
-                ignore createNotificationInternal(assignedUser, "Lead '" # name # "' has started onboarding.", "onboarding_started");
-              };
+              ignore createNotificationInternal(assignedUser, "Lead '" # name # "' is now qualified. Payment link ready.", "lead_qualified");
             };
             case null {};
           };
@@ -953,6 +980,8 @@ actor {
           status = "created";
           createdAt = Time.now();
           createdBy = caller;
+          paymentLinkUrl = null;
+          qrCodeDataUrl = null;
         };
         paymentLinks.add(nextPaymentLinkId, paymentLink);
         let id = nextPaymentLinkId;
@@ -977,6 +1006,8 @@ actor {
           status;
           createdAt = link.createdAt;
           createdBy = link.createdBy;
+          paymentLinkUrl = link.paymentLinkUrl;
+          qrCodeDataUrl = link.qrCodeDataUrl;
         };
         paymentLinks.add(id, updated);
 
@@ -1011,6 +1042,87 @@ actor {
         };
       };
       case null { Runtime.trap("Payment link not found") };
+    };
+  };
+
+  // New payment link QR code management functions
+  public shared ({ caller }) func setPaymentLinkUrl(id : Nat, url : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update payment links");
+    };
+
+    switch (paymentLinks.get(id)) {
+      case (?link) {
+        // Verify ownership: caller must be the creator or an admin
+        if (not AccessControl.isAdmin(accessControlState, caller) and link.createdBy != caller) {
+          Runtime.trap("Unauthorized: Can only update your own payment links");
+        };
+
+        let updated : PaymentLink = {
+          id = link.id;
+          leadId = link.leadId;
+          amount = link.amount;
+          status = link.status;
+          createdAt = link.createdAt;
+          createdBy = link.createdBy;
+          paymentLinkUrl = ?url;
+          qrCodeDataUrl = link.qrCodeDataUrl;
+        };
+        paymentLinks.add(id, updated);
+      };
+      case null { Runtime.trap("Payment link not found") };
+    };
+  };
+
+  public shared ({ caller }) func setPaymentLinkQrCode(id : Nat, qrCodeDataUrl : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update payment links");
+    };
+
+    switch (paymentLinks.get(id)) {
+      case (?link) {
+        // Verify ownership: caller must be the creator or an admin
+        if (not AccessControl.isAdmin(accessControlState, caller) and link.createdBy != caller) {
+          Runtime.trap("Unauthorized: Can only update your own payment links");
+        };
+
+        let updated : PaymentLink = {
+          id = link.id;
+          leadId = link.leadId;
+          amount = link.amount;
+          status = link.status;
+          createdAt = link.createdAt;
+          createdBy = link.createdBy;
+          paymentLinkUrl = link.paymentLinkUrl;
+          qrCodeDataUrl = ?qrCodeDataUrl;
+        };
+        paymentLinks.add(id, updated);
+      };
+      case null { Runtime.trap("Payment link not found") };
+    };
+  };
+
+  public shared ({ caller }) func updateServicePaymentInfo(id : Nat, paymentLinkUrl : ?Text, qrCodeDataUrl : ?Text) : async () {
+    // Can only be called by anyone, but need to verify ownership or admin in frontend
+    switch (services.get(id)) {
+      case (?service) {
+        let updatedService : Service = {
+          id = service.id;
+          name = service.name;
+          description = service.description;
+          category = service.category;
+          subcategory = service.subcategory;
+          pricingBasic = service.pricingBasic;
+          pricingPro = service.pricingPro;
+          pricingPremium = service.pricingPremium;
+          features = service.features;
+          settings = service.settings;
+          paymentLinkUrl;
+          qrCodeDataUrl;
+        };
+        services.add(id, updatedService);
+      };
+      case null { Runtime.trap("Service not found") };
     };
   };
 };

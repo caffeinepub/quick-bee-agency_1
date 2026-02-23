@@ -87,11 +87,13 @@ export interface Order {
 }
 export interface PaymentLink {
   'id' : bigint,
+  'qrCodeDataUrl' : [] | [string],
   'status' : string,
   'createdAt' : Time,
   'createdBy' : Principal,
   'leadId' : bigint,
   'amount' : bigint,
+  'paymentLinkUrl' : [] | [string],
 }
 export interface PricingTier { 'features' : Array<string>, 'price' : bigint }
 export interface Project {
@@ -104,6 +106,7 @@ export interface Project {
 }
 export interface Service {
   'id' : bigint,
+  'qrCodeDataUrl' : [] | [string],
   'features' : Array<string>,
   'pricingPro' : PricingTier,
   'subcategory' : string,
@@ -113,6 +116,7 @@ export interface Service {
   'settings' : ServiceSettings,
   'pricingPremium' : PricingTier,
   'category' : string,
+  'paymentLinkUrl' : [] | [string],
 }
 export interface ServiceSettings {
   'customMetadata' : string,
@@ -161,20 +165,6 @@ export interface http_request_result {
 }
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
-  'addService' : ActorMethod<
-    [
-      string,
-      string,
-      string,
-      string,
-      PricingTier,
-      PricingTier,
-      PricingTier,
-      Array<string>,
-      ServiceSettings,
-    ],
-    bigint
-  >,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'assignLead' : ActorMethod<[bigint, Principal], undefined>,
   'createCRMActivity' : ActorMethod<
@@ -206,6 +196,22 @@ export interface _SERVICE {
   'createPaymentLink' : ActorMethod<[bigint, bigint], bigint>,
   'createProject' : ActorMethod<
     [Principal, bigint, [] | [OnboardingData]],
+    bigint
+  >,
+  'createService' : ActorMethod<
+    [
+      string,
+      string,
+      string,
+      string,
+      PricingTier,
+      PricingTier,
+      PricingTier,
+      Array<string>,
+      ServiceSettings,
+      [] | [string],
+      [] | [string],
+    ],
     bigint
   >,
   'deleteLead' : ActorMethod<[bigint], undefined>,
@@ -241,6 +247,8 @@ export interface _SERVICE {
   'isStripeConfigured' : ActorMethod<[], boolean>,
   'markNotificationAsRead' : ActorMethod<[bigint], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'setPaymentLinkQrCode' : ActorMethod<[bigint, string], undefined>,
+  'setPaymentLinkUrl' : ActorMethod<[bigint, string], undefined>,
   'setRazorpayConfiguration' : ActorMethod<[string, string, string], undefined>,
   'setStripeConfiguration' : ActorMethod<[StripeConfiguration], undefined>,
   'toggleCoupon' : ActorMethod<[string, boolean], undefined>,
@@ -270,7 +278,13 @@ export interface _SERVICE {
       PricingTier,
       Array<string>,
       ServiceSettings,
+      [] | [string],
+      [] | [string],
     ],
+    undefined
+  >,
+  'updateServicePaymentInfo' : ActorMethod<
+    [bigint, [] | [string], [] | [string]],
     undefined
   >,
 }

@@ -8,16 +8,6 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
-export const PricingTier = IDL.Record({
-  'features' : IDL.Vec(IDL.Text),
-  'price' : IDL.Nat,
-});
-export const ServiceSettings = IDL.Record({
-  'customMetadata' : IDL.Text,
-  'availability' : IDL.Text,
-  'isFeatured' : IDL.Bool,
-  'isVisible' : IDL.Bool,
-});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
@@ -37,6 +27,16 @@ export const OnboardingData = IDL.Record({
   'niche' : IDL.Text,
   'budget' : IDL.Nat,
   'timeline' : IDL.Text,
+});
+export const PricingTier = IDL.Record({
+  'features' : IDL.Vec(IDL.Text),
+  'price' : IDL.Nat,
+});
+export const ServiceSettings = IDL.Record({
+  'customMetadata' : IDL.Text,
+  'availability' : IDL.Text,
+  'isFeatured' : IDL.Bool,
+  'isVisible' : IDL.Bool,
 });
 export const CRMActivity = IDL.Record({
   'id' : IDL.Nat,
@@ -102,6 +102,7 @@ export const Project = IDL.Record({
 });
 export const Service = IDL.Record({
   'id' : IDL.Nat,
+  'qrCodeDataUrl' : IDL.Opt(IDL.Text),
   'features' : IDL.Vec(IDL.Text),
   'pricingPro' : PricingTier,
   'subcategory' : IDL.Text,
@@ -111,6 +112,7 @@ export const Service = IDL.Record({
   'settings' : ServiceSettings,
   'pricingPremium' : PricingTier,
   'category' : IDL.Text,
+  'paymentLinkUrl' : IDL.Opt(IDL.Text),
 });
 export const UserProfile = IDL.Record({
   'name' : IDL.Text,
@@ -133,11 +135,13 @@ export const Notification = IDL.Record({
 });
 export const PaymentLink = IDL.Record({
   'id' : IDL.Nat,
+  'qrCodeDataUrl' : IDL.Opt(IDL.Text),
   'status' : IDL.Text,
   'createdAt' : Time,
   'createdBy' : IDL.Principal,
   'leadId' : IDL.Nat,
   'amount' : IDL.Nat,
+  'paymentLinkUrl' : IDL.Opt(IDL.Text),
 });
 export const StripeSessionStatus = IDL.Variant({
   'completed' : IDL.Record({
@@ -171,21 +175,6 @@ export const TransformationOutput = IDL.Record({
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-  'addService' : IDL.Func(
-      [
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        PricingTier,
-        PricingTier,
-        PricingTier,
-        IDL.Vec(IDL.Text),
-        ServiceSettings,
-      ],
-      [IDL.Nat],
-      [],
-    ),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'assignLead' : IDL.Func([IDL.Nat, IDL.Principal], [], []),
   'createCRMActivity' : IDL.Func(
@@ -228,6 +217,23 @@ export const idlService = IDL.Service({
   'createPaymentLink' : IDL.Func([IDL.Nat, IDL.Nat], [IDL.Nat], []),
   'createProject' : IDL.Func(
       [IDL.Principal, IDL.Nat, IDL.Opt(OnboardingData)],
+      [IDL.Nat],
+      [],
+    ),
+  'createService' : IDL.Func(
+      [
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        PricingTier,
+        PricingTier,
+        PricingTier,
+        IDL.Vec(IDL.Text),
+        ServiceSettings,
+        IDL.Opt(IDL.Text),
+        IDL.Opt(IDL.Text),
+      ],
       [IDL.Nat],
       [],
     ),
@@ -276,6 +282,8 @@ export const idlService = IDL.Service({
   'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
   'markNotificationAsRead' : IDL.Func([IDL.Nat], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'setPaymentLinkQrCode' : IDL.Func([IDL.Nat, IDL.Text], [], []),
+  'setPaymentLinkUrl' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'setRazorpayConfiguration' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
   'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
   'toggleCoupon' : IDL.Func([IDL.Text, IDL.Bool], [], []),
@@ -319,7 +327,14 @@ export const idlService = IDL.Service({
         PricingTier,
         IDL.Vec(IDL.Text),
         ServiceSettings,
+        IDL.Opt(IDL.Text),
+        IDL.Opt(IDL.Text),
       ],
+      [],
+      [],
+    ),
+  'updateServicePaymentInfo' : IDL.Func(
+      [IDL.Nat, IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
       [],
       [],
     ),
@@ -328,16 +343,6 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
-  const PricingTier = IDL.Record({
-    'features' : IDL.Vec(IDL.Text),
-    'price' : IDL.Nat,
-  });
-  const ServiceSettings = IDL.Record({
-    'customMetadata' : IDL.Text,
-    'availability' : IDL.Text,
-    'isFeatured' : IDL.Bool,
-    'isVisible' : IDL.Bool,
-  });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
@@ -357,6 +362,16 @@ export const idlFactory = ({ IDL }) => {
     'niche' : IDL.Text,
     'budget' : IDL.Nat,
     'timeline' : IDL.Text,
+  });
+  const PricingTier = IDL.Record({
+    'features' : IDL.Vec(IDL.Text),
+    'price' : IDL.Nat,
+  });
+  const ServiceSettings = IDL.Record({
+    'customMetadata' : IDL.Text,
+    'availability' : IDL.Text,
+    'isFeatured' : IDL.Bool,
+    'isVisible' : IDL.Bool,
   });
   const CRMActivity = IDL.Record({
     'id' : IDL.Nat,
@@ -422,6 +437,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const Service = IDL.Record({
     'id' : IDL.Nat,
+    'qrCodeDataUrl' : IDL.Opt(IDL.Text),
     'features' : IDL.Vec(IDL.Text),
     'pricingPro' : PricingTier,
     'subcategory' : IDL.Text,
@@ -431,6 +447,7 @@ export const idlFactory = ({ IDL }) => {
     'settings' : ServiceSettings,
     'pricingPremium' : PricingTier,
     'category' : IDL.Text,
+    'paymentLinkUrl' : IDL.Opt(IDL.Text),
   });
   const UserProfile = IDL.Record({
     'name' : IDL.Text,
@@ -453,11 +470,13 @@ export const idlFactory = ({ IDL }) => {
   });
   const PaymentLink = IDL.Record({
     'id' : IDL.Nat,
+    'qrCodeDataUrl' : IDL.Opt(IDL.Text),
     'status' : IDL.Text,
     'createdAt' : Time,
     'createdBy' : IDL.Principal,
     'leadId' : IDL.Nat,
     'amount' : IDL.Nat,
+    'paymentLinkUrl' : IDL.Opt(IDL.Text),
   });
   const StripeSessionStatus = IDL.Variant({
     'completed' : IDL.Record({
@@ -488,21 +507,6 @@ export const idlFactory = ({ IDL }) => {
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-    'addService' : IDL.Func(
-        [
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          PricingTier,
-          PricingTier,
-          PricingTier,
-          IDL.Vec(IDL.Text),
-          ServiceSettings,
-        ],
-        [IDL.Nat],
-        [],
-      ),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'assignLead' : IDL.Func([IDL.Nat, IDL.Principal], [], []),
     'createCRMActivity' : IDL.Func(
@@ -545,6 +549,23 @@ export const idlFactory = ({ IDL }) => {
     'createPaymentLink' : IDL.Func([IDL.Nat, IDL.Nat], [IDL.Nat], []),
     'createProject' : IDL.Func(
         [IDL.Principal, IDL.Nat, IDL.Opt(OnboardingData)],
+        [IDL.Nat],
+        [],
+      ),
+    'createService' : IDL.Func(
+        [
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          PricingTier,
+          PricingTier,
+          PricingTier,
+          IDL.Vec(IDL.Text),
+          ServiceSettings,
+          IDL.Opt(IDL.Text),
+          IDL.Opt(IDL.Text),
+        ],
         [IDL.Nat],
         [],
       ),
@@ -597,6 +618,8 @@ export const idlFactory = ({ IDL }) => {
     'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
     'markNotificationAsRead' : IDL.Func([IDL.Nat], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'setPaymentLinkQrCode' : IDL.Func([IDL.Nat, IDL.Text], [], []),
+    'setPaymentLinkUrl' : IDL.Func([IDL.Nat, IDL.Text], [], []),
     'setRazorpayConfiguration' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Text],
         [],
@@ -644,7 +667,14 @@ export const idlFactory = ({ IDL }) => {
           PricingTier,
           IDL.Vec(IDL.Text),
           ServiceSettings,
+          IDL.Opt(IDL.Text),
+          IDL.Opt(IDL.Text),
         ],
+        [],
+        [],
+      ),
+    'updateServicePaymentInfo' : IDL.Func(
+        [IDL.Nat, IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
         [],
         [],
       ),

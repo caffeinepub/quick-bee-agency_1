@@ -1,85 +1,93 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add settings and data editing for services in marketplace",
+  "title": "Add editable payment link and QR code options in Services",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add a settings panel for each service in the marketplace that allows administrators to configure service-specific settings including visibility, featured status, availability, and custom metadata",
+      "summary": "Add UI controls in ServicesPage to allow editing payment links and QR codes for each service item",
       "acceptanceCriteria": [
-        "Settings panel is accessible from the service detail page for admin users",
-        "Settings include toggles for service visibility and featured status",
-        "Settings are persisted in the backend Service data structure",
-        "Changes to settings are immediately reflected in the marketplace view"
+        "Each service card or row displays an action button to edit payment information",
+        "Clicking the edit action opens a dialog similar to EditPaymentLinkDialog",
+        "The dialog allows users to input/update payment link URLs",
+        "The dialog supports QR code generation via backend API or custom image upload"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/services/ServiceSettingsPanel.tsx",
+          "path": "frontend/src/components/services/ServicePaymentInfoDialog.tsx",
           "operation": "create",
-          "description": "Create a settings panel component that displays service visibility toggle, featured status toggle, availability dropdown, and custom metadata text field. Use the authorization component to ensure only admin users can view and edit these settings. Include form state management and wire to the useUpdateService mutation hook for persistence."
+          "description": "Create a dialog component for editing service payment information (payment link URL and QR code). Follow the pattern established by EditPaymentLinkDialog in frontend/src/components/leads/EditPaymentLinkDialog.tsx. Support both QR code generation via backend API call and custom image upload with data URL conversion. Include form fields for paymentLinkUrl and qrCodeDataUrl with validation. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/ServicesPage.tsx",
+          "operation": "modify",
+          "description": "Add an edit payment info action button to each service card displayed to admin users. Wire the button to open ServicePaymentInfoDialog passing the current service data. Ensure the dialog only appears for admin users using the authorization component's access control."
         },
         {
           "path": "frontend/src/pages/ServiceDetailPage.tsx",
           "operation": "modify",
-          "description": "Import ServiceSettingsPanel and conditionally render it for admin users using isCallerAdmin query. Position the panel below the service details section. Ensure the panel is hidden for non-admin users."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Implement data editing capabilities for service details including title, description, pricing tiers (Basic, Pro, Premium), features list, and category information",
-      "acceptanceCriteria": [
-        "Admin users can edit service title, description, and category",
-        "Each pricing tier (Basic, Pro, Premium) can be individually edited with price and features",
-        "Validation ensures required fields are populated before saving",
-        "Edit interface shows current values and provides feedback on successful updates",
-        "Changes are reflected immediately in the ServicesPage marketplace view"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/services/ServiceEditDialog.tsx",
-          "operation": "create",
-          "description": "Create a comprehensive edit dialog component with form sections for service details (name, description, category, subcategory) and pricing tiers (Basic, Pro, Premium). Each pricing tier includes price input and feature list editor. Include form validation for required fields (name, description, category) and price values. Use Dialog, Input, Textarea, and Button components from shadcn/ui. Wire to useUpdateService mutation with loading states and success/error feedback using toast notifications."
+          "description": "Add admin-only edit button for payment information in the service detail view. Wire it to open ServicePaymentInfoDialog with the current service's payment data. Ensure proper authorization checks using the authorization component before showing the edit option."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Add an 'Edit Service' button on the ServiceDetailPage that opens an edit dialog for administrators to modify service data and settings",
+      "summary": "Create React Query mutations for updating service payment links and QR codes",
       "acceptanceCriteria": [
-        "Edit button is visible only to admin users on ServiceDetailPage",
-        "Button opens a modal dialog with form fields for all editable service properties",
-        "Dialog includes tabs or sections for 'Details' and 'Settings'",
-        "Save button commits changes via backend mutation",
-        "Cancel button discards changes and closes dialog"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/ServiceDetailPage.tsx",
-          "operation": "modify",
-          "description": "Import ServiceEditDialog component and add an 'Edit Service' button in the header section that is conditionally rendered for admin users only (using isCallerAdmin query). Add state to manage dialog open/close. Pass the current service data to the dialog component. Position the button prominently near the service title."
-        },
-        {
-          "path": "frontend/src/components/services/ServiceEditDialog.tsx",
-          "operation": "modify",
-          "description": "Enhance the ServiceEditDialog to include tabbed sections using Tabs component from shadcn/ui. Create 'Details' tab containing service name, description, category, subcategory, pricing tiers, and features. Create 'Settings' tab containing visibility toggle, featured status toggle, availability dropdown, and custom metadata field. Implement Cancel button that closes dialog without saving and Save button that validates and submits via useUpdateService mutation."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Create a useUpdateService mutation hook in useQueries.ts that calls the backend updateService function and invalidates the services query cache on success",
-      "acceptanceCriteria": [
-        "Hook follows the pattern of existing mutation hooks in useQueries.ts",
-        "Mutation invalidates 'services' and individual service queries on success",
-        "Hook handles loading and error states appropriately",
-        "Success callback triggers toast notification confirming the update"
+        "useUpdateServicePaymentLink mutation calls backend to update paymentLinkUrl",
+        "useUpdateServiceQRCode mutation calls backend to update qrCodeDataUrl",
+        "Mutations invalidate the services query cache on success",
+        "Error handling displays appropriate feedback to users"
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Add useUpdateService mutation hook that accepts service ID and updated service data (name, description, category, subcategory, pricing tiers, features, settings). Call actor.updateService with the provided parameters. On success, invalidate both ['services'] query key and ['service', serviceId] query key to refresh marketplace and detail views. Include onSuccess callback that displays a success toast notification. Handle loading and error states following existing mutation patterns in the file."
+          "description": "Add useUpdateServicePaymentInfo mutation hook that calls actor.updateServicePaymentInfo with service id, paymentLinkUrl, and qrCodeDataUrl parameters. On success, invalidate both 'services' and individual service query caches. Include error handling with user-friendly messages for authorization failures and validation errors. Follow the existing mutation patterns in this file for consistency."
+        },
+        {
+          "path": "frontend/src/components/services/ServicePaymentInfoDialog.tsx",
+          "operation": "modify",
+          "description": "Wire the ServicePaymentInfoDialog to use the useUpdateServicePaymentInfo mutation from useQueries.ts. Handle loading, success, and error states appropriately with toast notifications or inline error messages. Close the dialog on successful mutation and show appropriate feedback to the user."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Update ServiceDetailPage to display payment link and QR code if available",
+      "acceptanceCriteria": [
+        "Service detail page shows payment link URL if configured",
+        "Service detail page displays QR code image if configured",
+        "Admin users see an edit button to modify payment information",
+        "Copy and download options are available for payment links and QR codes"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/services/ServicePaymentInfoDisplay.tsx",
+          "operation": "create",
+          "description": "Create a component that displays service payment information including payment link URL (with copy button) and QR code image (with download button) when available. Show a well-formatted section that only renders when paymentLinkUrl or qrCodeDataUrl fields are present on the service. Include utility functions for copying text to clipboard and downloading QR code images."
+        },
+        {
+          "path": "frontend/src/pages/ServiceDetailPage.tsx",
+          "operation": "modify",
+          "description": "Add ServicePaymentInfoDisplay component to the service detail page layout below the pricing tiers section. Pass the service's paymentLinkUrl and qrCodeDataUrl as props. Ensure the display section only appears when at least one payment field is configured. The edit button for admin users was already added in REQ-1."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Ensure PaymentsPage displays editable payment links with the existing EditPaymentLinkDialog functionality",
+      "acceptanceCriteria": [
+        "Payment links in PaymentsPage show an edit icon or button",
+        "Clicking edit opens EditPaymentLinkDialog with current values",
+        "Users can update payment link URL and QR code",
+        "Changes persist to backend and refresh the payment links list"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/PaymentsPage.tsx",
+          "operation": "modify",
+          "description": "Verify that each payment link row in the Razorpay payment links tab displays an edit button that opens EditPaymentLinkDialog with the current payment link data. Ensure the dialog uses the existing useSetPaymentLinkUrl and useSetPaymentLinkQRCode mutations from useQueries.ts. Confirm that the payment links query cache is properly invalidated after successful updates. The EditPaymentLinkDialog component already exists at frontend/src/components/leads/EditPaymentLinkDialog.tsx and should be reused without modification."
         }
       ]
     }

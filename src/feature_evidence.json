@@ -2,10 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-add-a-settings-panel-for-each-service-in-the-marketplace-that-allows-administrators-to-configure-service-specific-settings-including-visibility-featured-status-availability-and-custom-metadata",
-      "featureTitle": "Add a settings panel for each service in the marketplace that allows administrators to configure service-specific settings including visibility, featured status, availability, and custom metadata",
+      "featureId": "feature-add-ui-controls-in-the-servicespage-to-allow-editing-payment-links-and-qr-codes-for-each-service-item",
+      "featureTitle": "Add UI controls in the ServicesPage to allow editing payment links and QR codes for each service item",
       "files": [
-        "frontend/src/pages/ServiceDetailPage.tsx"
+        "frontend/src/components/services/ServicePaymentInfoDialog.tsx",
+        "frontend/src/pages/ServiceDetailPage.tsx",
+        "frontend/src/pages/ServicesPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -15,7 +17,9 @@
         "build-template-react@1.0.0",
         "initial-app@1.0.0",
         "github-export-icp-cli@1.0.0",
-        "http-outcalls@3.0.0"
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0"
       ],
       "testIds": [
         "REQ-1"
@@ -23,52 +27,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-implement-data-editing-capabilities-for-service-details-including-title-description-pricing-tiers-basic-pro-premium-features-list-and-category-information",
-      "featureTitle": "Implement data editing capabilities for service details including title, description, pricing tiers (Basic, Pro, Premium), features list, and category information",
+      "featureId": "feature-create-react-query-mutations-for-updating-service-payment-links-and-qr-codes",
+      "featureTitle": "Create React Query mutations for updating service payment links and QR codes",
       "files": [
-        "frontend/src/components/services/ServiceEditDialog.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "stripe@3.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "http-outcalls@3.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-an-edit-service-button-on-the-servicedetailpage-that-opens-an-edit-dialog-for-administrators-to-modify-service-data-and-settings",
-      "featureTitle": "Add an 'Edit Service' button on the ServiceDetailPage that opens an edit dialog for administrators to modify service data and settings",
-      "files": [
-        "frontend/src/components/services/ServiceEditDialog.tsx",
-        "frontend/src/pages/ServiceDetailPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "stripe@3.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "http-outcalls@3.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-create-a-useupdateservice-mutation-hook-in-usequeries-ts-that-calls-the-backend-updateservice-function-and-invalidates-the-services-query-cache-on-success",
-      "featureTitle": "Create a useUpdateService mutation hook in useQueries.ts that calls the backend updateService function and invalidates the services query cache on success",
-      "files": [
+        "frontend/src/components/services/ServicePaymentInfoDialog.tsx",
         "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
@@ -79,7 +41,56 @@
         "build-template-react@1.0.0",
         "initial-app@1.0.0",
         "github-export-icp-cli@1.0.0",
-        "http-outcalls@3.0.0"
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-servicedetailpage-to-display-payment-link-and-qr-code-if-available",
+      "featureTitle": "Update ServiceDetailPage to display payment link and QR code if available",
+      "files": [
+        "frontend/src/components/services/ServicePaymentInfoDisplay.tsx",
+        "frontend/src/pages/ServiceDetailPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-paymentspage-displays-editable-payment-links-with-the-existing-editpaymentlinkdialog-functionality",
+      "featureTitle": "Ensure PaymentsPage displays editable payment links with the existing EditPaymentLinkDialog functionality",
+      "files": [
+        "frontend/src/pages/PaymentsPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0"
       ],
       "testIds": [
         "REQ-5"

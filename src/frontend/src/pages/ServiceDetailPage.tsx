@@ -1,20 +1,26 @@
 import { useState } from 'react';
-import { useParams, Link } from '@tanstack/react-router';
+import { useParams, Link, useNavigate } from '@tanstack/react-router';
 import { useGetService, useIsCallerAdmin } from '../hooks/useQueries';
 import { useCart } from '../cart/useCart';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
-import { ArrowLeft, Check, Edit, Eye, EyeOff, Star } from 'lucide-react';
+import { ArrowLeft, Check, Edit, Eye, EyeOff, Star, Trash2, CreditCard } from 'lucide-react';
 import ServiceEditDialog from '../components/services/ServiceEditDialog';
+import ServiceDeleteDialog from '../components/services/ServiceDeleteDialog';
+import ServicePaymentInfoDialog from '../components/services/ServicePaymentInfoDialog';
+import ServicePaymentInfoDisplay from '../components/services/ServicePaymentInfoDisplay';
 
 export default function ServiceDetailPage() {
   const { serviceId } = useParams({ from: '/services/$serviceId' });
+  const navigate = useNavigate();
   const { data: service } = useGetService(BigInt(serviceId));
   const { data: isAdmin = false } = useIsCallerAdmin();
   const { addItem } = useCart();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [paymentInfoDialogOpen, setPaymentInfoDialogOpen] = useState(false);
 
   if (!service) {
     return <div className="text-center text-soft-gray">Service not found</div>;
@@ -35,6 +41,10 @@ export default function ServiceDetailPage() {
     });
 
     toast.success(`Added ${tier} plan to cart`);
+  };
+
+  const handleDeleteSuccess = () => {
+    navigate({ to: '/services' });
   };
 
   const tiers = [
@@ -71,13 +81,30 @@ export default function ServiceDetailPage() {
           </Button>
         </Link>
         {isAdmin && (
-          <Button
-            onClick={() => setEditDialogOpen(true)}
-            className="gradient-teal text-black font-semibold"
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            Edit Service
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setPaymentInfoDialogOpen(true)}
+              variant="outline"
+              className="border-border"
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Payment Info
+            </Button>
+            <Button
+              onClick={() => setEditDialogOpen(true)}
+              className="gradient-teal text-black font-semibold"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Edit Service
+            </Button>
+            <Button
+              onClick={() => setDeleteDialogOpen(true)}
+              variant="destructive"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Service
+            </Button>
+          </div>
         )}
       </div>
 
@@ -151,6 +178,11 @@ export default function ServiceDetailPage() {
         ))}
       </div>
 
+      <ServicePaymentInfoDisplay
+        paymentLinkUrl={service.paymentLinkUrl}
+        qrCodeDataUrl={service.qrCodeDataUrl}
+      />
+
       {isAdmin && (
         <Card className="glass-panel border-border">
           <CardHeader>
@@ -192,11 +224,24 @@ export default function ServiceDetailPage() {
       )}
 
       {service && (
-        <ServiceEditDialog
-          service={service}
-          open={editDialogOpen}
-          onOpenChange={setEditDialogOpen}
-        />
+        <>
+          <ServiceEditDialog
+            service={service}
+            open={editDialogOpen}
+            onOpenChange={setEditDialogOpen}
+          />
+          <ServiceDeleteDialog
+            service={service}
+            open={deleteDialogOpen}
+            onOpenChange={setDeleteDialogOpen}
+            onSuccess={handleDeleteSuccess}
+          />
+          <ServicePaymentInfoDialog
+            service={service}
+            open={paymentInfoDialogOpen}
+            onOpenChange={setPaymentInfoDialogOpen}
+          />
+        </>
       )}
     </div>
   );

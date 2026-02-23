@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-19T12:12:37.193Z",
+  "generatedAt": "2026-02-23T08:35:43.584Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -12,56 +12,61 @@
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Add a settings panel for each service in the marketplace that allows administrators to configure service-specific settings including visibility, featured status, availability, and custom metadata",
+        "summary": "Add UI controls in the ServicesPage to allow editing payment links and QR codes for each service item",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/services/ServiceSettingsPanel.tsx",
+          "frontend/src/components/services/ServicePaymentInfoDialog.tsx",
+          "frontend/src/pages/ServicesPage.tsx",
           "frontend/src/pages/ServiceDetailPage.tsx"
         ],
         "matchedFiles": [
+          "frontend/src/components/services/ServicePaymentInfoDialog.tsx",
+          "frontend/src/pages/ServicesPage.tsx",
           "frontend/src/pages/ServiceDetailPage.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Implement data editing capabilities for service details including title, description, pricing tiers (Basic, Pro, Premium), features list, and category information",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/services/ServiceEditDialog.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/services/ServiceEditDialog.tsx"
-        ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Add an 'Edit Service' button on the ServiceDetailPage that opens an edit dialog for administrators to modify service data and settings",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/ServiceDetailPage.tsx",
-          "frontend/src/components/services/ServiceEditDialog.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/ServiceDetailPage.tsx",
-          "frontend/src/components/services/ServiceEditDialog.tsx"
-        ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Extend the backend Service data structure and add updateService mutation to support persistent storage of service settings and editable fields",
+        "summary": "Extend the Service data model in backend to include paymentLinkUrl and qrCodeDataUrl fields",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-5",
-        "summary": "Create a useUpdateService mutation hook in useQueries.ts that calls the backend updateService function and invalidates the services query cache on success",
+        "id": "REQ-3",
+        "summary": "Create React Query mutations for updating service payment links and QR codes",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/services/ServicePaymentInfoDialog.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/services/ServicePaymentInfoDialog.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Update ServiceDetailPage to display payment link and QR code if available",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/services/ServicePaymentInfoDisplay.tsx",
+          "frontend/src/pages/ServiceDetailPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/services/ServicePaymentInfoDisplay.tsx",
+          "frontend/src/pages/ServiceDetailPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Ensure PaymentsPage displays editable payment links with the existing EditPaymentLinkDialog functionality",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/PaymentsPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/PaymentsPage.tsx"
         ]
       }
     ]
@@ -75,10 +80,12 @@
     "frontend-implementation-plan.json",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
-    "frontend/src/components/services/ServiceEditDialog.tsx",
+    "frontend/src/components/services/ServicePaymentInfoDialog.tsx",
+    "frontend/src/components/services/ServicePaymentInfoDisplay.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
     "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/PaymentsPage.tsx",
     "frontend/src/pages/ServiceDetailPage.tsx",
     "frontend/src/pages/ServicesPage.tsx",
     "project_state.json",

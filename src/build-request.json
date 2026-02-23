@@ -1,120 +1,113 @@
 {
   "kind": "build_request",
-  "title": "Add settings and data editing for services in marketplace",
-  "projectName": "Quick Bee Agency",
+  "title": "Add editable payment link and QR code options in Services",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add a settings panel for each service in the marketplace that allows administrators to configure service-specific settings including visibility, featured status, availability, and custom metadata",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-latest"
-        ],
-        "quotes": [
-          "add setting & data details editing in services(service market place"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Settings panel is accessible from the service detail page for admin users",
-        "Settings include toggles for service visibility and featured status",
-        "Settings are persisted in the backend Service data structure",
-        "Changes to settings are immediately reflected in the marketplace view"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Implement data editing capabilities for service details including title, description, pricing tiers (Basic, Pro, Premium), features list, and category information",
-      "target": "both",
-      "source": {
-        "messageIds": [
-          "msg-latest"
-        ],
-        "quotes": [
-          "add setting & data details editing in services(service market place"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Admin users can edit service title, description, and category",
-        "Each pricing tier (Basic, Pro, Premium) can be individually edited with price and features",
-        "Validation ensures required fields are populated before saving",
-        "Edit interface shows current values and provides feedback on successful updates",
-        "Changes are reflected immediately in the ServicesPage marketplace view"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Add an 'Edit Service' button on the ServiceDetailPage that opens an edit dialog for administrators to modify service data and settings",
+      "text": "Add UI controls in the ServicesPage to allow editing payment links and QR codes for each service item",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-latest"
         ],
         "quotes": [
-          "add setting & data details editing in services(service market place"
+          "make editable options to add links & QR codes to recieve payments in payments option & in services"
         ]
       },
       "acceptanceCriteria": [
-        "Edit button is visible only to admin users on ServiceDetailPage",
-        "Button opens a modal dialog with form fields for all editable service properties",
-        "Dialog includes tabs or sections for 'Details' and 'Settings'",
-        "Save button commits changes via backend mutation",
-        "Cancel button discards changes and closes dialog"
+        "Each service card or row displays an action button to edit payment information",
+        "Clicking the edit action opens a dialog similar to EditPaymentLinkDialog",
+        "The dialog allows users to input/update payment link URLs",
+        "The dialog supports QR code generation via backend API or custom image upload"
       ]
     },
     {
-      "id": "REQ-4",
-      "text": "Extend the backend Service data structure and add updateService mutation to support persistent storage of service settings and editable fields",
+      "id": "REQ-2",
+      "text": "Extend the Service data model in backend to include paymentLinkUrl and qrCodeDataUrl fields",
       "target": "backend",
       "source": {
         "messageIds": [
           "msg-latest"
         ],
         "quotes": [
-          "add setting & data details editing in services(service market place"
+          "make editable options to add links & QR codes to recieve payments in payments option & in services"
         ]
       },
       "acceptanceCriteria": [
-        "Service type includes fields for visibility, featured status, and custom metadata",
-        "updateService function accepts service ID and updated Service object",
-        "Access control ensures only admin principals can update services",
-        "Updated service data persists across canister upgrades",
-        "Function returns updated Service or error if validation fails"
+        "Service type includes optional paymentLinkUrl field of type ?Text",
+        "Service type includes optional qrCodeDataUrl field of type ?Text",
+        "Update and create service functions handle these new fields",
+        "Existing services are migrated to include null values for these fields"
       ]
     },
     {
-      "id": "REQ-5",
-      "text": "Create a useUpdateService mutation hook in useQueries.ts that calls the backend updateService function and invalidates the services query cache on success",
+      "id": "REQ-3",
+      "text": "Create React Query mutations for updating service payment links and QR codes",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-latest"
         ],
         "quotes": [
-          "add setting & data details editing in services(service market place"
+          "make editable options to add links & QR codes to recieve payments in payments option & in services"
         ]
       },
       "acceptanceCriteria": [
-        "Hook follows the pattern of existing mutation hooks in useQueries.ts",
-        "Mutation invalidates 'services' and individual service queries on success",
-        "Hook handles loading and error states appropriately",
-        "Success callback triggers toast notification confirming the update"
+        "useUpdateServicePaymentLink mutation calls backend to update paymentLinkUrl",
+        "useUpdateServiceQRCode mutation calls backend to update qrCodeDataUrl",
+        "Mutations invalidate the services query cache on success",
+        "Error handling displays appropriate feedback to users"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Update ServiceDetailPage to display payment link and QR code if available",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ],
+        "quotes": [
+          "make editable options to add links & QR codes to recieve payments in payments option & in services"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Service detail page shows payment link URL if configured",
+        "Service detail page displays QR code image if configured",
+        "Admin users see an edit button to modify payment information",
+        "Copy and download options are available for payment links and QR codes"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Ensure PaymentsPage displays editable payment links with the existing EditPaymentLinkDialog functionality",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ],
+        "quotes": [
+          "make editable options to add links & QR codes to recieve payments in payments option & in services"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Payment links in PaymentsPage show an edit icon or button",
+        "Clicking edit opens EditPaymentLinkDialog with current values",
+        "Users can update payment link URL and QR code",
+        "Changes persist to backend and refresh the payment links list"
       ]
     }
   ],
   "constraints": [
-    "Service editing must be restricted to admin users only",
-    "Do not modify the existing Service data structure in ways that break compatibility with existing services",
-    "Settings panel must follow the existing UI patterns using Shadcn components and Tailwind CSS",
-    "Do not change immutable frontend paths: useInternetIdentity.ts, useActor.ts, main.tsx, components/ui"
+    "Reuse the existing EditPaymentLinkDialog component pattern for consistency",
+    "Follow the established Service type structure in backend/main.mo",
+    "Maintain the single-actor architecture for all backend logic"
   ],
   "nonGoals": [
-    "Bulk editing of multiple services at once",
-    "Service deletion functionality",
-    "Image upload for service thumbnails or galleries",
-    "Service approval workflow or versioning",
-    "Analytics or usage tracking for services"
+    "Integrating third-party payment gateway APIs beyond existing Razorpay configuration",
+    "Automatic QR code generation without user interaction",
+    "Bulk editing of payment links across multiple services"
   ],
   "imageRequirements": {
     "required": [],

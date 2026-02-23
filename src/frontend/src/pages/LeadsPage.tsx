@@ -13,7 +13,7 @@ import BulkActionsToolbar from '../components/leads/BulkActionsToolbar';
 import BulkStatusChangeDialog from '../components/leads/BulkStatusChangeDialog';
 import PaymentLinkDialog from '../components/leads/PaymentLinkDialog';
 import { Skeleton } from '../components/ui/skeleton';
-import type { Lead } from '../backend';
+import type { Lead, PaymentLink } from '../backend';
 
 const MICRO_NICHES = [
   'SaaS Startups', 'E-commerce Fashion', 'Health & Wellness Coaches', 'Real Estate Agents',
@@ -50,7 +50,7 @@ export default function LeadsPage() {
   const [isPaymentLinkOpen, setIsPaymentLinkOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
-  const [currentPaymentLink, setCurrentPaymentLink] = useState<{ leadId: bigint; amount: bigint; url: string } | null>(null);
+  const [currentPaymentLink, setCurrentPaymentLink] = useState<PaymentLink | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -95,19 +95,22 @@ export default function LeadsPage() {
         ...formData
       });
 
-      // If status changed to qualified, create payment link
+      // If status changed to qualified, create payment link and show it
       if (oldStatus !== 'qualified' && formData.status === 'qualified') {
         const linkId = await createPaymentLink.mutateAsync({
           leadId: selectedLead.id,
           amount: BigInt(50000) // Default ₹500
         });
-        const mockUrl = `https://razorpay.com/payment/${linkId}`;
-        setCurrentPaymentLink({
-          leadId: selectedLead.id,
-          amount: BigInt(50000),
-          url: mockUrl
-        });
-        setIsPaymentLinkOpen(true);
+        
+        // Find the newly created payment link
+        // Wait a bit for the query to refresh
+        setTimeout(() => {
+          const newLink = paymentLinks.find(pl => pl.id === linkId);
+          if (newLink) {
+            setCurrentPaymentLink(newLink);
+            setIsPaymentLinkOpen(true);
+          }
+        }, 500);
       }
 
       toast.success('Lead updated successfully');
@@ -481,19 +484,14 @@ export default function LeadsPage() {
         onOpenChange={setIsBulkStatusOpen}
         selectedLeadIds={Array.from(selectedLeadIds).map(id => BigInt(id))}
         leads={leads}
-        onSuccess={() => {
-          setSelectedLeadIds(new Set());
-          setIsBulkStatusOpen(false);
-        }}
+        onSuccess={handleClearSelection}
       />
 
-      {currentPaymentLink && (
-        <PaymentLinkDialog
-          open={isPaymentLinkOpen}
-          onOpenChange={setIsPaymentLinkOpen}
-          paymentLink={currentPaymentLink}
-        />
-      )}
+      <PaymentLinkDialog
+        open={isPaymentLinkOpen}
+        onOpenChange={setIsPaymentLinkOpen}
+        paymentLink={currentPaymentLink}
+      />
     </div>
   );
 }

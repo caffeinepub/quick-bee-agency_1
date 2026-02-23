@@ -95,7 +95,7 @@ export function useGetService(id: bigint | null) {
   });
 }
 
-export function useAddService() {
+export function useCreateService() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
@@ -112,7 +112,7 @@ export function useAddService() {
       settings: ServiceSettings;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.addService(
+      return actor.createService(
         data.name, 
         data.description, 
         data.category,
@@ -121,12 +121,17 @@ export function useAddService() {
         data.pricingPro,
         data.pricingPremium,
         data.features,
-        data.settings
+        data.settings,
+        null,
+        null
       );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
-      toast.success('Service added successfully');
+      toast.success('Service created successfully');
+    },
+    onError: (error) => {
+      toast.error(`Failed to create service: ${error.message}`);
     }
   });
 }
@@ -147,6 +152,8 @@ export function useUpdateService() {
       pricingPremium: PricingTier;
       features: string[];
       settings: ServiceSettings;
+      paymentLinkUrl?: string | null;
+      qrCodeDataUrl?: string | null;
     }) => {
       if (!actor) throw new Error('Actor not available');
       await actor.updateService(
@@ -159,7 +166,9 @@ export function useUpdateService() {
         data.pricingPro,
         data.pricingPremium,
         data.features,
-        data.settings
+        data.settings,
+        data.paymentLinkUrl !== undefined ? data.paymentLinkUrl : null,
+        data.qrCodeDataUrl !== undefined ? data.qrCodeDataUrl : null
       );
     },
     onSuccess: (_, variables) => {
@@ -169,6 +178,49 @@ export function useUpdateService() {
     },
     onError: (error) => {
       toast.error(`Failed to update service: ${error.message}`);
+    }
+  });
+}
+
+export function useDeleteService() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      await actor.deleteService(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+      toast.success('Service deleted successfully');
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete service: ${error.message}`);
+    }
+  });
+}
+
+export function useUpdateServicePaymentInfo() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { 
+      id: bigint; 
+      paymentLinkUrl: string | null; 
+      qrCodeDataUrl: string | null;
+    }) => {
+      if (!actor) throw new Error('Actor not available');
+      await actor.updateServicePaymentInfo(data.id, data.paymentLinkUrl, data.qrCodeDataUrl);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+      queryClient.invalidateQueries({ queryKey: ['service', variables.id.toString()] });
+      toast.success('Payment information updated successfully');
+    },
+    onError: (error) => {
+      toast.error(`Failed to update payment information: ${error.message}`);
     }
   });
 }
@@ -490,6 +542,19 @@ export function useGetPaymentLinks(enabled: boolean = false) {
   });
 }
 
+export function useGetMyPaymentLinks(enabled: boolean = false) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<PaymentLink[]>({
+    queryKey: ['myPaymentLinks'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getMyPaymentLinks();
+    },
+    enabled: !!actor && !isFetching && enabled,
+  });
+}
+
 export function useCreatePaymentLink() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -501,6 +566,7 @@ export function useCreatePaymentLink() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['paymentLinks'] });
+      queryClient.invalidateQueries({ queryKey: ['myPaymentLinks'] });
     }
   });
 }
@@ -516,8 +582,49 @@ export function useUpdatePaymentLinkStatus() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['paymentLinks'] });
+      queryClient.invalidateQueries({ queryKey: ['myPaymentLinks'] });
       queryClient.invalidateQueries({ queryKey: ['allLeads'] });
       queryClient.invalidateQueries({ queryKey: ['myNotifications'] });
+    }
+  });
+}
+
+export function useUpdatePaymentLinkUrl() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { id: bigint; url: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      await actor.setPaymentLinkUrl(data.id, data.url);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['paymentLinks'] });
+      queryClient.invalidateQueries({ queryKey: ['myPaymentLinks'] });
+      toast.success('Payment link URL updated successfully');
+    },
+    onError: (error) => {
+      toast.error(`Failed to update payment link URL: ${error.message}`);
+    }
+  });
+}
+
+export function useUpdatePaymentLinkQRCode() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { id: bigint; qrCodeDataUrl: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      await actor.setPaymentLinkQrCode(data.id, data.qrCodeDataUrl);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['paymentLinks'] });
+      queryClient.invalidateQueries({ queryKey: ['myPaymentLinks'] });
+      toast.success('QR code updated successfully');
+    },
+    onError: (error) => {
+      toast.error(`Failed to update QR code: ${error.message}`);
     }
   });
 }
