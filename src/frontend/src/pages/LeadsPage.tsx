@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useGetAllLeads, useCreateLead, useUpdateLead, useDeleteLead, useBulkDeleteLeads, useCreatePaymentLink, useGetPaymentLinks } from '../hooks/useQueries';
+import { useGetAllLeads, useCreateLead, useUpdateLead, useDeleteLead, useCreatePaymentLink, useGetPaymentLinks } from '../hooks/useQueries';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -41,7 +41,6 @@ export default function LeadsPage() {
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
-  const bulkDeleteLeads = useBulkDeleteLeads();
   const createPaymentLink = useCreatePaymentLink();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -73,7 +72,13 @@ export default function LeadsPage() {
     }
 
     try {
-      await createLead.mutateAsync(formData);
+      await createLead.mutateAsync({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || null,
+        channel: formData.channel,
+        microNiche: formData.microNiche
+      });
       toast.success('Lead created successfully');
       setIsCreateOpen(false);
       setFormData({ name: '', email: '', phone: '', channel: 'Email', microNiche: MICRO_NICHES[0], status: 'new' });
@@ -92,7 +97,12 @@ export default function LeadsPage() {
       const oldStatus = selectedLead.status;
       await updateLead.mutateAsync({
         id: selectedLead.id,
-        ...formData
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || null,
+        channel: formData.channel,
+        microNiche: formData.microNiche,
+        status: formData.status
       });
 
       // If status changed to qualified, create payment link and show it
@@ -194,17 +204,28 @@ export default function LeadsPage() {
   const handleBulkDelete = async () => {
     if (!confirm(`Are you sure you want to delete ${selectedLeadIds.size} leads?`)) return;
 
-    try {
-      const ids = Array.from(selectedLeadIds).map(id => BigInt(id));
-      const result = await bulkDeleteLeads.mutateAsync(ids);
-      toast.success(`Deleted ${result.successCount} leads successfully`);
-      if (result.failureCount > 0) {
-        toast.error(`Failed to delete ${result.failureCount} leads`);
+    let successCount = 0;
+    let failureCount = 0;
+
+    const ids = Array.from(selectedLeadIds).map(id => BigInt(id));
+    
+    for (const id of ids) {
+      try {
+        await deleteLead.mutateAsync(id);
+        successCount++;
+      } catch (error) {
+        failureCount++;
       }
-      setSelectedLeadIds(new Set());
-    } catch (error) {
-      toast.error('Failed to delete leads');
     }
+
+    if (successCount > 0) {
+      toast.success(`Deleted ${successCount} lead${successCount !== 1 ? 's' : ''} successfully`);
+    }
+    if (failureCount > 0) {
+      toast.error(`Failed to delete ${failureCount} lead${failureCount !== 1 ? 's' : ''}`);
+    }
+    
+    setSelectedLeadIds(new Set());
   };
 
   const handleClearSelection = () => {
@@ -484,14 +505,19 @@ export default function LeadsPage() {
         onOpenChange={setIsBulkStatusOpen}
         selectedLeadIds={Array.from(selectedLeadIds).map(id => BigInt(id))}
         leads={leads}
-        onSuccess={handleClearSelection}
+        onSuccess={() => {
+          setIsBulkStatusOpen(false);
+          setSelectedLeadIds(new Set());
+        }}
       />
 
-      <PaymentLinkDialog
-        open={isPaymentLinkOpen}
-        onOpenChange={setIsPaymentLinkOpen}
-        paymentLink={currentPaymentLink}
-      />
+      {currentPaymentLink && (
+        <PaymentLinkDialog
+          open={isPaymentLinkOpen}
+          onOpenChange={setIsPaymentLinkOpen}
+          paymentLink={currentPaymentLink}
+        />
+      )}
     </div>
   );
 }

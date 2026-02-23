@@ -1,13 +1,14 @@
 # Specification
 
 ## Summary
-**Goal:** Add editable payment link and QR code options for services and payment pages.
+**Goal:** Add editable Razorpay payment configuration to the service marketplace, enabling admins to configure and manage Razorpay as an alternative payment method for individual services.
 
 **Planned changes:**
-- Add UI controls in ServicesPage to edit payment links and QR codes for each service
-- Extend Service data model to include paymentLinkUrl and qrCodeDataUrl fields
-- Create React Query mutations for updating service payment information
-- Update ServiceDetailPage to display payment link and QR code with edit options
-- Ensure PaymentsPage displays editable payment links using existing EditPaymentLinkDialog
+- Extend Service type in backend to include Razorpay fields (razorpayEnabled, razorpayKeyId, razorpayOrderId)
+- Add backend methods for updating and retrieving Razorpay configuration with admin-only access control
+- Create ServiceRazorpayDialog component for editing Razorpay settings per service
+- Add UI controls in ServicesPage to configure Razorpay options similar to payment link editing
+- Display Razorpay status and edit button in ServiceDetailPage for admins
+- Extend CheckoutPage to support Razorpay as payment method when enabled for cart services
 
-**User-visible outcome:** Users can add and edit payment links and QR codes for individual services, view them on service detail pages, and manage payment links in the payments section with copy and download options.
+**User-visible outcome:** Admins can enable and configure Razorpay payment options for individual services in the marketplace. Users see both Stripe and Razorpay payment options at checkout when Razorpay is enabled for services in their cart.

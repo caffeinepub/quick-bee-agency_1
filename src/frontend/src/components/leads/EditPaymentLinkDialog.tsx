@@ -5,7 +5,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Loader2, Upload, QrCode, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { useUpdatePaymentLinkUrl, useUpdatePaymentLinkQRCode } from '../../hooks/useQueries';
+import { useSetPaymentLinkUrl, useSetPaymentLinkQrCode } from '../../hooks/useQueries';
 import type { PaymentLink } from '../../backend';
 
 interface EditPaymentLinkDialogProps {
@@ -24,8 +24,8 @@ export default function EditPaymentLinkDialog({
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const updateUrl = useUpdatePaymentLinkUrl();
-  const updateQRCode = useUpdatePaymentLinkQRCode();
+  const updateUrl = useSetPaymentLinkUrl();
+  const updateQRCode = useSetPaymentLinkQrCode();
 
   const handleGenerateQR = async () => {
     const urlToEncode = customUrl || `https://razorpay.com/payment-links/${paymentLink.id}`;

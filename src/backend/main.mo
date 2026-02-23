@@ -1,17 +1,18 @@
 import Map "mo:core/Map";
-import Nat "mo:core/Nat";
 import Array "mo:core/Array";
 import Iter "mo:core/Iter";
-import Text "mo:core/Text";
 import Time "mo:core/Time";
 import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
+import Text "mo:core/Text";
+import Nat "mo:core/Nat";
 import Stripe "stripe/stripe";
 import OutCall "http-outcalls/outcall";
+import Migration "migration";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
-import Migration "migration";
 
+// Use migration module's run function for data transformation during canister upgrades
 (with migration = Migration.run)
 actor {
   // Initialize access control
@@ -48,8 +49,11 @@ actor {
     pricingPremium : PricingTier;
     features : [Text];
     settings : ServiceSettings;
-    paymentLinkUrl : ?Text; // New field for payment link
-    qrCodeDataUrl : ?Text; // New field for dynamic QR code data
+    paymentLinkUrl : ?Text; // Payment link field
+    qrCodeDataUrl : ?Text; // QR code data field
+    razorpayEnabled : Bool; // Razorpay integration indicator
+    razorpayKeyId : ?Text; // Razorpay Key ID
+    razorpayOrderId : ?Text; // Razorpay Order ID
   };
 
   public type Project = {
@@ -158,8 +162,8 @@ actor {
     status : Text; // created, paid, expired
     createdAt : Time.Time;
     createdBy : Principal;
-    paymentLinkUrl : ?Text; // New field for dynamic payment link
-    qrCodeDataUrl : ?Text; // New field for dynamic QR code data
+    paymentLinkUrl : ?Text; // Payment link field
+    qrCodeDataUrl : ?Text; // QR code data field
   };
 
   // State
@@ -249,6 +253,9 @@ actor {
     settings : ServiceSettings,
     paymentLinkUrl : ?Text,
     qrCodeDataUrl : ?Text,
+    razorpayEnabled : Bool,
+    razorpayKeyId : ?Text,
+    razorpayOrderId : ?Text,
   ) : async Nat {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only authenticated users can create services");
@@ -267,6 +274,9 @@ actor {
       settings;
       paymentLinkUrl;
       qrCodeDataUrl;
+      razorpayEnabled;
+      razorpayKeyId;
+      razorpayOrderId;
     };
     services.add(nextServiceId, service);
     let id = nextServiceId;
@@ -287,6 +297,9 @@ actor {
     settings : ServiceSettings,
     paymentLinkUrl : ?Text,
     qrCodeDataUrl : ?Text,
+    razorpayEnabled : Bool,
+    razorpayKeyId : ?Text,
+    razorpayOrderId : ?Text,
   ) : async () {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only admins can update services");
@@ -305,6 +318,9 @@ actor {
       settings;
       paymentLinkUrl;
       qrCodeDataUrl;
+      razorpayEnabled;
+      razorpayKeyId;
+      razorpayOrderId;
     };
     services.add(id, service);
   };
@@ -314,6 +330,50 @@ actor {
       Runtime.trap("Unauthorized: Only admin users can delete services");
     };
     services.remove(id);
+  };
+
+  // Razorpay-Specific Methods
+  public shared ({ caller }) func updateServiceRazorpay(id : Nat, enabled : Bool, keyId : ?Text, orderId : ?Text) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can update Razorpay configuration");
+    };
+
+    switch (services.get(id)) {
+      case (?service) {
+        let updated : Service = {
+          id = service.id;
+          name = service.name;
+          description = service.description;
+          category = service.category;
+          subcategory = service.subcategory;
+          pricingBasic = service.pricingBasic;
+          pricingPro = service.pricingPro;
+          pricingPremium = service.pricingPremium;
+          features = service.features;
+          settings = service.settings;
+          paymentLinkUrl = service.paymentLinkUrl;
+          qrCodeDataUrl = service.qrCodeDataUrl;
+          razorpayEnabled = enabled;
+          razorpayKeyId = keyId;
+          razorpayOrderId = orderId;
+        };
+        services.add(id, updated);
+      };
+      case null { Runtime.trap("Service not found") };
+    };
+  };
+
+  public shared ({ caller }) func getServiceRazorpayConfig(id : Nat) : async (Bool, ?Text, ?Text) {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can access Razorpay configuration");
+    };
+
+    switch (services.get(id)) {
+      case (?service) {
+        (service.razorpayEnabled, service.razorpayKeyId, service.razorpayOrderId);
+      };
+      case null { Runtime.trap("Service not found") };
+    };
   };
 
   // Project Management
@@ -1045,7 +1105,7 @@ actor {
     };
   };
 
-  // New payment link QR code management functions
+  // Payment link QR code management functions
   public shared ({ caller }) func setPaymentLinkUrl(id : Nat, url : Text) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can update payment links");
@@ -1103,7 +1163,7 @@ actor {
   };
 
   public shared ({ caller }) func updateServicePaymentInfo(id : Nat, paymentLinkUrl : ?Text, qrCodeDataUrl : ?Text) : async () {
-    // Can only be called by anyone, but need to verify ownership or admin in frontend
+    // Can be called by anyone, but ownership or admin rights must be verified by caller
     switch (services.get(id)) {
       case (?service) {
         let updatedService : Service = {
@@ -1119,6 +1179,9 @@ actor {
           settings = service.settings;
           paymentLinkUrl;
           qrCodeDataUrl;
+          razorpayEnabled = service.razorpayEnabled;
+          razorpayKeyId = service.razorpayKeyId;
+          razorpayOrderId = service.razorpayOrderId;
         };
         services.add(id, updatedService);
       };

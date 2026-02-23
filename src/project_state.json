@@ -1,40 +1,43 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Payment and service management app with editable payment links and QR codes",
-  "architectural_notes": [],
+  "summary": "Service marketplace app with editable payment checkouts and Razorpay integration",
+  "architectural_notes": [
+    "Service marketplace with payment integration",
+    "Razorpay payment gateway integration required"
+  ],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-add-ui-controls-in-the-servicespage-to-allow-editing-payment-links-and-qr-codes-for-each-service-item",
-      "title": "Add UI controls in the ServicesPage to allow editing payment links and QR codes for each service item",
+      "id": "feature-add-ui-controls-in-the-service-marketplace-servicespage-tsx-to-allow-admins-to-configure-razorpay-payment-options-for-each-service-similar-to-the-existing-payment-link-editing-functionality",
+      "title": "Add UI controls in the service marketplace (ServicesPage.tsx) to allow admins to configure Razorpay payment options for each service, similar to the existing payment link editing functionality",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-create-react-query-mutations-for-updating-service-payment-links-and-qr-codes",
-      "title": "Create React Query mutations for updating service payment links and QR codes",
+      "id": "feature-create-a-servicerazorpaydialog-component-similar-to-servicepaymentinfodialog-that-allows-editing-razorpay-settings-enable-disable-toggle-razorpay-key-id-input-for-a-specific-service",
+      "title": "Create a ServiceRazorpayDialog component similar to ServicePaymentInfoDialog that allows editing Razorpay settings (enable/disable toggle, Razorpay key ID input) for a specific service",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-update-servicedetailpage-to-display-payment-link-and-qr-code-if-available",
-      "title": "Update ServiceDetailPage to display payment link and QR code if available",
+      "id": "feature-display-razorpay-payment-option-status-in-the-service-detail-view-servicedetailpage-tsx-showing-whether-razorpay-is-enabled-and-providing-a-button-to-edit-razorpay-settings-for-admins",
+      "title": "Display Razorpay payment option status in the service detail view (ServiceDetailPage.tsx) showing whether Razorpay is enabled and providing a button to edit Razorpay settings for admins",
       "reqIds": [
-        "REQ-4"
+        "REQ-5"
       ],
       "version": 1
     },
     {
-      "id": "feature-ensure-paymentspage-displays-editable-payment-links-with-the-existing-editpaymentlinkdialog-functionality",
-      "title": "Ensure PaymentsPage displays editable payment links with the existing EditPaymentLinkDialog functionality",
+      "id": "feature-extend-the-checkout-flow-in-checkoutpage-tsx-to-support-razorpay-as-an-alternative-payment-method-when-services-in-cart-have-razorpay-enabled-displaying-both-stripe-and-razorpay-options-to-users",
+      "title": "Extend the checkout flow in CheckoutPage.tsx to support Razorpay as an alternative payment method when services in cart have Razorpay enabled, displaying both Stripe and Razorpay options to users",
       "reqIds": [
-        "REQ-5"
+        "REQ-6"
       ],
       "version": 1
     }
@@ -42,38 +45,34 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Add editable payment links in payments option",
+      "summary": "Add editable payment checkout options in service marketplace",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Add editable QR codes for payments in payments option",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Add editable payment links in services",
+      "summary": "Add Razorpay payment integration with editable options in service marketplace",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-4",
-      "summary": "Add editable QR codes for payments in services",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-6",
-      "summary": "Extend the Service data model in backend to include paymentLinkUrl and qrCodeDataUrl fields",
+      "summary": "Extend the Service type in backend/main.mo to include Razorpay-specific fields (razorpayEnabled: Bool, razorpayKeyId: ?Text, razorpayOrderId: ?Text) to support storing Razorpay payment configuration per service",
       "reqIds": [
         "REQ-2"
       ],
       "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Add backend methods (updateServiceRazorpay, getServiceRazorpayConfig) to manage Razorpay configuration for services with proper access control (admin-only)",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "status": "pending"
     }
   ],
-  "projectName": "Add editable payment link and QR code options in Services",
+  "projectName": "Quick Bee Agency",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

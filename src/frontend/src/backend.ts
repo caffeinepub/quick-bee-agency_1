@@ -119,10 +119,13 @@ export interface Service {
     pricingPro: PricingTier;
     subcategory: string;
     name: string;
+    razorpayKeyId?: string;
     pricingBasic: PricingTier;
     description: string;
     settings: ServiceSettings;
     pricingPremium: PricingTier;
+    razorpayOrderId?: string;
+    razorpayEnabled: boolean;
     category: string;
     paymentLinkUrl?: string;
 }
@@ -273,7 +276,7 @@ export interface backendInterface {
     createOrder(projectId: bigint, amount: bigint): Promise<bigint>;
     createPaymentLink(leadId: bigint, amount: bigint): Promise<bigint>;
     createProject(clientId: Principal, serviceId: bigint, onboardingData: OnboardingData | null): Promise<bigint>;
-    createService(name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings, paymentLinkUrl: string | null, qrCodeDataUrl: string | null): Promise<bigint>;
+    createService(name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings, paymentLinkUrl: string | null, qrCodeDataUrl: string | null, razorpayEnabled: boolean, razorpayKeyId: string | null, razorpayOrderId: string | null): Promise<bigint>;
     deleteLead(id: bigint): Promise<void>;
     deleteService(id: bigint): Promise<void>;
     getAllCRMActivities(): Promise<Array<CRMActivity>>;
@@ -300,6 +303,7 @@ export interface backendInterface {
     getProject(id: bigint): Promise<Project | null>;
     getProjectsByClient(clientId: Principal): Promise<Array<Project>>;
     getService(id: bigint): Promise<Service | null>;
+    getServiceRazorpayConfig(id: bigint): Promise<[boolean, string | null, string | null]>;
     getStripeSessionStatus(sessionId: string): Promise<StripeSessionStatus>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
@@ -320,8 +324,9 @@ export interface backendInterface {
     updateOrderStatus(id: bigint, status: string): Promise<void>;
     updatePaymentLinkStatus(id: bigint, status: string): Promise<void>;
     updateProjectStatus(id: bigint, status: string): Promise<void>;
-    updateService(id: bigint, name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings, paymentLinkUrl: string | null, qrCodeDataUrl: string | null): Promise<void>;
+    updateService(id: bigint, name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings, paymentLinkUrl: string | null, qrCodeDataUrl: string | null, razorpayEnabled: boolean, razorpayKeyId: string | null, razorpayOrderId: string | null): Promise<void>;
     updateServicePaymentInfo(id: bigint, paymentLinkUrl: string | null, qrCodeDataUrl: string | null): Promise<void>;
+    updateServiceRazorpay(id: bigint, enabled: boolean, keyId: string | null, orderId: string | null): Promise<void>;
 }
 import type { CRMActivity as _CRMActivity, Coupon as _Coupon, Lead as _Lead, LegalPage as _LegalPage, OnboardingData as _OnboardingData, PaymentLink as _PaymentLink, PricingTier as _PricingTier, Project as _Project, Service as _Service, ServiceSettings as _ServiceSettings, StripeSessionStatus as _StripeSessionStatus, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -522,17 +527,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async createService(arg0: string, arg1: string, arg2: string, arg3: string, arg4: PricingTier, arg5: PricingTier, arg6: PricingTier, arg7: Array<string>, arg8: ServiceSettings, arg9: string | null, arg10: string | null): Promise<bigint> {
+    async createService(arg0: string, arg1: string, arg2: string, arg3: string, arg4: PricingTier, arg5: PricingTier, arg6: PricingTier, arg7: Array<string>, arg8: ServiceSettings, arg9: string | null, arg10: string | null, arg11: boolean, arg12: string | null, arg13: string | null): Promise<bigint> {
         if (this.processError) {
             try {
-                const result = await this.actor.createService(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, to_candid_opt_n6(this._uploadFile, this._downloadFile, arg9), to_candid_opt_n6(this._uploadFile, this._downloadFile, arg10));
+                const result = await this.actor.createService(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, to_candid_opt_n6(this._uploadFile, this._downloadFile, arg9), to_candid_opt_n6(this._uploadFile, this._downloadFile, arg10), arg11, to_candid_opt_n6(this._uploadFile, this._downloadFile, arg12), to_candid_opt_n6(this._uploadFile, this._downloadFile, arg13));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.createService(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, to_candid_opt_n6(this._uploadFile, this._downloadFile, arg9), to_candid_opt_n6(this._uploadFile, this._downloadFile, arg10));
+            const result = await this.actor.createService(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, to_candid_opt_n6(this._uploadFile, this._downloadFile, arg9), to_candid_opt_n6(this._uploadFile, this._downloadFile, arg10), arg11, to_candid_opt_n6(this._uploadFile, this._downloadFile, arg12), to_candid_opt_n6(this._uploadFile, this._downloadFile, arg13));
             return result;
         }
     }
@@ -900,6 +905,28 @@ export class Backend implements backendInterface {
             return from_candid_opt_n38(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getServiceRazorpayConfig(arg0: bigint): Promise<[boolean, string | null, string | null]> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getServiceRazorpayConfig(arg0);
+                return [
+                    result[0],
+                    from_candid_opt_n17(this._uploadFile, this._downloadFile, result[1]),
+                    from_candid_opt_n17(this._uploadFile, this._downloadFile, result[2])
+                ];
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getServiceRazorpayConfig(arg0);
+            return [
+                result[0],
+                from_candid_opt_n17(this._uploadFile, this._downloadFile, result[1]),
+                from_candid_opt_n17(this._uploadFile, this._downloadFile, result[2])
+            ];
+        }
+    }
     async getStripeSessionStatus(arg0: string): Promise<StripeSessionStatus> {
         if (this.processError) {
             try {
@@ -1180,17 +1207,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async updateService(arg0: bigint, arg1: string, arg2: string, arg3: string, arg4: string, arg5: PricingTier, arg6: PricingTier, arg7: PricingTier, arg8: Array<string>, arg9: ServiceSettings, arg10: string | null, arg11: string | null): Promise<void> {
+    async updateService(arg0: bigint, arg1: string, arg2: string, arg3: string, arg4: string, arg5: PricingTier, arg6: PricingTier, arg7: PricingTier, arg8: Array<string>, arg9: ServiceSettings, arg10: string | null, arg11: string | null, arg12: boolean, arg13: string | null, arg14: string | null): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.updateService(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, to_candid_opt_n6(this._uploadFile, this._downloadFile, arg10), to_candid_opt_n6(this._uploadFile, this._downloadFile, arg11));
+                const result = await this.actor.updateService(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, to_candid_opt_n6(this._uploadFile, this._downloadFile, arg10), to_candid_opt_n6(this._uploadFile, this._downloadFile, arg11), arg12, to_candid_opt_n6(this._uploadFile, this._downloadFile, arg13), to_candid_opt_n6(this._uploadFile, this._downloadFile, arg14));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.updateService(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, to_candid_opt_n6(this._uploadFile, this._downloadFile, arg10), to_candid_opt_n6(this._uploadFile, this._downloadFile, arg11));
+            const result = await this.actor.updateService(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, to_candid_opt_n6(this._uploadFile, this._downloadFile, arg10), to_candid_opt_n6(this._uploadFile, this._downloadFile, arg11), arg12, to_candid_opt_n6(this._uploadFile, this._downloadFile, arg13), to_candid_opt_n6(this._uploadFile, this._downloadFile, arg14));
             return result;
         }
     }
@@ -1205,6 +1232,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.updateServicePaymentInfo(arg0, to_candid_opt_n6(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n6(this._uploadFile, this._downloadFile, arg2));
+            return result;
+        }
+    }
+    async updateServiceRazorpay(arg0: bigint, arg1: boolean, arg2: string | null, arg3: string | null): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateServiceRazorpay(arg0, arg1, to_candid_opt_n6(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n6(this._uploadFile, this._downloadFile, arg3));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateServiceRazorpay(arg0, arg1, to_candid_opt_n6(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n6(this._uploadFile, this._downloadFile, arg3));
             return result;
         }
     }
@@ -1369,10 +1410,13 @@ function from_candid_record_n24(_uploadFile: (file: ExternalBlob) => Promise<Uin
     pricingPro: _PricingTier;
     subcategory: string;
     name: string;
+    razorpayKeyId: [] | [string];
     pricingBasic: _PricingTier;
     description: string;
     settings: _ServiceSettings;
     pricingPremium: _PricingTier;
+    razorpayOrderId: [] | [string];
+    razorpayEnabled: boolean;
     category: string;
     paymentLinkUrl: [] | [string];
 }): {
@@ -1382,10 +1426,13 @@ function from_candid_record_n24(_uploadFile: (file: ExternalBlob) => Promise<Uin
     pricingPro: PricingTier;
     subcategory: string;
     name: string;
+    razorpayKeyId?: string;
     pricingBasic: PricingTier;
     description: string;
     settings: ServiceSettings;
     pricingPremium: PricingTier;
+    razorpayOrderId?: string;
+    razorpayEnabled: boolean;
     category: string;
     paymentLinkUrl?: string;
 } {
@@ -1396,10 +1443,13 @@ function from_candid_record_n24(_uploadFile: (file: ExternalBlob) => Promise<Uin
         pricingPro: value.pricingPro,
         subcategory: value.subcategory,
         name: value.name,
+        razorpayKeyId: record_opt_to_undefined(from_candid_opt_n17(_uploadFile, _downloadFile, value.razorpayKeyId)),
         pricingBasic: value.pricingBasic,
         description: value.description,
         settings: value.settings,
         pricingPremium: value.pricingPremium,
+        razorpayOrderId: record_opt_to_undefined(from_candid_opt_n17(_uploadFile, _downloadFile, value.razorpayOrderId)),
+        razorpayEnabled: value.razorpayEnabled,
         category: value.category,
         paymentLinkUrl: record_opt_to_undefined(from_candid_opt_n17(_uploadFile, _downloadFile, value.paymentLinkUrl))
     };

@@ -111,10 +111,13 @@ export interface Service {
   'pricingPro' : PricingTier,
   'subcategory' : string,
   'name' : string,
+  'razorpayKeyId' : [] | [string],
   'pricingBasic' : PricingTier,
   'description' : string,
   'settings' : ServiceSettings,
   'pricingPremium' : PricingTier,
+  'razorpayOrderId' : [] | [string],
+  'razorpayEnabled' : boolean,
   'category' : string,
   'paymentLinkUrl' : [] | [string],
 }
@@ -211,6 +214,9 @@ export interface _SERVICE {
       ServiceSettings,
       [] | [string],
       [] | [string],
+      boolean,
+      [] | [string],
+      [] | [string],
     ],
     bigint
   >,
@@ -240,6 +246,10 @@ export interface _SERVICE {
   'getProject' : ActorMethod<[bigint], [] | [Project]>,
   'getProjectsByClient' : ActorMethod<[Principal], Array<Project>>,
   'getService' : ActorMethod<[bigint], [] | [Service]>,
+  'getServiceRazorpayConfig' : ActorMethod<
+    [bigint],
+    [boolean, [] | [string], [] | [string]]
+  >,
   'getStripeSessionStatus' : ActorMethod<[string], StripeSessionStatus>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
@@ -280,11 +290,18 @@ export interface _SERVICE {
       ServiceSettings,
       [] | [string],
       [] | [string],
+      boolean,
+      [] | [string],
+      [] | [string],
     ],
     undefined
   >,
   'updateServicePaymentInfo' : ActorMethod<
     [bigint, [] | [string], [] | [string]],
+    undefined
+  >,
+  'updateServiceRazorpay' : ActorMethod<
+    [bigint, boolean, [] | [string], [] | [string]],
     undefined
   >,
 }

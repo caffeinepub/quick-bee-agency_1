@@ -1,93 +1,81 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add editable payment link and QR code options in Services",
+  "title": "Add editable payment checkout and Razorpay options in service marketplace",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add UI controls in ServicesPage to allow editing payment links and QR codes for each service item",
+      "summary": "Add UI controls in ServicesPage.tsx to allow admins to configure Razorpay payment options for each service",
       "acceptanceCriteria": [
-        "Each service card or row displays an action button to edit payment information",
-        "Clicking the edit action opens a dialog similar to EditPaymentLinkDialog",
-        "The dialog allows users to input/update payment link URLs",
-        "The dialog supports QR code generation via backend API or custom image upload"
+        "Admin users can access Razorpay configuration controls from the service marketplace",
+        "The UI provides clear options to enable/disable Razorpay for individual services",
+        "Changes to Razorpay settings are persisted to the backend"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/services/ServicePaymentInfoDialog.tsx",
-          "operation": "create",
-          "description": "Create a dialog component for editing service payment information (payment link URL and QR code). Follow the pattern established by EditPaymentLinkDialog in frontend/src/components/leads/EditPaymentLinkDialog.tsx. Support both QR code generation via backend API call and custom image upload with data URL conversion. Include form fields for paymentLinkUrl and qrCodeDataUrl with validation. Verify the component's usage instructions before implementing."
-        },
-        {
           "path": "frontend/src/pages/ServicesPage.tsx",
           "operation": "modify",
-          "description": "Add an edit payment info action button to each service card displayed to admin users. Wire the button to open ServicePaymentInfoDialog passing the current service data. Ensure the dialog only appears for admin users using the authorization component's access control."
-        },
-        {
-          "path": "frontend/src/pages/ServiceDetailPage.tsx",
-          "operation": "modify",
-          "description": "Add admin-only edit button for payment information in the service detail view. Wire it to open ServicePaymentInfoDialog with the current service's payment data. Ensure proper authorization checks using the authorization component before showing the edit option."
+          "description": "Add a 'Configure Razorpay' button next to existing payment info edit controls in the service cards for admin users. Wire this button to open the new ServiceRazorpayDialog component. Ensure the button is only visible when user has admin role using isCallerAdmin check."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Create React Query mutations for updating service payment links and QR codes",
+      "summary": "Create ServiceRazorpayDialog component for editing Razorpay settings per service",
       "acceptanceCriteria": [
-        "useUpdateServicePaymentLink mutation calls backend to update paymentLinkUrl",
-        "useUpdateServiceQRCode mutation calls backend to update qrCodeDataUrl",
-        "Mutations invalidate the services query cache on success",
-        "Error handling displays appropriate feedback to users"
+        "Dialog displays current Razorpay configuration for the selected service",
+        "Users can toggle Razorpay enabled/disabled state",
+        "Users can input and save Razorpay key ID",
+        "Dialog integrates with existing service update mutation"
       ],
       "file_operations": [
+        {
+          "path": "frontend/src/components/services/ServiceRazorpayDialog.tsx",
+          "operation": "create",
+          "description": "Create a dialog component similar to ServicePaymentInfoDialog that allows editing Razorpay configuration. Include a toggle for razorpayEnabled (boolean), input field for razorpayKeyId (optional Text), and optional orderId field. Use the updateServiceRazorpay backend method from useQueries. Display current values from the service prop and handle form state management. Include cancel and save buttons with mutation handling."
+        },
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Add useUpdateServicePaymentInfo mutation hook that calls actor.updateServicePaymentInfo with service id, paymentLinkUrl, and qrCodeDataUrl parameters. On success, invalidate both 'services' and individual service query caches. Include error handling with user-friendly messages for authorization failures and validation errors. Follow the existing mutation patterns in this file for consistency."
-        },
-        {
-          "path": "frontend/src/components/services/ServicePaymentInfoDialog.tsx",
-          "operation": "modify",
-          "description": "Wire the ServicePaymentInfoDialog to use the useUpdateServicePaymentInfo mutation from useQueries.ts. Handle loading, success, and error states appropriately with toast notifications or inline error messages. Close the dialog on successful mutation and show appropriate feedback to the user."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Update ServiceDetailPage to display payment link and QR code if available",
-      "acceptanceCriteria": [
-        "Service detail page shows payment link URL if configured",
-        "Service detail page displays QR code image if configured",
-        "Admin users see an edit button to modify payment information",
-        "Copy and download options are available for payment links and QR codes"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/services/ServicePaymentInfoDisplay.tsx",
-          "operation": "create",
-          "description": "Create a component that displays service payment information including payment link URL (with copy button) and QR code image (with download button) when available. Show a well-formatted section that only renders when paymentLinkUrl or qrCodeDataUrl fields are present on the service. Include utility functions for copying text to clipboard and downloading QR code images."
-        },
-        {
-          "path": "frontend/src/pages/ServiceDetailPage.tsx",
-          "operation": "modify",
-          "description": "Add ServicePaymentInfoDisplay component to the service detail page layout below the pricing tiers section. Pass the service's paymentLinkUrl and qrCodeDataUrl as props. Ensure the display section only appears when at least one payment field is configured. The edit button for admin users was already added in REQ-1."
+          "description": "Add useUpdateServiceRazorpay mutation hook that calls actor.updateServiceRazorpay(id, enabled, keyId, orderId). Also add useGetServiceRazorpayConfig query hook that calls actor.getServiceRazorpayConfig(id) to fetch current Razorpay configuration for a service. Include proper query invalidation for 'services' after mutation success."
         }
       ]
     },
     {
       "id": "REQ-5",
-      "summary": "Ensure PaymentsPage displays editable payment links with the existing EditPaymentLinkDialog functionality",
+      "summary": "Display Razorpay payment option status in ServiceDetailPage.tsx with edit controls for admins",
       "acceptanceCriteria": [
-        "Payment links in PaymentsPage show an edit icon or button",
-        "Clicking edit opens EditPaymentLinkDialog with current values",
-        "Users can update payment link URL and QR code",
-        "Changes persist to backend and refresh the payment links list"
+        "Service detail page shows Razorpay enabled/disabled badge",
+        "Admin users see an 'Edit Razorpay' button next to payment info controls",
+        "Button opens ServiceRazorpayDialog with current service context"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/PaymentsPage.tsx",
+          "path": "frontend/src/pages/ServiceDetailPage.tsx",
           "operation": "modify",
-          "description": "Verify that each payment link row in the Razorpay payment links tab displays an edit button that opens EditPaymentLinkDialog with the current payment link data. Ensure the dialog uses the existing useSetPaymentLinkUrl and useSetPaymentLinkQRCode mutations from useQueries.ts. Confirm that the payment links query cache is properly invalidated after successful updates. The EditPaymentLinkDialog component already exists at frontend/src/components/leads/EditPaymentLinkDialog.tsx and should be reused without modification."
+          "description": "Add a Razorpay status badge below the payment info section showing 'Razorpay: Enabled' or 'Razorpay: Disabled' based on service.razorpayEnabled. For admin users, add an 'Edit Razorpay Settings' button that opens ServiceRazorpayDialog with the current service as context. Import and wire the ServiceRazorpayDialog component with dialog open state management."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Extend CheckoutPage.tsx to support Razorpay as alternative payment method when enabled",
+      "acceptanceCriteria": [
+        "Checkout page detects if any cart items have Razorpay enabled",
+        "Users see payment method selection (Stripe/Razorpay) when Razorpay is available",
+        "Razorpay payment flow initiates correctly with proper order details",
+        "Fallback to Stripe-only when no services have Razorpay enabled"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/CheckoutPage.tsx",
+          "operation": "modify",
+          "description": "Add logic to detect if any services in the cart have razorpayEnabled set to true by fetching all cart service IDs and checking their Razorpay status. If Razorpay is available for any item, display a payment method selector (radio buttons or tabs) allowing users to choose between Stripe and Razorpay. When Razorpay is selected, integrate Razorpay checkout flow using the service's razorpayKeyId and generate appropriate order details. Maintain existing Stripe checkout as default when Razorpay is not enabled or not selected. Use isRazorpayConfigured backend method to verify global Razorpay configuration before showing the option."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add useIsRazorpayConfigured query hook that calls actor.isRazorpayConfigured() to check if Razorpay is globally configured. This supports the checkout page's decision on whether to display Razorpay as a payment option."
         }
       ]
     }

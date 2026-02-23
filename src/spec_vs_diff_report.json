@@ -1,22 +1,29 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-23T08:35:43.580Z",
-  "summary": "The implementation covers all five requirements with backend data model extensions, frontend UI components, React Query mutations, and display logic. All requested features for editable payment links and QR codes in both Services and Payments pages are present.",
+  "generatedAt": "2026-02-23T17:26:33.557Z",
+  "summary": "The implementation covers all 6 requirements with backend Service type extensions, new Razorpay dialog component, admin controls in ServicesPage and ServiceDetailPage, backend methods for Razorpay management, and checkout flow integration with payment method selection. Evidence shows proper access control, UI controls, and data persistence.",
   "missing_requirements": [],
   "hallucinated_features": [
     {
-      "description": "Migration module (backend/migration.mo) for data migration",
-      "reason": "The BuildRequest does not mention data migration infrastructure or migration modules. While the constraint mentions 'Existing services are migrated to include null values,' this likely refers to backward compatibility in the data model, not a separate migration module.",
+      "description": "Migration module (backend/migration.mo) for data transformation during canister upgrades",
+      "reason": "BuildRequest does not mention migration logic, canister upgrade handling, or OldService/OldActor type definitions. This appears to be infrastructure code added beyond the spec.",
       "evidence": [
         "backend/migration.mo"
       ]
     },
     {
-      "description": "QR code generation via external API (api.qrserver.com)",
-      "reason": "REQ-1 mentions 'QR code generation via backend API or custom image upload,' but the implementation uses a third-party external API (api.qrserver.com) in the frontend rather than a backend API endpoint.",
+      "description": "Razorpay Order ID field in ServiceRazorpayDialog component",
+      "reason": "REQ-3 specifies 'enable/disable toggle, Razorpay key ID input' but does not mention Razorpay Order ID input field. The dialog includes an additional razorpayOrderId input beyond requirements.",
       "evidence": [
-        "frontend/src/components/services/ServicePaymentInfoDialog.tsx"
+        "frontend/src/components/services/ServiceRazorpayDialog.tsx"
+      ]
+    },
+    {
+      "description": "Global Razorpay configuration check (useIsRazorpayConfigured) in checkout flow",
+      "reason": "REQ-6 requests detecting if cart items have Razorpay enabled, but does not specify checking global Razorpay configuration status. The implementation adds a global configuration check beyond the requirement.",
+      "evidence": [
+        "frontend/src/pages/CheckoutPage.tsx"
       ]
     }
   ],
@@ -25,10 +32,13 @@
     "backend/main.mo",
     "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/services/ServicePaymentInfoDialog.tsx",
-    "frontend/src/components/services/ServicePaymentInfoDisplay.tsx",
+    "frontend/src/components/leads/BulkStatusChangeDialog.tsx",
+    "frontend/src/components/leads/EditPaymentLinkDialog.tsx",
+    "frontend/src/components/services/ServiceRazorpayDialog.tsx",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/PaymentsPage.tsx",
+    "frontend/src/pages/CheckoutPage.tsx",
+    "frontend/src/pages/LeadsPage.tsx",
+    "frontend/src/pages/ProjectsPage.tsx",
     "frontend/src/pages/ServiceDetailPage.tsx",
     "frontend/src/pages/ServicesPage.tsx",
     "project_state.json"

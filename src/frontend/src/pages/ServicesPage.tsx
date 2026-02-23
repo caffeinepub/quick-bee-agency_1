@@ -6,10 +6,11 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Link } from '@tanstack/react-router';
-import { ShoppingBag, Star, EyeOff, Plus, Edit } from 'lucide-react';
+import { ShoppingBag, Star, EyeOff, Plus, Edit, CreditCard } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
 import ServiceCreateDialog from '../components/services/ServiceCreateDialog';
 import ServicePaymentInfoDialog from '../components/services/ServicePaymentInfoDialog';
+import ServiceRazorpayDialog from '../components/services/ServiceRazorpayDialog';
 import type { Service } from '../backend';
 
 export default function ServicesPage() {
@@ -18,6 +19,7 @@ export default function ServicesPage() {
   const { data: isAdmin = false } = useIsCallerAdmin();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingPaymentService, setEditingPaymentService] = useState<Service | null>(null);
+  const [editingRazorpayService, setEditingRazorpayService] = useState<Service | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [visibilityFilter, setVisibilityFilter] = useState<string>('all');
 
@@ -26,7 +28,7 @@ export default function ServicesPage() {
     setEnableFetch(true);
   }, []);
 
-  const services = backendServices.length > 0 ? backendServices : DEFAULT_SERVICES.map((s, i) => ({
+  const services: Service[] = backendServices.length > 0 ? backendServices : DEFAULT_SERVICES.map((s, i) => ({
     id: BigInt(i + 1),
     name: s.name,
     description: s.description,
@@ -42,13 +44,18 @@ export default function ServicesPage() {
       availability: '24/7',
       customMetadata: '',
     },
+    razorpayEnabled: false,
+    razorpayKeyId: undefined,
+    razorpayOrderId: undefined,
+    paymentLinkUrl: undefined,
+    qrCodeDataUrl: undefined,
   }));
 
   // Get unique categories
   const categories = Array.from(new Set(services.map(s => s.category))).sort();
 
   // Apply filters
-  let filteredServices = services;
+  let filteredServices: Service[] = services;
 
   // Category filter
   if (categoryFilter !== 'all') {
@@ -68,7 +75,7 @@ export default function ServicesPage() {
   }
 
   // Calculate starting price
-  const getStartingPrice = (service: typeof services[0]) => {
+  const getStartingPrice = (service: Service) => {
     const prices = [
       Number(service.pricingBasic.price),
       Number(service.pricingPro.price),
@@ -180,15 +187,26 @@ export default function ServicesPage() {
                     </Button>
                   </Link>
                   {isAdmin && (
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      onClick={() => setEditingPaymentService(service)}
-                      className="border-border shrink-0"
-                      title="Edit Payment Info"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
+                    <>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => setEditingPaymentService(service)}
+                        className="border-border shrink-0"
+                        title="Edit Payment Info"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => setEditingRazorpayService(service)}
+                        className="border-border shrink-0"
+                        title="Configure Razorpay"
+                      >
+                        <CreditCard className="w-4 h-4" />
+                      </Button>
+                    </>
                   )}
                 </div>
               </CardContent>
@@ -213,6 +231,14 @@ export default function ServicesPage() {
           open={!!editingPaymentService}
           onOpenChange={(open) => !open && setEditingPaymentService(null)}
           service={editingPaymentService}
+        />
+      )}
+
+      {editingRazorpayService && (
+        <ServiceRazorpayDialog
+          open={!!editingRazorpayService}
+          onOpenChange={(open) => !open && setEditingRazorpayService(null)}
+          service={editingRazorpayService}
         />
       )}
     </div>

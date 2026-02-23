@@ -37,10 +37,13 @@ export interface Service {
     pricingPro: PricingTier;
     subcategory: string;
     name: string;
+    razorpayKeyId?: string;
     pricingBasic: PricingTier;
     description: string;
     settings: ServiceSettings;
     pricingPremium: PricingTier;
+    razorpayOrderId?: string;
+    razorpayEnabled: boolean;
     category: string;
     paymentLinkUrl?: string;
 }
@@ -190,7 +193,7 @@ export interface backendInterface {
     createOrder(projectId: bigint, amount: bigint): Promise<bigint>;
     createPaymentLink(leadId: bigint, amount: bigint): Promise<bigint>;
     createProject(clientId: Principal, serviceId: bigint, onboardingData: OnboardingData | null): Promise<bigint>;
-    createService(name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings, paymentLinkUrl: string | null, qrCodeDataUrl: string | null): Promise<bigint>;
+    createService(name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings, paymentLinkUrl: string | null, qrCodeDataUrl: string | null, razorpayEnabled: boolean, razorpayKeyId: string | null, razorpayOrderId: string | null): Promise<bigint>;
     deleteLead(id: bigint): Promise<void>;
     deleteService(id: bigint): Promise<void>;
     getAllCRMActivities(): Promise<Array<CRMActivity>>;
@@ -217,6 +220,7 @@ export interface backendInterface {
     getProject(id: bigint): Promise<Project | null>;
     getProjectsByClient(clientId: Principal): Promise<Array<Project>>;
     getService(id: bigint): Promise<Service | null>;
+    getServiceRazorpayConfig(id: bigint): Promise<[boolean, string | null, string | null]>;
     getStripeSessionStatus(sessionId: string): Promise<StripeSessionStatus>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
@@ -237,6 +241,7 @@ export interface backendInterface {
     updateOrderStatus(id: bigint, status: string): Promise<void>;
     updatePaymentLinkStatus(id: bigint, status: string): Promise<void>;
     updateProjectStatus(id: bigint, status: string): Promise<void>;
-    updateService(id: bigint, name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings, paymentLinkUrl: string | null, qrCodeDataUrl: string | null): Promise<void>;
+    updateService(id: bigint, name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings, paymentLinkUrl: string | null, qrCodeDataUrl: string | null, razorpayEnabled: boolean, razorpayKeyId: string | null, razorpayOrderId: string | null): Promise<void>;
     updateServicePaymentInfo(id: bigint, paymentLinkUrl: string | null, qrCodeDataUrl: string | null): Promise<void>;
+    updateServiceRazorpay(id: bigint, enabled: boolean, keyId: string | null, orderId: string | null): Promise<void>;
 }

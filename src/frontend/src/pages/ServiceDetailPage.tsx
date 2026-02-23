@@ -10,6 +10,7 @@ import { ArrowLeft, Check, Edit, Eye, EyeOff, Star, Trash2, CreditCard } from 'l
 import ServiceEditDialog from '../components/services/ServiceEditDialog';
 import ServiceDeleteDialog from '../components/services/ServiceDeleteDialog';
 import ServicePaymentInfoDialog from '../components/services/ServicePaymentInfoDialog';
+import ServiceRazorpayDialog from '../components/services/ServiceRazorpayDialog';
 import ServicePaymentInfoDisplay from '../components/services/ServicePaymentInfoDisplay';
 
 export default function ServiceDetailPage() {
@@ -21,6 +22,7 @@ export default function ServiceDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [paymentInfoDialogOpen, setPaymentInfoDialogOpen] = useState(false);
+  const [razorpayDialogOpen, setRazorpayDialogOpen] = useState(false);
 
   if (!service) {
     return <div className="text-center text-soft-gray">Service not found</div>;
@@ -91,6 +93,14 @@ export default function ServiceDetailPage() {
               Payment Info
             </Button>
             <Button
+              onClick={() => setRazorpayDialogOpen(true)}
+              variant="outline"
+              className="border-border"
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Razorpay Settings
+            </Button>
+            <Button
               onClick={() => setEditDialogOpen(true)}
               className="gradient-teal text-black font-semibold"
             >
@@ -121,6 +131,11 @@ export default function ServiceDetailPage() {
             <Badge variant="outline" className="text-muted-foreground">
               <EyeOff className="w-3 h-3 mr-1" />
               Hidden
+            </Badge>
+          )}
+          {service.razorpayEnabled && (
+            <Badge className="bg-green-500/20 text-green-600 border-green-500/30">
+              Razorpay Enabled
             </Badge>
           )}
         </div>
@@ -213,6 +228,10 @@ export default function ServiceDetailPage() {
               <span className="text-soft-gray">Availability:</span>
               <span className="text-foreground">{service.settings.availability}</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-soft-gray">Razorpay:</span>
+              <span className="text-foreground">{service.razorpayEnabled ? 'Enabled' : 'Disabled'}</span>
+            </div>
             {service.settings.customMetadata && (
               <div className="pt-2 border-t">
                 <span className="text-soft-gray block mb-1">Custom Metadata:</span>
@@ -240,6 +259,11 @@ export default function ServiceDetailPage() {
             service={service}
             open={paymentInfoDialogOpen}
             onOpenChange={setPaymentInfoDialogOpen}
+          />
+          <ServiceRazorpayDialog
+            service={service}
+            open={razorpayDialogOpen}
+            onOpenChange={setRazorpayDialogOpen}
           />
         </>
       )}

@@ -1,72 +1,75 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-23T08:35:43.584Z",
+  "generatedAt": "2026-02-23T17:26:33.560Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 5,
+    "total": 6,
     "implemented": 4,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Add UI controls in the ServicesPage to allow editing payment links and QR codes for each service item",
+        "summary": "Add UI controls in the service marketplace (ServicesPage.tsx) to allow admins to configure Razorpay payment options for each service, similar to the existing payment link editing functionality",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/services/ServicePaymentInfoDialog.tsx",
-          "frontend/src/pages/ServicesPage.tsx",
-          "frontend/src/pages/ServiceDetailPage.tsx"
+          "frontend/src/pages/ServicesPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/services/ServicePaymentInfoDialog.tsx",
-          "frontend/src/pages/ServicesPage.tsx",
-          "frontend/src/pages/ServiceDetailPage.tsx"
+          "frontend/src/pages/ServicesPage.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Extend the Service data model in backend to include paymentLinkUrl and qrCodeDataUrl fields",
+        "summary": "Extend the Service type in backend/main.mo to include Razorpay-specific fields (razorpayEnabled: Bool, razorpayKeyId: ?Text, razorpayOrderId: ?Text) to support storing Razorpay payment configuration per service",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-3",
-        "summary": "Create React Query mutations for updating service payment links and QR codes",
+        "summary": "Create a ServiceRazorpayDialog component similar to ServicePaymentInfoDialog that allows editing Razorpay settings (enable/disable toggle, Razorpay key ID input) for a specific service",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/services/ServicePaymentInfoDialog.tsx"
+          "frontend/src/components/services/ServiceRazorpayDialog.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/components/services/ServicePaymentInfoDialog.tsx"
+          "frontend/src/components/services/ServiceRazorpayDialog.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ]
       },
       {
         "id": "REQ-4",
-        "summary": "Update ServiceDetailPage to display payment link and QR code if available",
+        "summary": "Add backend methods (updateServiceRazorpay, getServiceRazorpayConfig) to manage Razorpay configuration for services with proper access control (admin-only)",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Display Razorpay payment option status in the service detail view (ServiceDetailPage.tsx) showing whether Razorpay is enabled and providing a button to edit Razorpay settings for admins",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/services/ServicePaymentInfoDisplay.tsx",
           "frontend/src/pages/ServiceDetailPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/services/ServicePaymentInfoDisplay.tsx",
           "frontend/src/pages/ServiceDetailPage.tsx"
         ]
       },
       {
-        "id": "REQ-5",
-        "summary": "Ensure PaymentsPage displays editable payment links with the existing EditPaymentLinkDialog functionality",
+        "id": "REQ-6",
+        "summary": "Extend the checkout flow in CheckoutPage.tsx to support Razorpay as an alternative payment method when services in cart have Razorpay enabled, displaying both Stripe and Razorpay options to users",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/PaymentsPage.tsx"
+          "frontend/src/pages/CheckoutPage.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/pages/PaymentsPage.tsx"
+          "frontend/src/pages/CheckoutPage.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ]
       }
     ]
@@ -80,12 +83,15 @@
     "frontend-implementation-plan.json",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
-    "frontend/src/components/services/ServicePaymentInfoDialog.tsx",
-    "frontend/src/components/services/ServicePaymentInfoDisplay.tsx",
+    "frontend/src/components/leads/BulkStatusChangeDialog.tsx",
+    "frontend/src/components/leads/EditPaymentLinkDialog.tsx",
+    "frontend/src/components/services/ServiceRazorpayDialog.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/PaymentsPage.tsx",
+    "frontend/src/pages/CheckoutPage.tsx",
+    "frontend/src/pages/LeadsPage.tsx",
+    "frontend/src/pages/ProjectsPage.tsx",
     "frontend/src/pages/ServiceDetailPage.tsx",
     "frontend/src/pages/ServicesPage.tsx",
     "project_state.json",

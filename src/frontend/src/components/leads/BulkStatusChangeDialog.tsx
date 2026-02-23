@@ -43,7 +43,7 @@ export default function BulkStatusChangeDialog({
           id: lead.id,
           name: lead.name,
           email: lead.email,
-          phone: lead.phone || undefined,
+          phone: lead.phone || null,
           channel: lead.channel,
           microNiche: lead.microNiche,
           status: newStatus
