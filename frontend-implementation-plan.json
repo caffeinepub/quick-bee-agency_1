@@ -1,0 +1,108 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Add Automation Integrations & API Options to Automation Page",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "summary": "Add Auto WhatsApp Replies automation card to Automation Page with toggle, description, and configuration panel for API key/webhook URL",
+      "acceptanceCriteria": [
+        "Auto WhatsApp Replies card is visible on the Automation Page under Integrations & API.",
+        "Toggle enables/disables the automation and persists state to the backend.",
+        "Configuration fields for WhatsApp API key/webhook URL are shown when enabled.",
+        "Description 'Automated responses for WhatsApp messages' is displayed on the card."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AutomationPage.tsx",
+          "operation": "modify",
+          "description": "Add Auto WhatsApp Replies automation card in the Integrations & API section with a toggle, description text 'Automated responses for WhatsApp messages', and a collapsible configuration panel containing input fields for WhatsApp API key and webhook URL. Wire the toggle and configuration inputs to use the existing integrationSettings hooks to persist autoWhatsAppReplies.enabled and autoWhatsAppReplies.config to the backend. Ensure the card follows the existing automation card styling and layout pattern."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Add Sequence Builder automation card to Automation Page with toggle, description, and interface for defining task sequences",
+      "acceptanceCriteria": [
+        "Sequence Builder card is visible on the Automation Page under Integrations & API.",
+        "Toggle enables/disables the sequence builder and persists state.",
+        "UI allows adding, editing, and removing task steps in a sequence.",
+        "Description 'Create automated in-app task sequences' is displayed on the card."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AutomationPage.tsx",
+          "operation": "modify",
+          "description": "Add Sequence Builder automation card in the Integrations & API section with a toggle, description text 'Create automated in-app task sequences', and a collapsible configuration panel containing a simple interface for managing task sequence steps (list of task steps with name and delay fields, plus add/remove buttons). Wire the toggle and sequence config to use the existing integrationSettings hooks to persist sequenceBuilder.enabled and sequenceBuilder.config (serialized as JSON) to the backend. Follow the existing card styling pattern."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Add Proposal Auto-Send automation card to Automation Page with toggle, description, and trigger condition configuration",
+      "acceptanceCriteria": [
+        "Proposal Auto-Send card is visible on the Automation Page under Integrations & API.",
+        "Toggle enables/disables the automation and persists state.",
+        "Configuration for trigger condition (lead qualified status) is shown when enabled.",
+        "Description 'Auto-generate proposals when leads are qualified' is displayed on the card."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AutomationPage.tsx",
+          "operation": "modify",
+          "description": "Add Proposal Auto-Send automation card in the Integrations & API section with a toggle, description text 'Auto-generate proposals when leads are qualified', and a collapsible configuration panel containing a dropdown or select input for choosing the trigger condition (e.g., lead status = qualified). Wire the toggle and config to use the existing integrationSettings hooks to persist proposalAutoSend.enabled and proposalAutoSend.config to the backend. Maintain consistent card styling."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Add Payment Confirmation automation card to Automation Page with toggle, description, and notification channel configuration",
+      "acceptanceCriteria": [
+        "Payment Confirmation card is visible on the Automation Page under Integrations & API.",
+        "Toggle enables/disables the automation and persists state.",
+        "Configuration options for notification channel are displayed when enabled.",
+        "Description 'Automated payment confirmation notifications' is displayed on the card."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AutomationPage.tsx",
+          "operation": "modify",
+          "description": "Add Payment Confirmation automation card in the Integrations & API section with a toggle, description text 'Automated payment confirmation notifications', and a collapsible configuration panel containing checkboxes or radio buttons for selecting notification channels (e.g., in-app, email placeholder). Wire the toggle and config to use the existing integrationSettings hooks to persist paymentConfirmation.enabled and paymentConfirmation.config to the backend. Follow existing card styling."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Add Project Onboarding automation card to Automation Page with toggle, description, and payment trigger configuration",
+      "acceptanceCriteria": [
+        "Project Onboarding card is visible on the Automation Page under Integrations & API.",
+        "Toggle enables/disables the automation and persists state.",
+        "Configuration for the payment trigger condition is displayed when enabled.",
+        "Description 'Auto-trigger onboarding after payment' is displayed on the card."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AutomationPage.tsx",
+          "operation": "modify",
+          "description": "Add Project Onboarding automation card in the Integrations & API section with a toggle, description text 'Auto-trigger onboarding after payment', and a collapsible configuration panel containing an input or dropdown for configuring the payment trigger condition (e.g., on successful payment event). Wire the toggle and config to use the existing integrationSettings hooks to persist projectOnboarding.enabled and projectOnboarding.config to the backend. Follow existing card styling."
+        }
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "summary": "Update or add React Query mutation hooks to support reading and writing the five new automation integration settings",
+      "acceptanceCriteria": [
+        "React Query hooks exist for fetching and updating all five new automation integration settings.",
+        "Toggling any of the five new automations on the Automation Page persists the change to the backend.",
+        "Configuration inputs for each automation persist their values to the backend on save."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Review the existing useGetIntegrationSettings and useSaveIntegrationSettings hooks to ensure they support the new automation fields (autoWhatsAppReplies, sequenceBuilder, proposalAutoSend, paymentConfirmation, projectOnboarding) in the IntegrationSettings type. If necessary, add typed helper hooks or update mutation logic to handle the new automation config objects with enabled flags and config blobs. Ensure these hooks are used in AutomationPage.tsx for persisting toggle states and configuration data to the backend."
+        }
+      ]
+    }
+  ]
+}

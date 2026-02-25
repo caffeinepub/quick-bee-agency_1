@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --radius: 1rem;
+        --background: 0.06 0 0;
+        --foreground: 0.92 0 0;
+        --card: 0.12 0 0;
+        --card-foreground: 0.92 0 0;
+        --popover: 0.12 0 0;
+        --popover-foreground: 0.92 0 0;
+        --primary: 0.65 0.12 180;
+        --primary-foreground: 0.06 0 0;
+        --secondary: 0.20 0 0;
+        --secondary-foreground: 0.92 0 0;
+        --muted: 0.20 0 0;
+        --muted-foreground: 0.74 0 0;
+        --accent: 0.65 0.12 180;
+        --accent-foreground: 0.06 0 0;
+        --destructive: 0.55 0.22 25;
+        --destructive-foreground: 0.98 0 0;
+        --border: 0.65 0.12 180 / 20%;
+        --input: 0.20 0 0;
+        --ring: 0.65 0.12 180;
+        --chart-1: 0.65 0.12 180;
+        --chart-2: 0.70 0.14 165;
+        --chart-3: 0.60 0.10 195;
+        --chart-4: 0.55 0.08 210;
+        --chart-5: 0.75 0.16 150;
+    }
+
+    .dark {
+        --background: 0.06 0 0;
+        --foreground: 0.92 0 0;
+        --card: 0.12 0 0;
+        --card-foreground: 0.92 0 0;
+        --popover: 0.12 0 0;
+        --popover-foreground: 0.92 0 0;
+        --primary: 0.65 0.12 180;
+        --primary-foreground: 0.06 0 0;
+        --secondary: 0.20 0 0;
+        --secondary-foreground: 0.92 0 0;
+        --muted: 0.20 0 0;
+        --muted-foreground: 0.74 0 0;
+        --accent: 0.65 0.12 180;
+        --accent-foreground: 0.06 0 0;
+        --destructive: 0.55 0.22 25;
+        --destructive-foreground: 0.98 0 0;
+        --border: 0.65 0.12 180 / 20%;
+        --input: 0.20 0 0;
+        --ring: 0.65 0.12 180;
+        --chart-1: 0.65 0.12 180;
+        --chart-2: 0.70 0.14 165;
+        --chart-3: 0.60 0.10 195;
+        --chart-4: 0.55 0.08 210;
+        --chart-5: 0.75 0.16 150;
+    }
+
+    * {
+        @apply border-border;
+    }
+    
+    body {
+        @apply bg-background text-foreground;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+}
+
+@layer utilities {
+    .gradient-teal {
+        background: linear-gradient(135deg, oklch(0.65 0.12 180) 0%, oklch(0.70 0.14 165) 50%, oklch(0.60 0.10 195) 100%);
+    }
+    
+    .gradient-teal-glow {
+        background: linear-gradient(135deg, oklch(0.65 0.12 180) 0%, oklch(0.70 0.14 165) 50%, oklch(0.60 0.10 195) 100%);
+        box-shadow: 0 0 20px oklch(0.65 0.12 180 / 40%);
+    }
+    
+    .glass-panel {
+        background: oklch(0.12 0 0 / 60%);
+        backdrop-filter: blur(12px);
+        border: 1px solid oklch(0.65 0.12 180 / 20%);
+    }
+    
+    .text-soft-gray {
+        color: oklch(0.74 0 0);
+    }
+}

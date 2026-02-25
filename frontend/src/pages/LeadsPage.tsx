@@ -1,0 +1,523 @@
+import { useState, useEffect } from 'react';
+import { useGetAllLeads, useCreateLead, useUpdateLead, useDeleteLead, useCreatePaymentLink, useGetPaymentLinks } from '../hooks/useQueries';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Checkbox } from '../components/ui/checkbox';
+import { toast } from 'sonner';
+import { Plus, Download, Edit, Trash2 } from 'lucide-react';
+import BulkActionsToolbar from '../components/leads/BulkActionsToolbar';
+import BulkStatusChangeDialog from '../components/leads/BulkStatusChangeDialog';
+import PaymentLinkDialog from '../components/leads/PaymentLinkDialog';
+import { Skeleton } from '../components/ui/skeleton';
+import type { Lead, PaymentLink } from '../backend';
+
+const MICRO_NICHES = [
+  'SaaS Startups', 'E-commerce Fashion', 'Health & Wellness Coaches', 'Real Estate Agents',
+  'Digital Marketing Agencies', 'Fitness Trainers', 'Restaurant Owners', 'Dental Clinics',
+  'Law Firms', 'Accounting Services', 'Interior Designers', 'Wedding Planners',
+  'Photography Studios', 'Yoga Instructors', 'Pet Services', 'Beauty Salons',
+  'Auto Repair Shops', 'Home Cleaning Services', 'Tutoring Services', 'Event Management',
+  'Travel Agencies', 'Insurance Brokers', 'Financial Advisors', 'Construction Companies',
+  'Landscaping Services', 'IT Consulting', 'HR Consulting', 'Content Creators',
+  'Podcast Hosts', 'YouTubers', 'Influencers', 'Online Course Creators',
+  'App Developers', 'Web Designers', 'Graphic Designers', 'Copywriters',
+  'Virtual Assistants', 'Social Media Managers', 'SEO Specialists', 'PPC Experts',
+  'Email Marketers', 'Affiliate Marketers', 'Dropshippers', 'Print-on-Demand',
+  'Etsy Sellers', 'Amazon FBA', 'Shopify Store Owners', 'Coaches & Consultants',
+  'Life Coaches', 'Business Coaches'
+];
+
+const CHANNELS = ['Email', 'LinkedIn', 'Instagram', 'WhatsApp', 'SMS'];
+const STATUSES = ['new', 'contacted', 'qualified', 'paid', 'onboarding', 'completed', 'lost'];
+
+export default function LeadsPage() {
+  const [enableFetch, setEnableFetch] = useState(false);
+  const { data: leads = [], isLoading: leadsLoading } = useGetAllLeads(enableFetch);
+  const { data: paymentLinks = [] } = useGetPaymentLinks(enableFetch);
+  const createLead = useCreateLead();
+  const updateLead = useUpdateLead();
+  const deleteLead = useDeleteLead();
+  const createPaymentLink = useCreatePaymentLink();
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isBulkStatusOpen, setIsBulkStatusOpen] = useState(false);
+  const [isPaymentLinkOpen, setIsPaymentLinkOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
+  const [currentPaymentLink, setCurrentPaymentLink] = useState<PaymentLink | null>(null);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    channel: 'Email',
+    microNiche: MICRO_NICHES[0],
+    status: 'new'
+  });
+
+  // Enable fetching after component mounts
+  useEffect(() => {
+    setEnableFetch(true);
+  }, []);
+
+  const handleCreateSubmit = async () => {
+    if (!formData.name || !formData.email) {
+      toast.error('Please fill required fields');
+      return;
+    }
+
+    try {
+      await createLead.mutateAsync({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || null,
+        channel: formData.channel,
+        microNiche: formData.microNiche
+      });
+      toast.success('Lead created successfully');
+      setIsCreateOpen(false);
+      setFormData({ name: '', email: '', phone: '', channel: 'Email', microNiche: MICRO_NICHES[0], status: 'new' });
+    } catch (error) {
+      toast.error('Failed to create lead');
+    }
+  };
+
+  const handleEditSubmit = async () => {
+    if (!selectedLead || !formData.name || !formData.email) {
+      toast.error('Please fill required fields');
+      return;
+    }
+
+    try {
+      const oldStatus = selectedLead.status;
+      await updateLead.mutateAsync({
+        id: selectedLead.id,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || null,
+        channel: formData.channel,
+        microNiche: formData.microNiche,
+        status: formData.status
+      });
+
+      // If status changed to qualified, create payment link and show it
+      if (oldStatus !== 'qualified' && formData.status === 'qualified') {
+        const linkId = await createPaymentLink.mutateAsync({
+          leadId: selectedLead.id,
+          amount: BigInt(50000) // Default ₹500
+        });
+        
+        // Find the newly created payment link
+        // Wait a bit for the query to refresh
+        setTimeout(() => {
+          const newLink = paymentLinks.find(pl => pl.id === linkId);
+          if (newLink) {
+            setCurrentPaymentLink(newLink);
+            setIsPaymentLinkOpen(true);
+          }
+        }, 500);
+      }
+
+      toast.success('Lead updated successfully');
+      setIsEditOpen(false);
+      setSelectedLead(null);
+    } catch (error) {
+      toast.error('Failed to update lead');
+    }
+  };
+
+  const handleEdit = (lead: Lead) => {
+    setSelectedLead(lead);
+    setFormData({
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone || '',
+      channel: lead.channel,
+      microNiche: lead.microNiche,
+      status: lead.status
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleDelete = async (id: bigint) => {
+    if (!confirm('Are you sure you want to delete this lead?')) return;
+
+    try {
+      await deleteLead.mutateAsync(id);
+      toast.success('Lead deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete lead');
+    }
+  };
+
+  const handleExportCSV = (selectedOnly = false) => {
+    const leadsToExport = selectedOnly
+      ? leads.filter(lead => selectedLeadIds.has(lead.id.toString()))
+      : leads;
+
+    const headers = ['id', 'name', 'phone', 'email', 'service_interest', 'status', 'created_at'];
+    const rows = leadsToExport.map(lead => [
+      lead.id.toString(),
+      lead.name,
+      lead.phone || '',
+      lead.email,
+      lead.microNiche,
+      lead.status,
+      new Date(Number(lead.createdAt) / 1000000).toISOString()
+    ]);
+
+    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const timestamp = new Date().toISOString().split('T')[0];
+    a.download = `leads-export-${timestamp}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('CSV exported successfully');
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedLeadIds(new Set(leads.map(l => l.id.toString())));
+    } else {
+      setSelectedLeadIds(new Set());
+    }
+  };
+
+  const handleSelectLead = (leadId: string, checked: boolean) => {
+    const newSet = new Set(selectedLeadIds);
+    if (checked) {
+      newSet.add(leadId);
+    } else {
+      newSet.delete(leadId);
+    }
+    setSelectedLeadIds(newSet);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${selectedLeadIds.size} leads?`)) return;
+
+    let successCount = 0;
+    let failureCount = 0;
+
+    const ids = Array.from(selectedLeadIds).map(id => BigInt(id));
+    
+    for (const id of ids) {
+      try {
+        await deleteLead.mutateAsync(id);
+        successCount++;
+      } catch (error) {
+        failureCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`Deleted ${successCount} lead${successCount !== 1 ? 's' : ''} successfully`);
+    }
+    if (failureCount > 0) {
+      toast.error(`Failed to delete ${failureCount} lead${failureCount !== 1 ? 's' : ''}`);
+    }
+    
+    setSelectedLeadIds(new Set());
+  };
+
+  const handleClearSelection = () => {
+    setSelectedLeadIds(new Set());
+  };
+
+  const getPaymentLinkForLead = (leadId: bigint) => {
+    return paymentLinks.find(pl => pl.leadId === leadId);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Lead Management</h1>
+          <p className="text-soft-gray mt-1">Manage up to 3000 leads across channels</p>
+        </div>
+        <div className="flex gap-3">
+          <Button onClick={() => handleExportCSV(false)} variant="outline" className="border-border">
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="gradient-teal-glow text-black font-semibold">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Lead
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="glass-panel border-border max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-foreground">Add New Lead</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="bg-input border-border"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="bg-input border-border"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="bg-input border-border"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="channel">Channel</Label>
+                  <Select value={formData.channel} onValueChange={(value) => setFormData({ ...formData, channel: value })}>
+                    <SelectTrigger className="bg-input border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CHANNELS.map(channel => (
+                        <SelectItem key={channel} value={channel}>{channel}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="microNiche">Micro Niche</Label>
+                  <Select value={formData.microNiche} onValueChange={(value) => setFormData({ ...formData, microNiche: value })}>
+                    <SelectTrigger className="bg-input border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MICRO_NICHES.map(niche => (
+                        <SelectItem key={niche} value={niche}>{niche}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  onClick={handleCreateSubmit}
+                  disabled={createLead.isPending}
+                  className="w-full gradient-teal text-black font-semibold"
+                >
+                  {createLead.isPending ? 'Creating...' : 'Create Lead'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {selectedLeadIds.size > 0 && (
+        <BulkActionsToolbar
+          selectedCount={selectedLeadIds.size}
+          onChangeStatus={() => setIsBulkStatusOpen(true)}
+          onExport={() => handleExportCSV(true)}
+          onDelete={handleBulkDelete}
+          onClear={handleClearSelection}
+        />
+      )}
+
+      <Card className="glass-panel border-border">
+        <CardHeader>
+          <CardTitle className="text-foreground">All Leads ({leads.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {leadsLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : leads.length === 0 ? (
+            <p className="text-soft-gray text-center py-8">No leads yet. Add your first lead to get started!</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left p-3">
+                      <Checkbox
+                        checked={selectedLeadIds.size === leads.length && leads.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </th>
+                    <th className="text-left p-3 text-soft-gray font-medium">Name</th>
+                    <th className="text-left p-3 text-soft-gray font-medium">Email</th>
+                    <th className="text-left p-3 text-soft-gray font-medium">Channel</th>
+                    <th className="text-left p-3 text-soft-gray font-medium">Niche</th>
+                    <th className="text-left p-3 text-soft-gray font-medium">Status</th>
+                    <th className="text-left p-3 text-soft-gray font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leads.map((lead) => (
+                    <tr key={lead.id.toString()} className="border-b border-border/50 hover:bg-secondary/20">
+                      <td className="p-3">
+                        <Checkbox
+                          checked={selectedLeadIds.has(lead.id.toString())}
+                          onCheckedChange={(checked) => handleSelectLead(lead.id.toString(), checked as boolean)}
+                        />
+                      </td>
+                      <td className="p-3 text-foreground">{lead.name}</td>
+                      <td className="p-3 text-soft-gray">{lead.email}</td>
+                      <td className="p-3 text-soft-gray">{lead.channel}</td>
+                      <td className="p-3 text-soft-gray">{lead.microNiche}</td>
+                      <td className="p-3">
+                        <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full border border-primary/30">
+                          {lead.status}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEdit(lead)}
+                            className="text-primary hover:text-primary/80"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDelete(lead.id)}
+                            className="text-destructive hover:text-destructive/80"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="glass-panel border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Edit Lead</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-name">Name *</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="bg-input border-border"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-email">Email *</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="bg-input border-border"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-phone">Phone</Label>
+              <Input
+                id="edit-phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="bg-input border-border"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-channel">Channel</Label>
+              <Select value={formData.channel} onValueChange={(value) => setFormData({ ...formData, channel: value })}>
+                <SelectTrigger className="bg-input border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CHANNELS.map(channel => (
+                    <SelectItem key={channel} value={channel}>{channel}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="edit-microNiche">Micro Niche</Label>
+              <Select value={formData.microNiche} onValueChange={(value) => setFormData({ ...formData, microNiche: value })}>
+                <SelectTrigger className="bg-input border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MICRO_NICHES.map(niche => (
+                    <SelectItem key={niche} value={niche}>{niche}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="edit-status">Status</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                <SelectTrigger className="bg-input border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUSES.map(status => (
+                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              onClick={handleEditSubmit}
+              disabled={updateLead.isPending}
+              className="w-full gradient-teal text-black font-semibold"
+            >
+              {updateLead.isPending ? 'Updating...' : 'Update Lead'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <BulkStatusChangeDialog
+        open={isBulkStatusOpen}
+        onOpenChange={setIsBulkStatusOpen}
+        selectedLeadIds={Array.from(selectedLeadIds).map(id => BigInt(id))}
+        leads={leads}
+        onSuccess={() => {
+          setIsBulkStatusOpen(false);
+          setSelectedLeadIds(new Set());
+        }}
+      />
+
+      {currentPaymentLink && (
+        <PaymentLinkDialog
+          open={isPaymentLinkOpen}
+          onOpenChange={setIsPaymentLinkOpen}
+          paymentLink={currentPaymentLink}
+        />
+      )}
+    </div>
+  );
+}

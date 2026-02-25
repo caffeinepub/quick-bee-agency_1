@@ -1,0 +1,120 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-add-an-auto-whatsapp-replies-automation-card-section-on-the-automation-page-under-integrations-api-it-should-include-a-toggle-to-enable-disable-a-description-automated-responses-for-whatsapp-messages-and-a-configuration-panel-for-setting-up-a-whatsapp-api-key-webhook-url-persist-the-enabled-state-and-config-to-the-backend-via-the-existing-integrationsettings-mechanism",
+      "featureTitle": "Add an 'Auto WhatsApp Replies' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Automated responses for WhatsApp messages'), and a configuration panel for setting up a WhatsApp API key/webhook URL. Persist the enabled state and config to the backend via the existing integrationSettings mechanism.",
+      "files": [
+        "frontend/src/pages/AutomationPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-sequence-builder-automation-card-section-on-the-automation-page-under-integrations-api-it-should-include-a-toggle-to-enable-disable-a-description-create-automated-in-app-task-sequences-and-a-simple-interface-for-defining-a-sequence-of-in-app-tasks-e-g-a-list-of-task-steps-with-name-and-delay-persist-the-enabled-state-and-sequence-config-to-the-backend",
+      "featureTitle": "Add a 'Sequence Builder' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Create automated in-app task sequences'), and a simple interface for defining a sequence of in-app tasks (e.g., a list of task steps with name and delay). Persist the enabled state and sequence config to the backend.",
+      "files": [
+        "frontend/src/pages/AutomationPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-proposal-auto-send-automation-card-section-on-the-automation-page-under-integrations-api-it-should-include-a-toggle-to-enable-disable-a-description-auto-generate-proposals-when-leads-are-qualified-and-configuration-options-for-the-trigger-condition-e-g-when-a-lead-reaches-a-qualified-status-persist-the-enabled-state-and-config-to-the-backend",
+      "featureTitle": "Add a 'Proposal Auto-Send' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Auto-generate proposals when leads are qualified'), and configuration options for the trigger condition (e.g., when a lead reaches a qualified status). Persist the enabled state and config to the backend.",
+      "files": [
+        "frontend/src/pages/AutomationPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-payment-confirmation-automation-card-section-on-the-automation-page-under-integrations-api-it-should-include-a-toggle-to-enable-disable-a-description-automated-payment-confirmation-notifications-and-configuration-for-notification-channels-e-g-in-app-email-placeholder-persist-the-enabled-state-and-config-to-the-backend",
+      "featureTitle": "Add a 'Payment Confirmation' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Automated payment confirmation notifications'), and configuration for notification channels (e.g., in-app, email placeholder). Persist the enabled state and config to the backend.",
+      "files": [
+        "frontend/src/pages/AutomationPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-project-onboarding-automation-card-section-on-the-automation-page-under-integrations-api-it-should-include-a-toggle-to-enable-disable-a-description-auto-trigger-onboarding-after-payment-and-configuration-for-the-onboarding-flow-trigger-e-g-on-successful-payment-event-persist-the-enabled-state-and-config-to-the-backend",
+      "featureTitle": "Add a 'Project Onboarding' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Auto-trigger onboarding after payment'), and configuration for the onboarding flow trigger (e.g., on successful payment event). Persist the enabled state and config to the backend.",
+      "files": [
+        "frontend/src/pages/AutomationPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

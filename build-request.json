@@ -1,0 +1,161 @@
+{
+  "kind": "build_request",
+  "title": "Add Automation Integrations & API Options to Automation Page",
+  "projectName": "Quick Bee Agency",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Add an 'Auto WhatsApp Replies' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Automated responses for WhatsApp messages'), and a configuration panel for setting up a WhatsApp API key/webhook URL. Persist the enabled state and config to the backend via the existing integrationSettings mechanism.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ],
+        "quotes": [
+          "Auto WhatsApp Replies",
+          "Automated responses for WhatsApp messages"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Auto WhatsApp Replies card is visible on the Automation Page under Integrations & API.",
+        "Toggle enables/disables the automation and persists state to the backend.",
+        "Configuration fields for WhatsApp API key/webhook URL are shown when enabled.",
+        "Description 'Automated responses for WhatsApp messages' is displayed on the card."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Add a 'Sequence Builder' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Create automated in-app task sequences'), and a simple interface for defining a sequence of in-app tasks (e.g., a list of task steps with name and delay). Persist the enabled state and sequence config to the backend.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ],
+        "quotes": [
+          "Sequence Builder",
+          "Create automated in-app task sequences"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Sequence Builder card is visible on the Automation Page under Integrations & API.",
+        "Toggle enables/disables the sequence builder and persists state.",
+        "UI allows adding, editing, and removing task steps in a sequence.",
+        "Description 'Create automated in-app task sequences' is displayed on the card."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Add a 'Proposal Auto-Send' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Auto-generate proposals when leads are qualified'), and configuration options for the trigger condition (e.g., when a lead reaches a qualified status). Persist the enabled state and config to the backend.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ],
+        "quotes": [
+          "Proposal Auto-Send",
+          "Auto-generate proposals when leads are qualified"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Proposal Auto-Send card is visible on the Automation Page under Integrations & API.",
+        "Toggle enables/disables the automation and persists state.",
+        "Configuration for trigger condition (lead qualified status) is shown when enabled.",
+        "Description 'Auto-generate proposals when leads are qualified' is displayed on the card."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Add a 'Payment Confirmation' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Automated payment confirmation notifications'), and configuration for notification channels (e.g., in-app, email placeholder). Persist the enabled state and config to the backend.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ],
+        "quotes": [
+          "Payment Confirmation",
+          "Automated payment confirmation notifications"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Payment Confirmation card is visible on the Automation Page under Integrations & API.",
+        "Toggle enables/disables the automation and persists state.",
+        "Configuration options for notification channel are displayed when enabled.",
+        "Description 'Automated payment confirmation notifications' is displayed on the card."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Add a 'Project Onboarding' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Auto-trigger onboarding after payment'), and configuration for the onboarding flow trigger (e.g., on successful payment event). Persist the enabled state and config to the backend.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ],
+        "quotes": [
+          "Project Onboarding",
+          "Auto-trigger onboarding after payment"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Project Onboarding card is visible on the Automation Page under Integrations & API.",
+        "Toggle enables/disables the automation and persists state.",
+        "Configuration for the payment trigger condition is displayed when enabled.",
+        "Description 'Auto-trigger onboarding after payment' is displayed on the card."
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Extend the backend integrationSettings data model to support storing configuration for the five new automation entries: autoWhatsAppReplies, sequenceBuilder, proposalAutoSend, paymentConfirmation, and projectOnboarding. Each entry should store at minimum an enabled flag and a flexible config blob (e.g., a Text or JSON string field). Update the migration module accordingly.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ],
+        "quotes": [
+          "add options to add integrations & API in Automation Page"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Backend integrationSettings supports storing enabled state and config for all five new automation types.",
+        "Existing integration settings are not broken after the upgrade.",
+        "Migration module is updated to handle the new fields gracefully on canister upgrade."
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "Update the existing useQueries.ts mutation hooks (or add new ones) to support reading and writing the new automation integration settings (autoWhatsAppReplies, sequenceBuilder, proposalAutoSend, paymentConfirmation, projectOnboarding) to the backend. Ensure the Automation Page components use these hooks for persistence.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ],
+        "quotes": [
+          "add options to add integrations & API in Automation Page"
+        ]
+      },
+      "acceptanceCriteria": [
+        "React Query hooks exist for fetching and updating all five new automation integration settings.",
+        "Toggling any of the five new automations on the Automation Page persists the change to the backend.",
+        "Configuration inputs for each automation persist their values to the backend on save."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not modify files listed in frontend.immutablePaths.",
+    "All backend logic must remain in the single main actor (backend/main.mo).",
+    "Migration logic must be handled in backend/migration.mo.",
+    "New automation cards must integrate visually and structurally with the existing Automation Page layout and style."
+  ],
+  "nonGoals": [
+    "Actually sending WhatsApp messages via a live third-party API.",
+    "Real-time automation execution or background task processing.",
+    "Email notification delivery integration.",
+    "Building a full visual sequence builder with drag-and-drop.",
+    "Modifying existing automation toggles already present on the Automation Page."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

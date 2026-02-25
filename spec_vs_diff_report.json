@@ -1,0 +1,16 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-25T08:52:33.774Z",
+  "summary": "The diff implements all seven requirements: five new automation cards on the Automation Page (REQ-1 through REQ-5), backend data model extension with migration (REQ-6), and updated React Query hooks (REQ-7). The implementation appears comprehensive based on the available evidence.",
+  "missing_requirements": [],
+  "hallucinated_features": [],
+  "confidence": 0.82,
+  "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
+    "frontend-file-summaries.txt",
+    "frontend/src/pages/AutomationPage.tsx",
+    "project_state.json"
+  ]
+}
