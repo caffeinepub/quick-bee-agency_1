@@ -18,7 +18,7 @@ interface ServiceRazorpayDialogProps {
 export default function ServiceRazorpayDialog({
   open,
   onOpenChange,
-  service
+  service,
 }: ServiceRazorpayDialogProps) {
   const [razorpayEnabled, setRazorpayEnabled] = useState(service.razorpayEnabled || false);
   const [razorpayKeyId, setRazorpayKeyId] = useState(service.razorpayKeyId || '');
@@ -32,41 +32,38 @@ export default function ServiceRazorpayDialog({
         id: service.id,
         enabled: razorpayEnabled,
         keyId: razorpayKeyId.trim() || null,
-        orderId: razorpayOrderId.trim() || null
+        orderId: razorpayOrderId.trim() || null,
       });
       toast.success('Razorpay settings updated successfully');
       onOpenChange(false);
-    } catch (error) {
-      console.error('Save error:', error);
+    } catch {
       toast.error('Failed to update Razorpay settings');
     }
   };
 
   const isSaving = updateRazorpay.isPending;
-  const hasChanges = 
-    razorpayEnabled !== (service.razorpayEnabled || false) || 
+  const hasChanges =
+    razorpayEnabled !== (service.razorpayEnabled || false) ||
     razorpayKeyId !== (service.razorpayKeyId || '') ||
     razorpayOrderId !== (service.razorpayOrderId || '');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-panel border-border max-w-2xl">
+      <DialogContent className="bg-card border-border max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-foreground">Configure Razorpay Payment</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Service Name Display */}
           <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
-            <p className="text-sm text-soft-gray mb-1">Service</p>
+            <p className="text-sm text-muted-foreground mb-1">Service</p>
             <p className="text-xl font-bold text-foreground">{service.name}</p>
           </div>
 
-          {/* Enable/Disable Razorpay */}
           <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg border border-border">
             <div className="space-y-0.5">
               <Label htmlFor="razorpay-enabled" className="text-base">Enable Razorpay</Label>
-              <p className="text-sm text-soft-gray">
+              <p className="text-sm text-muted-foreground">
                 Allow customers to pay for this service using Razorpay
               </p>
             </div>
@@ -77,7 +74,6 @@ export default function ServiceRazorpayDialog({
             />
           </div>
 
-          {/* Razorpay Key ID */}
           <div>
             <Label htmlFor="razorpay-key-id">Razorpay Key ID</Label>
             <Input
@@ -88,12 +84,11 @@ export default function ServiceRazorpayDialog({
               className="mt-1 bg-input border-border"
               disabled={!razorpayEnabled}
             />
-            <p className="text-xs text-soft-gray mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Enter your Razorpay Key ID (optional, can be configured globally in settings)
             </p>
           </div>
 
-          {/* Razorpay Order ID */}
           <div>
             <Label htmlFor="razorpay-order-id">Razorpay Order ID (Optional)</Label>
             <Input
@@ -104,16 +99,17 @@ export default function ServiceRazorpayDialog({
               className="mt-1 bg-input border-border"
               disabled={!razorpayEnabled}
             />
-            <p className="text-xs text-soft-gray mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Pre-configured order ID for this service (optional)
             </p>
           </div>
 
-          {/* Info Alert */}
           <div className="flex items-start gap-2 p-3 bg-secondary/30 rounded border border-border">
-            <AlertCircle className="w-4 h-4 text-soft-gray mt-0.5 shrink-0" />
-            <p className="text-xs text-soft-gray">
-              When Razorpay is enabled for a service, customers will see it as a payment option during checkout. Make sure Razorpay is configured globally in Settings before enabling it here.
+            <AlertCircle className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              When Razorpay is enabled for a service, customers will see it as a payment option
+              during checkout. Make sure Razorpay is configured globally in Settings before enabling
+              it here.
             </p>
           </div>
         </div>
@@ -130,7 +126,7 @@ export default function ServiceRazorpayDialog({
           <Button
             onClick={handleSave}
             disabled={isSaving || !hasChanges}
-            className="gradient-teal text-black font-semibold"
+            className="bg-primary text-primary-foreground font-semibold"
           >
             {isSaving ? (
               <>

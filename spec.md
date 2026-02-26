@@ -1,16 +1,15 @@
 # Specification
 
 ## Summary
-**Goal:** Add five new automation integration cards to the Automation Page under the Integrations & API section, with toggles, descriptions, configuration panels, and full backend persistence.
+**Goal:** Rebuild the AI Sales System automation-related pages (AutomationPage, ServiceRecommendationPage, ProposalGeneratorPage) with full functionality, backend persistence, and proper sidebar navigation using the existing teal-green + black theme.
 
 **Planned changes:**
-- Add "Auto WhatsApp Replies" card with toggle, description ("Automated responses for WhatsApp messages"), and config fields for WhatsApp API key/webhook URL.
-- Add "Sequence Builder" card with toggle, description ("Create automated in-app task sequences"), and UI to add/edit/remove task steps (name and delay).
-- Add "Proposal Auto-Send" card with toggle, description ("Auto-generate proposals when leads are qualified"), and config for lead qualified status trigger.
-- Add "Payment Confirmation" card with toggle, description ("Automated payment confirmation notifications"), and config for notification channel (in-app, email placeholder).
-- Add "Project Onboarding" card with toggle, description ("Auto-trigger onboarding after payment"), and config for payment trigger condition.
-- Extend backend `integrationSettings` data model with fields for all five new automation types (enabled flag + config blob each).
-- Update migration module to handle the new fields on canister upgrade.
-- Add/update React Query hooks in `useQueries.ts` to read and write all five new automation integration settings.
+- Rebuild `AutomationPage` with three sections: Sales System Configuration (API endpoint + API key + Test Connection), Automation Rules toggles (WhatsApp auto-reply, proposal auto-send, lead follow-up), and Integration Status indicators
+- Rebuild `ServiceRecommendationPage` as an AI-powered form (business type, budget range, goals) that calls the configured API endpoint and displays service recommendation cards; falls back to rule-based logic if no API is configured
+- Rebuild `ProposalGeneratorPage` as an AI-powered proposal creation form (client name, business type, services, scope, budget) that generates a formatted proposal preview with a downloadable PDF option
+- Add `getSalesSystemConfig` (query) and `setSalesSystemConfig` (update, admin/manager only) functions to the backend Motoko actor with upgrade-persistent storage
+- Add `useGetSalesSystemConfig` and `useUpdateSalesSystemConfig` hooks in `useQueries.ts` to connect the config panel to the backend
+- Add sidebar navigation entries for "Service Recommendation" and "Proposal Generator" under an AI Sales Tools group, visible to Admin and Manager roles, with teal-green active state
+- Register `/service-recommendation` and `/proposal-generator` routes in `App.tsx`
 
-**User-visible outcome:** Users can visit the Automation Page, see five new automation cards under Integrations & API, toggle each on/off, fill in configuration options, and have all settings persist to the backend.
+**User-visible outcome:** Admins and managers can configure an AI API endpoint, toggle automation rules, get AI-powered service recommendations, and generate downloadable client proposals — all within a consistent teal-green + black themed interface accessible from the sidebar.

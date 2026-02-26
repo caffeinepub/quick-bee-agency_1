@@ -13,10 +13,11 @@
     "github-export-icp-cli": "1.0.0",
     "http-outcalls": "3.0.0",
     "qr-code": "1.0.0",
-    "camera": "1.0.0"
+    "camera": "1.0.0",
+    "blob-storage": "4.0.0"
   },
   "tags": [],
-  "aiCoreVersion": "0.20.3",
+  "aiCoreVersion": "0.20.4",
   "motokoVersion": "1.0.0-beta",
   "coreLibVersion": "implicits-20"
 }

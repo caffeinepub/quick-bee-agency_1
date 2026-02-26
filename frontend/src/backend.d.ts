@@ -7,13 +7,6 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
-export interface OnboardingData {
-    businessName: string;
-    goals: string;
-    niche: string;
-    budget: bigint;
-    timeline: string;
-}
 export interface PricingTier {
     features: Array<string>;
     price: bigint;
@@ -24,17 +17,106 @@ export interface TransformationOutput {
     headers: Array<http_header>;
 }
 export type Time = bigint;
-export interface Coupon {
-    expiresAt?: Time;
-    code: string;
-    discountPercent: bigint;
-    isActive: boolean;
-}
 export interface IntegrationSettings {
     stripeEnabled: boolean;
     razorpayEnabled: boolean;
     automations: AutomationSettings;
     webhookUrl?: string;
+}
+export interface SalesSystemConfig {
+    description: string;
+    systemSettings: string;
+    enabled: boolean;
+    apiEndpoint: string;
+    apiKey: string;
+    systemName: string;
+}
+export interface LegalPage {
+    id: bigint;
+    title: string;
+    content: string;
+    lastUpdatedAt: Time;
+    lastUpdatedBy: Principal;
+}
+export interface Lead {
+    id: bigint;
+    status: string;
+    urgencyLevel?: bigint;
+    assignedTo?: Principal;
+    name: string;
+    createdAt: Time;
+    createdBy: Principal;
+    email: string;
+    microNiche: string;
+    companySize?: string;
+    qualificationScore: bigint;
+    phone?: string;
+    channel: string;
+    budgetRange?: bigint;
+    decisionMakerStatus?: boolean;
+}
+export interface CRMActivity {
+    id: bigint;
+    activityType: string;
+    assignedTo?: Principal;
+    createdAt: Time;
+    createdBy: Principal;
+    dueDate?: Time;
+    stage: string;
+    projectId?: bigint;
+    leadId?: bigint;
+    notes: string;
+}
+export interface TransformationInput {
+    context: Uint8Array;
+    response: http_request_result;
+}
+export type StripeSessionStatus = {
+    __kind__: "completed";
+    completed: {
+        userPrincipal?: string;
+        response: string;
+    };
+} | {
+    __kind__: "failed";
+    failed: {
+        error: string;
+    };
+};
+export interface GeneratorLog {
+    id: bigint;
+    inputData: string;
+    userId: Principal;
+    createdAt: Time;
+    outputData: string;
+    generatorType: string;
+}
+export interface StripeConfiguration {
+    allowedCountries: Array<string>;
+    secretKey: string;
+}
+export interface PaymentLink {
+    id: bigint;
+    qrCodeDataUrl?: string;
+    status: string;
+    createdAt: Time;
+    createdBy: Principal;
+    leadId: bigint;
+    amount: bigint;
+    paymentLinkUrl?: string;
+}
+export interface OnboardingData {
+    businessName: string;
+    goals: string;
+    niche: string;
+    budget: bigint;
+    timeline: string;
+}
+export interface Coupon {
+    expiresAt?: Time;
+    code: string;
+    discountPercent: bigint;
+    isActive: boolean;
 }
 export interface Service {
     id: bigint;
@@ -81,25 +163,6 @@ export interface http_request_result {
     body: Uint8Array;
     headers: Array<http_header>;
 }
-export interface LegalPage {
-    id: bigint;
-    title: string;
-    content: string;
-    lastUpdatedAt: Time;
-    lastUpdatedBy: Principal;
-}
-export interface Lead {
-    id: bigint;
-    status: string;
-    assignedTo?: Principal;
-    name: string;
-    createdAt: Time;
-    createdBy: Principal;
-    email: string;
-    microNiche: string;
-    phone?: string;
-    channel: string;
-}
 export interface ShoppingItem {
     productName: string;
     currency: string;
@@ -112,22 +175,6 @@ export interface ServiceSettings {
     availability: string;
     isFeatured: boolean;
     isVisible: boolean;
-}
-export interface CRMActivity {
-    id: bigint;
-    activityType: string;
-    assignedTo?: Principal;
-    createdAt: Time;
-    createdBy: Principal;
-    dueDate?: Time;
-    stage: string;
-    projectId?: bigint;
-    leadId?: bigint;
-    notes: string;
-}
-export interface TransformationInput {
-    context: Uint8Array;
-    response: http_request_result;
 }
 export interface Offer {
     id: bigint;
@@ -144,22 +191,6 @@ export interface Notification {
     isRead: boolean;
     message: string;
 }
-export type StripeSessionStatus = {
-    __kind__: "completed";
-    completed: {
-        userPrincipal?: string;
-        response: string;
-    };
-} | {
-    __kind__: "failed";
-    failed: {
-        error: string;
-    };
-};
-export interface StripeConfiguration {
-    allowedCountries: Array<string>;
-    secretKey: string;
-}
 export interface Project {
     id: bigint;
     startTime: Time;
@@ -168,28 +199,10 @@ export interface Project {
     onboardingData?: OnboardingData;
     serviceId: bigint;
 }
-export interface PaymentLink {
-    id: bigint;
-    qrCodeDataUrl?: string;
-    status: string;
-    createdAt: Time;
-    createdBy: Principal;
-    leadId: bigint;
-    amount: bigint;
-    paymentLinkUrl?: string;
-}
 export interface UserProfile {
     name: string;
     businessName?: string;
     email: string;
-}
-export interface GeneratorLog {
-    id: bigint;
-    inputData: string;
-    userId: Principal;
-    createdAt: Time;
-    outputData: string;
-    generatorType: string;
 }
 export enum UserRole {
     admin = "admin",
@@ -203,7 +216,7 @@ export interface backendInterface {
     createCheckoutSession(items: Array<ShoppingItem>, successUrl: string, cancelUrl: string): Promise<string>;
     createCoupon(code: string, discountPercent: bigint, expiresAt: Time | null): Promise<void>;
     createGeneratorLog(generatorType: string, inputData: string, outputData: string): Promise<bigint>;
-    createLead(name: string, email: string, phone: string | null, channel: string, microNiche: string): Promise<bigint>;
+    createLead(name: string, email: string, phone: string | null, channel: string, microNiche: string, budgetRange: bigint | null, urgencyLevel: bigint | null, companySize: string | null, decisionMakerStatus: boolean | null): Promise<bigint>;
     createLegalPage(title: string, content: string): Promise<bigint>;
     createNotification(userId: Principal, message: string, notificationType: string): Promise<bigint>;
     createOffer(name: string, discountPercent: bigint, offerType: string): Promise<bigint>;
@@ -226,6 +239,7 @@ export interface backendInterface {
     getCallerUserRole(): Promise<UserRole>;
     getCoupon(code: string): Promise<Coupon | null>;
     getIntegrationSettings(userId: Principal): Promise<IntegrationSettings | null>;
+    getLeadsByScoreRange(minScore: bigint, maxScore: bigint): Promise<Array<Lead>>;
     getLegalPage(id: bigint): Promise<LegalPage | null>;
     getMyCRMActivities(): Promise<Array<CRMActivity>>;
     getMyGeneratorLogs(): Promise<Array<GeneratorLog>>;
@@ -237,6 +251,7 @@ export interface backendInterface {
     getPaymentLinks(): Promise<Array<PaymentLink>>;
     getProject(id: bigint): Promise<Project | null>;
     getProjectsByClient(clientId: Principal): Promise<Array<Project>>;
+    getSalesSystemConfig(userId: Principal): Promise<SalesSystemConfig | null>;
     getService(id: bigint): Promise<Service | null>;
     getServiceRazorpayConfig(id: bigint): Promise<[boolean, string | null, string | null]>;
     getStripeSessionStatus(sessionId: string): Promise<StripeSessionStatus>;
@@ -247,6 +262,7 @@ export interface backendInterface {
     markNotificationAsRead(id: bigint): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     saveIntegrationSettings(settings: IntegrationSettings): Promise<void>;
+    saveSalesSystemConfig(config: SalesSystemConfig): Promise<void>;
     setPaymentLinkQrCode(id: bigint, qrCodeDataUrl: string): Promise<void>;
     setPaymentLinkUrl(id: bigint, url: string): Promise<void>;
     setRazorpayConfiguration(apiKey: string, apiSecret: string, webhookSecret: string): Promise<void>;
@@ -255,7 +271,7 @@ export interface backendInterface {
     toggleOffer(id: bigint, isActive: boolean): Promise<void>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
     updateCRMActivity(id: bigint, activityType: string, stage: string, notes: string, dueDate: Time | null): Promise<void>;
-    updateLead(id: bigint, name: string, email: string, phone: string | null, channel: string, microNiche: string, status: string): Promise<void>;
+    updateLead(id: bigint, name: string, email: string, phone: string | null, channel: string, microNiche: string, status: string, budgetRange: bigint | null, urgencyLevel: bigint | null, companySize: string | null, decisionMakerStatus: boolean | null): Promise<void>;
     updateLegalPage(id: bigint, title: string, content: string): Promise<void>;
     updateOrderStatus(id: bigint, status: string): Promise<void>;
     updatePaymentLinkStatus(id: bigint, status: string): Promise<void>;

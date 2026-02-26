@@ -1,170 +1,183 @@
-import { useEffect, useState } from 'react';
-import { useGetAllOrders, useGetPaymentLinks, useGetAllLeads } from '../hooks/useQueries';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { Button } from '../components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Edit } from 'lucide-react';
-import { Skeleton } from '../components/ui/skeleton';
-import EditPaymentLinkDialog from '../components/leads/EditPaymentLinkDialog';
-import type { PaymentLink } from '../backend';
+import React, { useState } from 'react';
+import { CreditCard, Link, ExternalLink, RefreshCw, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { useGetAllOrders, useGetPaymentLinks, useUpdatePaymentLinkStatus } from '../hooks/useQueries';
+
+const STATUS_ICON: Record<string, React.ReactNode> = {
+  'Paid': <CheckCircle className="w-3.5 h-3.5 text-green-400" />,
+  'paid': <CheckCircle className="w-3.5 h-3.5 text-green-400" />,
+  'Pending': <Clock className="w-3.5 h-3.5 text-amber-400" />,
+  'Failed': <XCircle className="w-3.5 h-3.5 text-red-400" />,
+  'created': <Clock className="w-3.5 h-3.5 text-brand-400" />,
+};
+
+const STATUS_CLASS: Record<string, string> = {
+  'Paid': 'text-green-400 bg-green-500/10 border-green-500/20',
+  'paid': 'text-green-400 bg-green-500/10 border-green-500/20',
+  'Pending': 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+  'Failed': 'text-red-400 bg-red-500/10 border-red-500/20',
+  'created': 'text-brand-400 bg-brand-500/10 border-brand-500/20',
+};
 
 export default function PaymentsPage() {
-  const [enableFetch, setEnableFetch] = useState(false);
-  const { data: orders = [], isLoading: ordersLoading } = useGetAllOrders(enableFetch);
-  const { data: paymentLinks = [], isLoading: linksLoading } = useGetPaymentLinks(enableFetch);
-  const { data: leads = [], isLoading: leadsLoading } = useGetAllLeads(enableFetch);
-  const [editingPaymentLink, setEditingPaymentLink] = useState<PaymentLink | null>(null);
+  const [tab, setTab] = useState<'orders' | 'links'>('orders');
+  const { data: orders = [], isLoading: ordersLoading } = useGetAllOrders();
+  const { data: paymentLinks = [], isLoading: linksLoading } = useGetPaymentLinks();
+  const updateStatus = useUpdatePaymentLinkStatus();
 
-  useEffect(() => {
-    setEnableFetch(true);
-  }, []);
-
-  const getLeadName = (leadId: bigint) => {
-    const lead = leads.find(l => l.id === leadId);
-    return lead?.name || 'Unknown Lead';
-  };
-
-  const isLoading = ordersLoading || linksLoading || leadsLoading;
+  const totalRevenue = orders
+    .filter(o => o.paymentStatus === 'Paid' || o.paymentStatus === 'paid')
+    .reduce((sum, o) => sum + Number(o.amount), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Payments & Invoices</h1>
-        <p className="text-soft-gray mt-1">View all payment transactions and links</p>
+        <h1 className="text-2xl font-display font-bold text-foreground">Payments</h1>
+        <p className="text-muted-foreground text-sm mt-0.5">Manage orders and payment links</p>
       </div>
 
-      <Tabs defaultValue="orders" className="space-y-4">
-        <TabsList className="glass-panel border-border">
-          <TabsTrigger value="orders">Stripe Orders</TabsTrigger>
-          <TabsTrigger value="razorpay">Razorpay Links</TabsTrigger>
-        </TabsList>
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          { label: 'Total Revenue', value: `₹${(totalRevenue / 100).toLocaleString('en-IN')}`, color: 'text-brand-400' },
+          { label: 'Total Orders', value: orders.length.toString(), color: 'text-foreground' },
+          { label: 'Payment Links', value: paymentLinks.length.toString(), color: 'text-foreground' },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="glass-card rounded-2xl p-5 border border-border">
+            <p className={`text-2xl font-display font-bold ${color}`}>{value}</p>
+            <p className="text-sm text-muted-foreground mt-1">{label}</p>
+          </div>
+        ))}
+      </div>
 
-        <TabsContent value="orders">
-          <Card className="glass-panel border-border">
-            <CardHeader>
-              <CardTitle className="text-foreground">Stripe Orders ({orders.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="p-4 bg-secondary/30 rounded-lg border border-border">
-                      <Skeleton className="h-6 w-1/3 mb-2" />
-                      <Skeleton className="h-4 w-1/4 mb-2" />
-                      <Skeleton className="h-8 w-1/4" />
-                    </div>
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 bg-card rounded-xl border border-border w-fit">
+        {(['orders', 'links'] as const).map(t => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              tab === t ? 'gradient-brand text-dark-500' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {t === 'orders' ? 'Orders' : 'Payment Links'}
+          </button>
+        ))}
+      </div>
+
+      {/* Orders Tab */}
+      {tab === 'orders' && (
+        <div className="glass-card rounded-2xl border border-border overflow-hidden">
+          {ordersLoading ? (
+            <div className="p-8 text-center">
+              <RefreshCw className="w-6 h-6 animate-spin text-brand-400 mx-auto" />
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="p-12 text-center">
+              <CreditCard className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-muted-foreground">No orders yet</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border bg-background/50">
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Order ID</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Amount</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {orders.map(order => (
+                    <tr key={order.id.toString()} className="hover:bg-brand-500/3 transition-colors">
+                      <td className="px-5 py-3 text-sm font-medium text-foreground">#{order.id.toString()}</td>
+                      <td className="px-5 py-3 text-sm font-semibold text-brand-400">
+                        ₹{(Number(order.amount) / 100).toLocaleString('en-IN')}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border font-medium ${STATUS_CLASS[order.paymentStatus] ?? 'text-muted-foreground bg-muted/30 border-border'}`}>
+                          {STATUS_ICON[order.paymentStatus]}
+                          {order.paymentStatus}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-xs text-muted-foreground">
+                        {new Date(Number(order.createdAt) / 1_000_000).toLocaleDateString()}
+                      </td>
+                    </tr>
                   ))}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {orders.length === 0 ? (
-                    <p className="text-soft-gray text-center py-8">No orders yet</p>
-                  ) : (
-                    orders.map((order) => (
-                      <div key={order.id.toString()} className="p-4 bg-secondary/30 rounded-lg border border-border">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-semibold text-foreground">Order #{order.id.toString()}</p>
-                            <p className="text-sm text-soft-gray mt-1">Project #{order.projectId.toString()}</p>
-                            <p className="text-lg font-bold text-primary mt-2">₹{(Number(order.amount) / 100).toLocaleString()}</p>
-                          </div>
-                          <Badge variant={order.paymentStatus === 'Completed' ? 'default' : 'secondary'}>
-                            {order.paymentStatus}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
-        <TabsContent value="razorpay">
-          <Card className="glass-panel border-border">
-            <CardHeader>
-              <CardTitle className="text-foreground">Razorpay Payment Links ({paymentLinks.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="p-4 bg-secondary/30 rounded-lg border border-border">
-                      <Skeleton className="h-6 w-1/3 mb-2" />
-                      <Skeleton className="h-4 w-1/4 mb-2" />
-                      <Skeleton className="h-8 w-1/4" />
-                    </div>
+      {/* Payment Links Tab */}
+      {tab === 'links' && (
+        <div className="glass-card rounded-2xl border border-border overflow-hidden">
+          {linksLoading ? (
+            <div className="p-8 text-center">
+              <RefreshCw className="w-6 h-6 animate-spin text-brand-400 mx-auto" />
+            </div>
+          ) : paymentLinks.length === 0 ? (
+            <div className="p-12 text-center">
+              <Link className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-muted-foreground">No payment links yet</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border bg-background/50">
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">ID</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Amount</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Link</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {paymentLinks.map(link => (
+                    <tr key={link.id.toString()} className="hover:bg-brand-500/3 transition-colors">
+                      <td className="px-5 py-3 text-sm font-medium text-foreground">#{link.id.toString()}</td>
+                      <td className="px-5 py-3 text-sm font-semibold text-brand-400">
+                        ₹{(Number(link.amount) / 100).toLocaleString('en-IN')}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border font-medium ${STATUS_CLASS[link.status] ?? 'text-muted-foreground bg-muted/30 border-border'}`}>
+                          {STATUS_ICON[link.status]}
+                          {link.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3">
+                        {link.paymentLinkUrl ? (
+                          <a href={link.paymentLinkUrl} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300 transition-colors">
+                            <ExternalLink className="w-3 h-3" />
+                            Open Link
+                          </a>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">No link set</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3">
+                        {link.status !== 'paid' && (
+                          <button
+                            onClick={() => updateStatus.mutateAsync({ id: link.id, status: 'paid' })}
+                            disabled={updateStatus.isPending}
+                            className="text-xs px-3 py-1.5 rounded-lg gradient-brand text-dark-500 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                          >
+                            Mark Paid
+                          </button>
+                        )}
+                      </td>
+                    </tr>
                   ))}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {paymentLinks.length === 0 ? (
-                    <p className="text-soft-gray text-center py-8">No payment links yet</p>
-                  ) : (
-                    paymentLinks.map((link) => (
-                      <div key={link.id.toString()} className="p-4 bg-secondary/30 rounded-lg border border-border">
-                        <div className="flex justify-between items-start gap-4">
-                          <div className="flex-1">
-                            <p className="font-semibold text-foreground">{getLeadName(link.leadId)}</p>
-                            <p className="text-sm text-soft-gray mt-1">Lead ID: {link.leadId.toString()}</p>
-                            <p className="text-lg font-bold text-primary mt-2">₹{(Number(link.amount) / 100).toLocaleString()}</p>
-                            <p className="text-xs text-soft-gray mt-1">
-                              Created: {new Date(Number(link.createdAt) / 1000000).toLocaleDateString()}
-                            </p>
-                            {link.paymentLinkUrl && (
-                              <p className="text-xs text-soft-gray mt-1 truncate">
-                                Link: {link.paymentLinkUrl}
-                              </p>
-                            )}
-                            {link.qrCodeDataUrl && (
-                              <div className="mt-2">
-                                <img 
-                                  src={link.qrCodeDataUrl} 
-                                  alt="Payment QR Code" 
-                                  className="w-24 h-24 border border-border rounded"
-                                />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex flex-col gap-2 items-end">
-                            <Badge 
-                              variant={
-                                link.status === 'paid' ? 'default' : 
-                                link.status === 'expired' ? 'destructive' : 
-                                'secondary'
-                              }
-                            >
-                              {link.status}
-                            </Badge>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setEditingPaymentLink(link)}
-                              className="border-border"
-                            >
-                              <Edit className="w-4 h-4 mr-1" />
-                              Edit
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {editingPaymentLink && (
-        <EditPaymentLinkDialog
-          open={!!editingPaymentLink}
-          onOpenChange={(open) => !open && setEditingPaymentLink(null)}
-          paymentLink={editingPaymentLink}
-        />
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

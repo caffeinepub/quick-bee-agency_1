@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { useGetMyNotifications, useMarkNotificationAsRead } from '../hooks/useQueries';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -8,37 +7,33 @@ import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { Bell, CheckCircle2 } from 'lucide-react';
 import { Skeleton } from '../components/ui/skeleton';
+import type { Notification } from '../backend';
 
 export default function NotificationsPage() {
-  const [enableFetch, setEnableFetch] = useState(false);
-  const { data: notifications = [], isLoading } = useGetMyNotifications(enableFetch);
+  const { data: notifications = [], isLoading } = useGetMyNotifications();
   const markAsRead = useMarkNotificationAsRead();
   const navigate = useNavigate();
 
-  // Enable fetching after component mounts
-  useEffect(() => {
-    setEnableFetch(true);
-  }, []);
-
-  const unreadNotifications = notifications.filter(n => !n.isRead);
-  const readNotifications = notifications.filter(n => n.isRead);
+  const unreadNotifications = notifications.filter((n) => !n.isRead);
+  const readNotifications = notifications.filter((n) => n.isRead);
 
   const handleMarkAsRead = async (id: bigint) => {
     try {
       await markAsRead.mutateAsync(id);
       toast.success('Notification marked as read');
-    } catch (error) {
+    } catch {
       toast.error('Failed to mark notification as read');
     }
   };
 
-  const handleNotificationClick = (notification: typeof notifications[0]) => {
+  const handleNotificationClick = (notification: Notification) => {
     if (!notification.isRead) {
       handleMarkAsRead(notification.id);
     }
-
-    // Navigate based on notification type
-    if (notification.notificationType === 'lead_qualified' || notification.notificationType === 'payment_confirmed') {
+    if (
+      notification.notificationType === 'lead_qualified' ||
+      notification.notificationType === 'payment_confirmed'
+    ) {
       navigate({ to: '/leads' });
     } else if (notification.notificationType === 'onboarding_started') {
       navigate({ to: '/projects' });
@@ -47,18 +42,14 @@ export default function NotificationsPage() {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'lead_qualified':
-        return '🎯';
-      case 'payment_confirmed':
-        return '💰';
-      case 'onboarding_started':
-        return '🚀';
-      default:
-        return '📢';
+      case 'lead_qualified': return '🎯';
+      case 'payment_confirmed': return '💰';
+      case 'onboarding_started': return '🚀';
+      default: return '📢';
     }
   };
 
-  const renderNotificationList = (notificationList: typeof notifications) => {
+  const renderNotificationList = (notificationList: Notification[]) => {
     if (isLoading) {
       return (
         <div className="space-y-3">
@@ -72,8 +63,8 @@ export default function NotificationsPage() {
     if (notificationList.length === 0) {
       return (
         <div className="text-center py-12">
-          <Bell className="w-12 h-12 text-soft-gray mx-auto mb-4" />
-          <p className="text-soft-gray">No notifications</p>
+          <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">No notifications</p>
         </div>
       );
     }
@@ -91,16 +82,14 @@ export default function NotificationsPage() {
                 <span className="text-2xl">{getNotificationIcon(notification.notificationType)}</span>
                 <div className="flex-1">
                   <p className="text-foreground font-medium">{notification.message}</p>
-                  <p className="text-soft-gray text-xs mt-1">
+                  <p className="text-muted-foreground text-xs mt-1">
                     {new Date(Number(notification.createdAt) / 1000000).toLocaleString()}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {!notification.isRead && (
-                  <Badge variant="default" className="bg-primary/20 text-primary border-primary/30">
-                    New
-                  </Badge>
+                  <Badge className="bg-primary/20 text-primary border-primary/30 text-xs">New</Badge>
                 )}
                 {!notification.isRead && (
                   <Button
@@ -126,36 +115,24 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Notifications</h1>
-        <p className="text-soft-gray mt-1">Stay updated with your lead activities</p>
+        <h1 className="text-3xl font-bold font-heading text-foreground">Notifications</h1>
+        <p className="text-muted-foreground mt-1">Stay updated with your lead activities</p>
       </div>
 
-      <Card className="glass-panel border-border">
+      <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-foreground">All Notifications</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="all" className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="all">
-                All ({notifications.length})
-              </TabsTrigger>
-              <TabsTrigger value="unread">
-                Unread ({unreadNotifications.length})
-              </TabsTrigger>
-              <TabsTrigger value="read">
-                Read ({readNotifications.length})
-              </TabsTrigger>
+              <TabsTrigger value="all">All ({notifications.length})</TabsTrigger>
+              <TabsTrigger value="unread">Unread ({unreadNotifications.length})</TabsTrigger>
+              <TabsTrigger value="read">Read ({readNotifications.length})</TabsTrigger>
             </TabsList>
-            <TabsContent value="all">
-              {renderNotificationList(notifications)}
-            </TabsContent>
-            <TabsContent value="unread">
-              {renderNotificationList(unreadNotifications)}
-            </TabsContent>
-            <TabsContent value="read">
-              {renderNotificationList(readNotifications)}
-            </TabsContent>
+            <TabsContent value="all">{renderNotificationList(notifications)}</TabsContent>
+            <TabsContent value="unread">{renderNotificationList(unreadNotifications)}</TabsContent>
+            <TabsContent value="read">{renderNotificationList(readNotifications)}</TabsContent>
           </Tabs>
         </CardContent>
       </Card>

@@ -17,7 +17,7 @@ interface ServicePaymentInfoDialogProps {
 export default function ServicePaymentInfoDialog({
   open,
   onOpenChange,
-  service
+  service,
 }: ServicePaymentInfoDialogProps) {
   const [customUrl, setCustomUrl] = useState(service.paymentLinkUrl || '');
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState(service.qrCodeDataUrl || '');
@@ -28,7 +28,7 @@ export default function ServicePaymentInfoDialog({
 
   const handleGenerateQR = async () => {
     const urlToEncode = customUrl || `https://example.com/service/${service.id}`;
-    
+
     if (!urlToEncode.trim()) {
       toast.error('Please enter a URL first');
       return;
@@ -36,13 +36,11 @@ export default function ServicePaymentInfoDialog({
 
     setIsGeneratingQR(true);
     try {
-      // Use QR code API service
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(urlToEncode)}`;
-      
-      // Create a canvas and draw the image to convert to data URL
+
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      
+
       await new Promise<void>((resolve, reject) => {
         img.onload = () => {
           const canvas = document.createElement('canvas');
@@ -63,7 +61,6 @@ export default function ServicePaymentInfoDialog({
         img.src = qrApiUrl;
       });
     } catch (error) {
-      console.error('QR generation error:', error);
       toast.error('Failed to generate QR code. Please upload a custom QR code instead.');
     } finally {
       setIsGeneratingQR(false);
@@ -96,34 +93,32 @@ export default function ServicePaymentInfoDialog({
       await updatePaymentInfo.mutateAsync({
         id: service.id,
         paymentLinkUrl: customUrl || null,
-        qrCodeDataUrl: qrCodeDataUrl || null
+        qrCodeDataUrl: qrCodeDataUrl || null,
       });
       onOpenChange(false);
     } catch (error) {
-      console.error('Save error:', error);
+      toast.error('Failed to save payment info');
     }
   };
 
   const isSaving = updatePaymentInfo.isPending;
-  const hasChanges = 
-    customUrl !== (service.paymentLinkUrl || '') || 
+  const hasChanges =
+    customUrl !== (service.paymentLinkUrl || '') ||
     qrCodeDataUrl !== (service.qrCodeDataUrl || '');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-panel border-border max-w-2xl">
+      <DialogContent className="bg-card border-border max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-foreground">Edit Payment Information</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Service Name Display */}
           <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
-            <p className="text-sm text-soft-gray mb-1">Service</p>
+            <p className="text-sm text-muted-foreground mb-1">Service</p>
             <p className="text-xl font-bold text-foreground">{service.name}</p>
           </div>
 
-          {/* Custom URL Input */}
           <div>
             <Label htmlFor="custom-url">Payment Link URL</Label>
             <Input
@@ -133,20 +128,19 @@ export default function ServicePaymentInfoDialog({
               placeholder="https://your-payment-link.com"
               className="mt-1 bg-input border-border"
             />
-            <p className="text-xs text-soft-gray mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Enter a custom payment link URL for this service
             </p>
           </div>
 
-          {/* QR Code Section */}
           <div className="space-y-3">
             <Label>QR Code</Label>
-            
+
             {qrCodeDataUrl && (
               <div className="flex justify-center p-4 bg-secondary/30 rounded-lg border border-border">
-                <img 
-                  src={qrCodeDataUrl} 
-                  alt="Payment QR Code" 
+                <img
+                  src={qrCodeDataUrl}
+                  alt="Payment QR Code"
                   className="w-48 h-48 border-2 border-border rounded"
                 />
               </div>
@@ -192,9 +186,9 @@ export default function ServicePaymentInfoDialog({
             </div>
 
             <div className="flex items-start gap-2 p-3 bg-secondary/30 rounded border border-border">
-              <AlertCircle className="w-4 h-4 text-soft-gray mt-0.5 shrink-0" />
-              <p className="text-xs text-soft-gray">
-                Generate a QR code from the URL above using an external API service, or upload your own custom QR code image.
+              <AlertCircle className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+              <p className="text-xs text-muted-foreground">
+                Generate a QR code from the URL above, or upload your own custom QR code image.
               </p>
             </div>
           </div>
@@ -212,7 +206,7 @@ export default function ServicePaymentInfoDialog({
           <Button
             onClick={handleSave}
             disabled={isSaving || !hasChanges}
-            className="gradient-teal text-black font-semibold"
+            className="bg-primary text-primary-foreground font-semibold"
           >
             {isSaving ? (
               <>

@@ -1,158 +1,133 @@
 {
   "kind": "build_request",
-  "title": "Add Automation Integrations & API Options to Automation Page",
+  "title": "Rebuild AI Sales System Automation Page (Version 14 Features)",
   "projectName": "Quick Bee Agency",
-  "priority": "normal",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add an 'Auto WhatsApp Replies' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Automated responses for WhatsApp messages'), and a configuration panel for setting up a WhatsApp API key/webhook URL. Persist the enabled state and config to the backend via the existing integrationSettings mechanism.",
-      "target": "both",
+      "text": "Rebuild the AutomationPage to feature a dedicated 'AI Sales System' section as the primary focus, displaying clearly organized panels for: (1) Sales System Configuration (API endpoint + API key input with connection test), (2) Automation Rules toggles (e.g., WhatsApp auto-reply, proposal auto-send, lead follow-up), and (3) Integration status indicators. The page must use the teal-green + black theme consistently.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-4"
         ],
         "quotes": [
-          "Auto WhatsApp Replies",
-          "Automated responses for WhatsApp messages"
+          "Rebuild Version 14's features fresh (the AI sales system automation page)"
         ]
       },
       "acceptanceCriteria": [
-        "Auto WhatsApp Replies card is visible on the Automation Page under Integrations & API.",
-        "Toggle enables/disables the automation and persists state to the backend.",
-        "Configuration fields for WhatsApp API key/webhook URL are shown when enabled.",
-        "Description 'Automated responses for WhatsApp messages' is displayed on the card."
+        "AutomationPage renders three distinct sections: Sales System Config, Automation Rules, and Integration Status",
+        "Sales System Config panel contains fields for API endpoint URL and API key with a 'Test Connection' button",
+        "Automation Rules section shows toggles for at least: WhatsApp auto-reply, proposal auto-send, and lead follow-up",
+        "All UI elements use the teal-green + black color theme",
+        "Page is accessible from the sidebar navigation"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Add a 'Sequence Builder' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Create automated in-app task sequences'), and a simple interface for defining a sequence of in-app tasks (e.g., a list of task steps with name and delay). Persist the enabled state and sequence config to the backend.",
-      "target": "both",
+      "text": "Rebuild the ServiceRecommendationPage as a fully functional AI-powered service recommendation tool. The page must collect: business type, budget range, and business goals from the user via a form, then call the configured AI/API endpoint (from SalesSystemConfig) to return and display tailored service recommendations with name, description, and a suggested pricing tier. If no API is configured, show a fallback rule-based recommendation.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-4"
         ],
         "quotes": [
-          "Sequence Builder",
-          "Create automated in-app task sequences"
+          "the AI sales system automation page"
         ]
       },
       "acceptanceCriteria": [
-        "Sequence Builder card is visible on the Automation Page under Integrations & API.",
-        "Toggle enables/disables the sequence builder and persists state.",
-        "UI allows adding, editing, and removing task steps in a sequence.",
-        "Description 'Create automated in-app task sequences' is displayed on the card."
+        "Form collects business type (dropdown or text), budget range (slider or input), and goals (multi-select or textarea)",
+        "Submitting the form calls the configured API endpoint if set, otherwise uses rule-based logic",
+        "Recommendations are displayed as cards showing service name, description, and suggested tier",
+        "Loading state is shown while the recommendation is being fetched",
+        "Error state is shown if the API call fails, with a fallback to rule-based results"
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Add a 'Proposal Auto-Send' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Auto-generate proposals when leads are qualified'), and configuration options for the trigger condition (e.g., when a lead reaches a qualified status). Persist the enabled state and config to the backend.",
-      "target": "both",
+      "text": "Rebuild the ProposalGeneratorPage as a fully functional AI-powered proposal creation tool. The page must include a form with fields for: client name, client business type, selected services, project scope/notes, and budget. On submission, it calls the configured AI/API endpoint to generate a professional proposal. The generated proposal must be displayed in a formatted preview and support downloading as a print-formatted PDF.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-4"
         ],
         "quotes": [
-          "Proposal Auto-Send",
-          "Auto-generate proposals when leads are qualified"
+          "the AI sales system automation page"
         ]
       },
       "acceptanceCriteria": [
-        "Proposal Auto-Send card is visible on the Automation Page under Integrations & API.",
-        "Toggle enables/disables the automation and persists state.",
-        "Configuration for trigger condition (lead qualified status) is shown when enabled.",
-        "Description 'Auto-generate proposals when leads are qualified' is displayed on the card."
+        "Form includes fields for client name, business type, service selection, scope notes, and budget",
+        "Submitting calls the configured AI API endpoint if available, otherwise generates a template-based proposal",
+        "Generated proposal is displayed in a styled preview panel",
+        "A 'Download PDF' button triggers a print-formatted PDF download of the proposal",
+        "Loading and error states are handled gracefully"
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Add a 'Payment Confirmation' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Automated payment confirmation notifications'), and configuration for notification channels (e.g., in-app, email placeholder). Persist the enabled state and config to the backend.",
-      "target": "both",
+      "text": "Ensure the backend Motoko actor stores and retrieves the Sales System integration configuration (API endpoint URL and API key) per user/admin, and exposes query and update functions for getting and setting this configuration. This data should persist across sessions.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-4"
         ],
         "quotes": [
-          "Payment Confirmation",
-          "Automated payment confirmation notifications"
+          "Rebuild Version 14's features fresh (the AI sales system automation page)"
         ]
       },
       "acceptanceCriteria": [
-        "Payment Confirmation card is visible on the Automation Page under Integrations & API.",
-        "Toggle enables/disables the automation and persists state.",
-        "Configuration options for notification channel are displayed when enabled.",
-        "Description 'Automated payment confirmation notifications' is displayed on the card."
+        "Backend exposes a `getSalesSystemConfig` query function returning the stored endpoint URL and API key",
+        "Backend exposes a `setSalesSystemConfig` update function accepting an endpoint URL and API key",
+        "Only admin/manager roles can set the configuration",
+        "Configuration persists across canister upgrades"
       ]
     },
     {
       "id": "REQ-5",
-      "text": "Add a 'Project Onboarding' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Auto-trigger onboarding after payment'), and configuration for the onboarding flow trigger (e.g., on successful payment event). Persist the enabled state and config to the backend.",
-      "target": "both",
+      "text": "Add a `useUpdateSalesSystemConfig` mutation and `useGetSalesSystemConfig` query in `frontend/src/hooks/useQueries.ts` to connect the frontend Sales System Config panel to the backend storage functions.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
-        ],
-        "quotes": [
-          "Project Onboarding",
-          "Auto-trigger onboarding after payment"
+          "msg-4"
         ]
       },
       "acceptanceCriteria": [
-        "Project Onboarding card is visible on the Automation Page under Integrations & API.",
-        "Toggle enables/disables the automation and persists state.",
-        "Configuration for the payment trigger condition is displayed when enabled.",
-        "Description 'Auto-trigger onboarding after payment' is displayed on the card."
+        "`useGetSalesSystemConfig` fetches and caches the stored API endpoint and key",
+        "`useUpdateSalesSystemConfig` calls the backend update function and invalidates the config cache on success",
+        "SalesSystemConfigDialog uses these hooks for loading and saving config",
+        "Toast notification confirms successful save or reports error"
       ]
     },
     {
       "id": "REQ-6",
-      "text": "Extend the backend integrationSettings data model to support storing configuration for the five new automation entries: autoWhatsAppReplies, sequenceBuilder, proposalAutoSend, paymentConfirmation, and projectOnboarding. Each entry should store at minimum an enabled flag and a flexible config blob (e.g., a Text or JSON string field). Update the migration module accordingly.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-latest"
-        ],
-        "quotes": [
-          "add options to add integrations & API in Automation Page"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Backend integrationSettings supports storing enabled state and config for all five new automation types.",
-        "Existing integration settings are not broken after the upgrade.",
-        "Migration module is updated to handle the new fields gracefully on canister upgrade."
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "text": "Update the existing useQueries.ts mutation hooks (or add new ones) to support reading and writing the new automation integration settings (autoWhatsAppReplies, sequenceBuilder, proposalAutoSend, paymentConfirmation, projectOnboarding) to the backend. Ensure the Automation Page components use these hooks for persistence.",
+      "text": "Add sidebar navigation entries for 'Service Recommendation' and 'Proposal Generator' pages under an 'AI Sales Tools' group or within the existing automation section, visible to Admin and Manager roles. Ensure the teal-green + black theme is applied to nav items consistently.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
-        ],
-        "quotes": [
-          "add options to add integrations & API in Automation Page"
+          "msg-4"
         ]
       },
       "acceptanceCriteria": [
-        "React Query hooks exist for fetching and updating all five new automation integration settings.",
-        "Toggling any of the five new automations on the Automation Page persists the change to the backend.",
-        "Configuration inputs for each automation persist their values to the backend on save."
+        "Sidebar shows links to '/service-recommendation' and '/proposal-generator' routes",
+        "Links are only visible to Admin and Manager roles",
+        "Active state highlight uses teal-green brand color",
+        "Routes are registered in App.tsx and render the correct pages"
       ]
     }
   ],
   "constraints": [
-    "Do not modify files listed in frontend.immutablePaths.",
-    "All backend logic must remain in the single main actor (backend/main.mo).",
-    "Migration logic must be handled in backend/migration.mo.",
-    "New automation cards must integrate visually and structurally with the existing Automation Page layout and style."
+    "Use the existing teal-green + black color theme (tailwind.config.js brand palette) consistently across all new/rebuilt pages",
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
+    "All Motoko logic must remain in backend/main.mo as a single actor",
+    "Frontend API calls to AI services must use the user-configured endpoint from SalesSystemConfig, not hardcoded URLs"
   ],
   "nonGoals": [
-    "Actually sending WhatsApp messages via a live third-party API.",
-    "Real-time automation execution or background task processing.",
-    "Email notification delivery integration.",
-    "Building a full visual sequence builder with drag-and-drop.",
-    "Modifying existing automation toggles already present on the Automation Page."
+    "Rebuilding any other pages beyond AutomationPage, ServiceRecommendationPage, and ProposalGeneratorPage",
+    "Changing the teal-green + black visual theme introduced in Version 16",
+    "Adding new payment or CRM features",
+    "Real-time websocket features",
+    "Mobile-specific layouts"
   ],
   "imageRequirements": {
     "required": [],

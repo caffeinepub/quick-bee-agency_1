@@ -1,85 +1,84 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T08:52:33.777Z",
+  "generatedAt": "2026-02-26T07:59:02.179Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 7,
+    "total": 6,
     "implemented": 5,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Add an 'Auto WhatsApp Replies' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Automated responses for WhatsApp messages'), and a configuration panel for setting up a WhatsApp API key/webhook URL. Persist the enabled state and config to the backend via the existing integrationSettings mechanism.",
+        "summary": "Rebuild the AutomationPage to feature a dedicated 'AI Sales System' section as the primary focus, displaying clearly organized panels for: (1) Sales System Configuration (API endpoint + API key input with connection test), (2) Automation Rules toggles (e.g., WhatsApp auto-reply, proposal auto-send, lead follow-up), and (3) Integration status indicators. The page must use the teal-green + black theme consistently.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/AutomationPage.tsx"
+          "frontend/src/pages/AutomationPage.tsx",
+          "frontend/src/components/automation/SalesSystemConfigDialog.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/AutomationPage.tsx"
+          "frontend/src/pages/AutomationPage.tsx",
+          "frontend/src/components/automation/SalesSystemConfigDialog.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Add a 'Sequence Builder' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Create automated in-app task sequences'), and a simple interface for defining a sequence of in-app tasks (e.g., a list of task steps with name and delay). Persist the enabled state and sequence config to the backend.",
+        "summary": "Rebuild the ServiceRecommendationPage as a fully functional AI-powered service recommendation tool. The page must collect: business type, budget range, and business goals from the user via a form, then call the configured AI/API endpoint (from SalesSystemConfig) to return and display tailored service recommendations with name, description, and a suggested pricing tier. If no API is configured, show a fallback rule-based recommendation.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/AutomationPage.tsx"
+          "frontend/src/pages/ServiceRecommendationPage.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/pages/AutomationPage.tsx"
+          "frontend/src/pages/ServiceRecommendationPage.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ]
       },
       {
         "id": "REQ-3",
-        "summary": "Add a 'Proposal Auto-Send' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Auto-generate proposals when leads are qualified'), and configuration options for the trigger condition (e.g., when a lead reaches a qualified status). Persist the enabled state and config to the backend.",
+        "summary": "Rebuild the ProposalGeneratorPage as a fully functional AI-powered proposal creation tool. The page must include a form with fields for: client name, client business type, selected services, project scope/notes, and budget. On submission, it calls the configured AI/API endpoint to generate a professional proposal. The generated proposal must be displayed in a formatted preview and support downloading as a print-formatted PDF.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/AutomationPage.tsx"
+          "frontend/src/pages/ProposalGeneratorPage.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/pages/AutomationPage.tsx"
+          "frontend/src/pages/ProposalGeneratorPage.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ]
       },
       {
         "id": "REQ-4",
-        "summary": "Add a 'Payment Confirmation' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Automated payment confirmation notifications'), and configuration for notification channels (e.g., in-app, email placeholder). Persist the enabled state and config to the backend.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/AutomationPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/AutomationPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Add a 'Project Onboarding' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Auto-trigger onboarding after payment'), and configuration for the onboarding flow trigger (e.g., on successful payment event). Persist the enabled state and config to the backend.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/AutomationPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/AutomationPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-6",
-        "summary": "Extend the backend integrationSettings data model to support storing configuration for the five new automation entries: autoWhatsAppReplies, sequenceBuilder, proposalAutoSend, paymentConfirmation, and projectOnboarding. Each entry should store at minimum an enabled flag and a flexible config blob (e.g., a Text or JSON string field). Update the migration module accordingly.",
+        "summary": "Ensure the backend Motoko actor stores and retrieves the Sales System integration configuration (API endpoint URL and API key) per user/admin, and exposes query and update functions for getting and setting this configuration. This data should persist across sessions.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-7",
-        "summary": "Update the existing useQueries.ts mutation hooks (or add new ones) to support reading and writing the new automation integration settings (autoWhatsAppReplies, sequenceBuilder, proposalAutoSend, paymentConfirmation, projectOnboarding) to the backend. Ensure the Automation Page components use these hooks for persistence.",
-        "status": "missing",
+        "id": "REQ-5",
+        "summary": "Add a `useUpdateSalesSystemConfig` mutation and `useGetSalesSystemConfig` query in `frontend/src/hooks/useQueries.ts` to connect the frontend Sales System Config panel to the backend storage functions.",
+        "status": "implemented",
         "plannedFiles": [
           "frontend/src/hooks/useQueries.ts"
         ],
-        "matchedFiles": []
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts"
+        ]
+      },
+      {
+        "id": "REQ-6",
+        "summary": "Add sidebar navigation entries for 'Service Recommendation' and 'Proposal Generator' pages under an 'AI Sales Tools' group or within the existing automation section, visible to Admin and Manager roles. Ensure the teal-green + black theme is applied to nav items consistently.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/layout/SidebarNav.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/layout/SidebarNav.tsx",
+          "frontend/src/App.tsx"
+        ]
       }
     ]
   },
@@ -90,11 +89,19 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/App.tsx",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
+    "frontend/src/components/automation/SalesSystemConfigDialog.tsx",
+    "frontend/src/components/layout/SidebarNav.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/AutomationPage.tsx",
+    "frontend/src/pages/ProjectDetailPage.tsx",
+    "frontend/src/pages/ProposalGeneratorPage.tsx",
+    "frontend/src/pages/ServiceDetailPage.tsx",
+    "frontend/src/pages/ServiceRecommendationPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

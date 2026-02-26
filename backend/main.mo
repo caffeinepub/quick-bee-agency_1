@@ -3,21 +3,23 @@ import Array "mo:core/Array";
 import Iter "mo:core/Iter";
 import Time "mo:core/Time";
 import Runtime "mo:core/Runtime";
-import Principal "mo:core/Principal";
-import Text "mo:core/Text";
 import Nat "mo:core/Nat";
+import Principal "mo:core/Principal";
 import Stripe "stripe/stripe";
 import OutCall "http-outcalls/outcall";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
+import MixinStorage "blob-storage/Mixin";
 import Migration "migration";
 
-// Use migration module's run function for data transformation during canister upgrades
 (with migration = Migration.run)
 actor {
   // Initialize access control
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
+
+  // Include MixinStorage for file/blob handling
+  include MixinStorage();
 
   // Types
   public type UserProfile = {
@@ -44,6 +46,24 @@ actor {
   public type AutomationConfig = {
     enabled : Bool;
     config : Text;
+  };
+
+  public type SalesSystemConfig = {
+    systemName : Text;
+    description : Text;
+    enabled : Bool;
+    apiEndpoint : Text;
+    apiKey : Text;
+    systemSettings : Text;
+  };
+
+  public type SalesSystems = {
+    serviceRecommendationConfig : SalesSystemConfig;
+    proposalGeneratorConfig : SalesSystemConfig;
+    pricingStrategyConfig : SalesSystemConfig;
+    closingScriptConfig : SalesSystemConfig;
+    followUpMessagesConfig : SalesSystemConfig;
+    leadQualificationConfig : SalesSystemConfig;
   };
 
   public type PricingTier = {
@@ -113,6 +133,11 @@ actor {
     assignedTo : ?Principal;
     createdAt : Time.Time;
     createdBy : Principal;
+    qualificationScore : Nat;
+    budgetRange : ?Nat;
+    urgencyLevel : ?Nat;
+    companySize : ?Text;
+    decisionMakerStatus : ?Bool;
   };
 
   public type CRMActivity = {
@@ -186,6 +211,23 @@ actor {
     qrCodeDataUrl : ?Text;
   };
 
+  public type RecommendationInput = {
+    businessType : Text;
+    budget : Nat;
+    goals : Text;
+  };
+
+  public type RecommendationOutput = {
+    recommendedService : Text;
+    upsellSuggestion : Text;
+    budget : ?Nat;
+    projectedROI : ?Text;
+  };
+
+  //
+  // Constants and Default Config
+  //
+
   // Default automation config
   let defaultAutomationConfig : AutomationConfig = {
     enabled = false;
@@ -200,9 +242,75 @@ actor {
     projectOnboarding = defaultAutomationConfig;
   };
 
-  // State
+  let defaultServiceRecommendationConfig : SalesSystemConfig = {
+    systemName = "Service Recommendation";
+    description = "Recommend the most suitable service for the client";
+    enabled = true;
+    apiEndpoint = "https://enxcw-uaaaa-aaaap-abkba-cai.raw.icp0.io/serviceRecommendation";
+    apiKey = "YOUR_API_KEY";
+    systemSettings = "Service Recommendations Thresholds and Templates";
+  };
+
+  let defaultProposalGeneratorConfig : SalesSystemConfig = {
+    systemName = "Proposal Generator";
+    description = "Generate detailed proposals for clients";
+    enabled = true;
+    apiEndpoint = "https://enxcw-uaaaa-aaaap-abkba-cai.raw.icp0.io/proposalGenerator";
+    apiKey = "YOUR_API_KEY";
+    systemSettings = "Proposal Format Settings";
+  };
+
+  let defaultPricingStrategyConfig : SalesSystemConfig = {
+    systemName = "Pricing Strategy";
+    description = "Suggest optimal pricing strategies";
+    enabled = true;
+    apiEndpoint = "https://enxcw-uaaaa-aaaap-abkba-cai.raw.icp0.io/pricingStrategy";
+    apiKey = "YOUR_API_KEY";
+    systemSettings = "Pricing Strategy Settings";
+  };
+
+  let defaultClosingScriptConfig : SalesSystemConfig = {
+    systemName = "Closing Script";
+    description = "Generate scripts for closing deals";
+    enabled = true;
+    apiEndpoint = "https://enxcw-uaaaa-aaaap-abkba-cai.raw.icp0.io/closingScript";
+    apiKey = "YOUR_API_KEY";
+    systemSettings = "Closing Script Templates";
+  };
+
+  let defaultFollowUpMessagesConfig : SalesSystemConfig = {
+    systemName = "Follow-up Messages";
+    description = "Automate follow-up messages to clients";
+    enabled = true;
+    apiEndpoint = "https://enxcw-uaaaa-aaaap-abkba-cai.raw.icp0.io/followUpMessages";
+    apiKey = "YOUR_API_KEY";
+    systemSettings = "Follow-up Templates";
+  };
+
+  let defaultLeadQualificationConfig : SalesSystemConfig = {
+    systemName = "Lead Qualification";
+    description = "Qualify leads based on AI analysis";
+    enabled = true;
+    apiEndpoint = "https://enxcw-uaaaa-aaaap-abkba-cai.raw.icp0.io/leadQualification";
+    apiKey = "YOUR_API_KEY";
+    systemSettings = "Qualification Criteria";
+  };
+
+  let defaultSalesSystems : SalesSystems = {
+    serviceRecommendationConfig = defaultServiceRecommendationConfig;
+    proposalGeneratorConfig = defaultProposalGeneratorConfig;
+    pricingStrategyConfig = defaultPricingStrategyConfig;
+    closingScriptConfig = defaultClosingScriptConfig;
+    followUpMessagesConfig = defaultFollowUpMessagesConfig;
+    leadQualificationConfig = defaultLeadQualificationConfig;
+  };
+
+  //
+  // State Storage
+  //
   let userProfiles = Map.empty<Principal, UserProfile>();
   let integrationSettings = Map.empty<Principal, IntegrationSettings>();
+  let salesSystemConfigs = Map.empty<Principal, SalesSystemConfig>();
   let services = Map.empty<Nat, Service>();
   let projects = Map.empty<Nat, Project>();
   let orders = Map.empty<Nat, Order>();
@@ -229,7 +337,14 @@ actor {
   var razorpayConfig : ?RazorpayConfig = null;
   var stripeConfig : ?Stripe.StripeConfiguration = null;
 
-  func createNotificationInternal(userId : Principal, message : Text, notificationType : Text) : Nat {
+  //
+  // Helper functions
+  //
+  func createNotificationInternal(
+    userId : Principal,
+    message : Text,
+    notificationType : Text,
+  ) : Nat {
     let notification : Notification = {
       id = nextNotificationId;
       userId;
@@ -244,7 +359,80 @@ actor {
     id;
   };
 
-  // Integration Settings Management
+  func calculateQualificationScore(
+    budgetRange : ?Nat,
+    urgencyLevel : ?Nat,
+    companySize : ?Text,
+    decisionMakerStatus : ?Bool,
+  ) : Nat {
+    var score : Nat = 0;
+
+    // Budget factor - 0 (low) to 3 (high)
+    switch (budgetRange) {
+      case (?budget) {
+        switch (budget) {
+          case (0) { score += 10 };
+          case (1) { score += 28 };
+          case (2) { score += 44 };
+          case (3) { score += 60 };
+          case (_) { score += 0 };
+        };
+      };
+      case (null) {};
+    };
+
+    // Urgency factor - 0 (not urgent) to 3 (immediate)
+    switch (urgencyLevel) {
+      case (?urgency) {
+        switch (urgency) {
+          case (0) { score += 9 };
+          case (1) { score += 18 };
+          case (2) { score += 32 };
+          case (3) { score += 43 };
+          case (_) { score += 0 };
+        };
+      };
+      case (null) {};
+    };
+
+    // Company size factor
+    switch (companySize) {
+      case (?size) {
+        if (size == "large") { score += 33 } else {
+          if (size == "medium") { score += 19 } else {
+            score += 5;
+          };
+        };
+      };
+      case (null) { score += 8 };
+    };
+
+    // Decision maker status
+    switch (decisionMakerStatus) {
+      case (?isDecisionMaker) { if (isDecisionMaker) { score += 15 } else { score += 3 } };
+      case (null) { score += 1 };
+    };
+
+    // Cap the score at 100
+    if (score > 100) { 100 } else { score };
+  };
+
+  // Helper: check whether caller has access to a given lead
+  // (admin can access all; users can only access leads assigned to them or created by them)
+  func callerCanAccessLead(caller : Principal, lead : Lead) : Bool {
+    if (AccessControl.isAdmin(accessControlState, caller)) { return true };
+    if (lead.createdBy == caller) { return true };
+    switch (lead.assignedTo) {
+      case (?assigned) { assigned == caller };
+      case null { false };
+    };
+  };
+
+  //
+  // Public endpoints
+  //
+
+  // --- Integration Settings Management
   public query ({ caller }) func getIntegrationSettings(userId : Principal) : async ?IntegrationSettings {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can access integration settings");
@@ -262,7 +450,25 @@ actor {
     integrationSettings.add(caller, settings);
   };
 
-  // User Profile Management
+  // --- Sales System Config Management
+  public query ({ caller }) func getSalesSystemConfig(userId : Principal) : async ?SalesSystemConfig {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can access sales system config");
+    };
+    if (caller != userId and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own sales system config");
+    };
+    salesSystemConfigs.get(userId);
+  };
+
+  public shared ({ caller }) func saveSalesSystemConfig(config : SalesSystemConfig) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can save sales system configs");
+    };
+    salesSystemConfigs.add(caller, config);
+  };
+
+  // --- User Profile Management
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can access profiles");
@@ -284,7 +490,7 @@ actor {
     userProfiles.add(caller, profile);
   };
 
-  // Service Management - Public access for viewing
+  // --- Service Management
   public query func getAllServices() : async [Service] {
     services.values().toArray();
   };
@@ -293,8 +499,6 @@ actor {
     services.get(id);
   };
 
-  // createService is admin-only: services are platform-level content;
-  // updateService and deleteService are also admin-only, so creation must be too.
   public shared ({ caller }) func createService(
     name : Text,
     description : Text,
@@ -386,7 +590,6 @@ actor {
     services.remove(id);
   };
 
-  // Razorpay-Specific Methods
   public shared ({ caller }) func updateServiceRazorpay(id : Nat, enabled : Bool, keyId : ?Text, orderId : ?Text) : async () {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only admins can update Razorpay configuration");
@@ -430,7 +633,7 @@ actor {
     };
   };
 
-  // Project Management
+  // --- Project Management
   public shared ({ caller }) func createProject(clientId : Principal, serviceId : Nat, onboardingData : ?OnboardingData) : async Nat {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can create projects");
@@ -510,7 +713,7 @@ actor {
     projects.values().toArray();
   };
 
-  // Order Management
+  // --- Order Management
   public shared ({ caller }) func createOrder(projectId : Nat, amount : Nat) : async Nat {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can create orders");
@@ -595,11 +798,23 @@ actor {
     };
   };
 
-  // Lead Management
-  public shared ({ caller }) func createLead(name : Text, email : Text, phone : ?Text, channel : Text, microNiche : Text) : async Nat {
+  // --- Lead Management
+  public shared ({ caller }) func createLead(
+    name : Text,
+    email : Text,
+    phone : ?Text,
+    channel : Text,
+    microNiche : Text,
+    budgetRange : ?Nat,
+    urgencyLevel : ?Nat,
+    companySize : ?Text,
+    decisionMakerStatus : ?Bool,
+  ) : async Nat {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can create leads");
     };
+
+    let qualificationScore = calculateQualificationScore(budgetRange, urgencyLevel, companySize, decisionMakerStatus);
 
     let lead : Lead = {
       id = nextLeadId;
@@ -612,6 +827,11 @@ actor {
       assignedTo = ?caller;
       createdAt = Time.now();
       createdBy = caller;
+      qualificationScore;
+      budgetRange;
+      urgencyLevel;
+      companySize;
+      decisionMakerStatus;
     };
     leads.add(nextLeadId, lead);
     let id = nextLeadId;
@@ -639,7 +859,34 @@ actor {
     });
   };
 
-  public shared ({ caller }) func updateLead(id : Nat, name : Text, email : Text, phone : ?Text, channel : Text, microNiche : Text, status : Text) : async () {
+  public query ({ caller }) func getLeadsByScoreRange(minScore : Nat, maxScore : Nat) : async [Lead] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view leads");
+    };
+
+    leads.values().toArray().filter(
+      func(lead : Lead) : Bool {
+        if (lead.qualificationScore < minScore or lead.qualificationScore > maxScore) {
+          return false;
+        };
+        callerCanAccessLead(caller, lead);
+      }
+    );
+  };
+
+  public shared ({ caller }) func updateLead(
+    id : Nat,
+    name : Text,
+    email : Text,
+    phone : ?Text,
+    channel : Text,
+    microNiche : Text,
+    status : Text,
+    budgetRange : ?Nat,
+    urgencyLevel : ?Nat,
+    companySize : ?Text,
+    decisionMakerStatus : ?Bool,
+  ) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can update leads");
     };
@@ -655,6 +902,8 @@ actor {
           Runtime.trap("Unauthorized: Can only update your assigned leads");
         };
 
+        let qualificationScore = calculateQualificationScore(budgetRange, urgencyLevel, companySize, decisionMakerStatus);
+
         let updated : Lead = {
           id = lead.id;
           name;
@@ -666,10 +915,14 @@ actor {
           assignedTo = lead.assignedTo;
           createdAt = lead.createdAt;
           createdBy = lead.createdBy;
+          qualificationScore;
+          budgetRange;
+          urgencyLevel;
+          companySize;
+          decisionMakerStatus;
         };
         leads.add(id, updated);
 
-        // Create notifications for status changes
         if (lead.status != status) {
           switch (lead.assignedTo) {
             case (?assignedUser) {
@@ -701,6 +954,11 @@ actor {
           assignedTo = ?userId;
           createdAt = lead.createdAt;
           createdBy = lead.createdBy;
+          qualificationScore = lead.qualificationScore;
+          budgetRange = lead.budgetRange;
+          urgencyLevel = lead.urgencyLevel;
+          companySize = lead.companySize;
+          decisionMakerStatus = lead.decisionMakerStatus;
         };
         leads.add(leadId, updated);
       };
@@ -715,10 +973,46 @@ actor {
     leads.remove(id);
   };
 
-  // CRM Activity Management
-  public shared ({ caller }) func createCRMActivity(leadId : ?Nat, projectId : ?Nat, activityType : Text, stage : Text, notes : Text, assignedTo : ?Principal, dueDate : ?Time.Time) : async Nat {
+  // --- CRM Activity Management
+  public shared ({ caller }) func createCRMActivity(
+    leadId : ?Nat,
+    projectId : ?Nat,
+    activityType : Text,
+    stage : Text,
+    notes : Text,
+    assignedTo : ?Principal,
+    dueDate : ?Time.Time,
+  ) : async Nat {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can create CRM activities");
+    };
+
+    switch (leadId) {
+      case (?lid) {
+        switch (leads.get(lid)) {
+          case (?lead) {
+            if (not callerCanAccessLead(caller, lead)) {
+              Runtime.trap("Unauthorized: Can only create CRM activities for leads you have access to");
+            };
+          };
+          case null { Runtime.trap("Lead not found") };
+        };
+      };
+      case null {};
+    };
+
+    switch (projectId) {
+      case (?pid) {
+        switch (projects.get(pid)) {
+          case (?project) {
+            if (not AccessControl.isAdmin(accessControlState, caller) and caller != project.clientId) {
+              Runtime.trap("Unauthorized: Can only create CRM activities for your own projects");
+            };
+          };
+          case null { Runtime.trap("Project not found") };
+        };
+      };
+      case null {};
     };
 
     let activity : CRMActivity = {
@@ -764,6 +1058,17 @@ actor {
       Runtime.trap("Unauthorized: Only users can view CRM activities");
     };
 
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      switch (leads.get(leadId)) {
+        case (?lead) {
+          if (not callerCanAccessLead(caller, lead)) {
+            Runtime.trap("Unauthorized: Can only view CRM activities for leads you have access to");
+          };
+        };
+        case null { Runtime.trap("Lead not found") };
+      };
+    };
+
     crmActivities.values().toArray().filter(func(a : CRMActivity) : Bool {
       switch (a.leadId) {
         case (?id) { id == leadId };
@@ -772,7 +1077,13 @@ actor {
     });
   };
 
-  public shared ({ caller }) func updateCRMActivity(id : Nat, activityType : Text, stage : Text, notes : Text, dueDate : ?Time.Time) : async () {
+  public shared ({ caller }) func updateCRMActivity(
+    id : Nat,
+    activityType : Text,
+    stage : Text,
+    notes : Text,
+    dueDate : ?Time.Time,
+  ) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can update CRM activities");
     };
@@ -806,7 +1117,7 @@ actor {
     };
   };
 
-  // Offer Management - Public access for viewing
+  // --- Offer Management
   public query func getAllOffers() : async [Offer] {
     offers.values().toArray();
   };
@@ -849,7 +1160,7 @@ actor {
     };
   };
 
-  // Coupon Management - Public access for checking validity
+  // --- Coupon Management
   public query func getCoupon(code : Text) : async ?Coupon {
     coupons.get(code);
   };
@@ -887,7 +1198,7 @@ actor {
     };
   };
 
-  // Legal Pages Management - Public access for viewing
+  // --- Legal Pages Management
   public query func getAllLegalPages() : async [LegalPage] {
     legalPages.values().toArray();
   };
@@ -929,7 +1240,7 @@ actor {
     legalPages.add(id, page);
   };
 
-  // Notification Management
+  // --- Notification Management
   public query ({ caller }) func getMyNotifications() : async [Notification] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view notifications");
@@ -971,7 +1282,7 @@ actor {
     };
   };
 
-  // Generator Logs
+  // --- Generator Logs
   public shared ({ caller }) func createGeneratorLog(generatorType : Text, inputData : Text, outputData : Text) : async Nat {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can create generator logs");
@@ -1006,7 +1317,7 @@ actor {
     generatorLogs.values().toArray();
   };
 
-  // Stripe integration
+  // --- Stripe integration
   public query func isStripeConfigured() : async Bool {
     stripeConfig != null;
   };
@@ -1031,8 +1342,6 @@ actor {
     await Stripe.createCheckoutSession(config, caller, items, successUrl, cancelUrl, transform);
   };
 
-  // getStripeSessionStatus requires at least user-level auth to prevent
-  // anonymous callers from probing session data.
   public shared ({ caller }) func getStripeSessionStatus(sessionId : Text) : async Stripe.StripeSessionStatus {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can query Stripe session status");
@@ -1049,7 +1358,7 @@ actor {
     OutCall.transform(input);
   };
 
-  // Razorpay integration
+  // --- Razorpay integration
   public query func isRazorpayConfigured() : async Bool {
     razorpayConfig != null;
   };
@@ -1144,6 +1453,11 @@ actor {
                 assignedTo = lead.assignedTo;
                 createdAt = lead.createdAt;
                 createdBy = lead.createdBy;
+                qualificationScore = lead.qualificationScore;
+                budgetRange = lead.budgetRange;
+                urgencyLevel = lead.urgencyLevel;
+                companySize = lead.companySize;
+                decisionMakerStatus = lead.decisionMakerStatus;
               };
               leads.add(link.leadId, updatedLead);
 

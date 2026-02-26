@@ -1,521 +1,416 @@
-import { useState, useEffect } from 'react';
-import { useGetAllLeads, useCreateLead, useUpdateLead, useDeleteLead, useCreatePaymentLink, useGetPaymentLinks } from '../hooks/useQueries';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { Checkbox } from '../components/ui/checkbox';
-import { toast } from 'sonner';
-import { Plus, Download, Edit, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Search, Download, Users, Trash2, Link } from 'lucide-react';
+import {
+  useGetAllLeads, useCreateLead, useUpdateLead, useDeleteLead,
+  useIsCallerAdmin, useCreatePaymentLink, useGetPaymentLinks
+} from '../hooks/useQueries';
+import { Lead } from '../backend';
 import BulkActionsToolbar from '../components/leads/BulkActionsToolbar';
-import BulkStatusChangeDialog from '../components/leads/BulkStatusChangeDialog';
 import PaymentLinkDialog from '../components/leads/PaymentLinkDialog';
-import { Skeleton } from '../components/ui/skeleton';
-import type { Lead, PaymentLink } from '../backend';
 
-const MICRO_NICHES = [
-  'SaaS Startups', 'E-commerce Fashion', 'Health & Wellness Coaches', 'Real Estate Agents',
-  'Digital Marketing Agencies', 'Fitness Trainers', 'Restaurant Owners', 'Dental Clinics',
-  'Law Firms', 'Accounting Services', 'Interior Designers', 'Wedding Planners',
-  'Photography Studios', 'Yoga Instructors', 'Pet Services', 'Beauty Salons',
-  'Auto Repair Shops', 'Home Cleaning Services', 'Tutoring Services', 'Event Management',
-  'Travel Agencies', 'Insurance Brokers', 'Financial Advisors', 'Construction Companies',
-  'Landscaping Services', 'IT Consulting', 'HR Consulting', 'Content Creators',
-  'Podcast Hosts', 'YouTubers', 'Influencers', 'Online Course Creators',
-  'App Developers', 'Web Designers', 'Graphic Designers', 'Copywriters',
-  'Virtual Assistants', 'Social Media Managers', 'SEO Specialists', 'PPC Experts',
-  'Email Marketers', 'Affiliate Marketers', 'Dropshippers', 'Print-on-Demand',
-  'Etsy Sellers', 'Amazon FBA', 'Shopify Store Owners', 'Coaches & Consultants',
-  'Life Coaches', 'Business Coaches'
-];
-
-const CHANNELS = ['Email', 'LinkedIn', 'Instagram', 'WhatsApp', 'SMS'];
-const STATUSES = ['new', 'contacted', 'qualified', 'paid', 'onboarding', 'completed', 'lost'];
+const STATUS_COLORS: Record<string, string> = {
+  'New Lead': 'text-brand-400 bg-brand-500/10 border-brand-500/20',
+  'Contacted': 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+  'Qualified': 'text-green-400 bg-green-500/10 border-green-500/20',
+  'Proposal Sent': 'text-purple-400 bg-purple-500/10 border-purple-500/20',
+  'Closed': 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+  'Lost': 'text-red-400 bg-red-500/10 border-red-500/20',
+  'paid': 'text-teal-400 bg-teal-500/10 border-teal-500/20',
+};
 
 export default function LeadsPage() {
-  const [enableFetch, setEnableFetch] = useState(false);
-  const { data: leads = [], isLoading: leadsLoading } = useGetAllLeads(enableFetch);
-  const { data: paymentLinks = [] } = useGetPaymentLinks(enableFetch);
+  const { data: leads = [], isLoading } = useGetAllLeads();
+  const { data: isAdmin } = useIsCallerAdmin();
+  const { data: paymentLinks = [] } = useGetPaymentLinks();
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const createPaymentLink = useCreatePaymentLink();
 
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isBulkStatusOpen, setIsBulkStatusOpen] = useState(false);
-  const [isPaymentLinkOpen, setIsPaymentLinkOpen] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
-  const [currentPaymentLink, setCurrentPaymentLink] = useState<PaymentLink | null>(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showCreate, setShowCreate] = useState(false);
+  const [paymentLinkLead, setPaymentLinkLead] = useState<Lead | null>(null);
+  const [paymentLinkDialogOpen, setPaymentLinkDialogOpen] = useState(false);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    channel: 'Email',
-    microNiche: MICRO_NICHES[0],
-    status: 'new'
+  // Create form state
+  const [form, setForm] = useState({
+    name: '', email: '', phone: '', channel: 'Website', microNiche: '',
+    budgetRange: '1', urgencyLevel: '1', companySize: 'small', decisionMaker: false
   });
 
-  // Enable fetching after component mounts
-  useEffect(() => {
-    setEnableFetch(true);
-  }, []);
+  const filtered = leads.filter(l => {
+    const matchSearch = l.name.toLowerCase().includes(search.toLowerCase()) ||
+      l.email.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === 'all' || l.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
 
-  const handleCreateSubmit = async () => {
-    if (!formData.name || !formData.email) {
-      toast.error('Please fill required fields');
-      return;
-    }
-
-    try {
-      await createLead.mutateAsync({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone || null,
-        channel: formData.channel,
-        microNiche: formData.microNiche
-      });
-      toast.success('Lead created successfully');
-      setIsCreateOpen(false);
-      setFormData({ name: '', email: '', phone: '', channel: 'Email', microNiche: MICRO_NICHES[0], status: 'new' });
-    } catch (error) {
-      toast.error('Failed to create lead');
-    }
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelectedIds(next);
   };
 
-  const handleEditSubmit = async () => {
-    if (!selectedLead || !formData.name || !formData.email) {
-      toast.error('Please fill required fields');
-      return;
-    }
-
-    try {
-      const oldStatus = selectedLead.status;
-      await updateLead.mutateAsync({
-        id: selectedLead.id,
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone || null,
-        channel: formData.channel,
-        microNiche: formData.microNiche,
-        status: formData.status
-      });
-
-      // If status changed to qualified, create payment link and show it
-      if (oldStatus !== 'qualified' && formData.status === 'qualified') {
-        const linkId = await createPaymentLink.mutateAsync({
-          leadId: selectedLead.id,
-          amount: BigInt(50000) // Default ₹500
-        });
-        
-        // Find the newly created payment link
-        // Wait a bit for the query to refresh
-        setTimeout(() => {
-          const newLink = paymentLinks.find(pl => pl.id === linkId);
-          if (newLink) {
-            setCurrentPaymentLink(newLink);
-            setIsPaymentLinkOpen(true);
-          }
-        }, 500);
-      }
-
-      toast.success('Lead updated successfully');
-      setIsEditOpen(false);
-      setSelectedLead(null);
-    } catch (error) {
-      toast.error('Failed to update lead');
-    }
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await createLead.mutateAsync({
+      name: form.name,
+      email: form.email,
+      phone: form.phone || null,
+      channel: form.channel,
+      microNiche: form.microNiche,
+      budgetRange: Number(form.budgetRange),
+      urgencyLevel: Number(form.urgencyLevel),
+      companySize: form.companySize,
+      decisionMakerStatus: form.decisionMaker,
+    });
+    setShowCreate(false);
+    setForm({ name: '', email: '', phone: '', channel: 'Website', microNiche: '', budgetRange: '1', urgencyLevel: '1', companySize: 'small', decisionMaker: false });
   };
 
-  const handleEdit = (lead: Lead) => {
-    setSelectedLead(lead);
-    setFormData({
+  const handleStatusChange = async (lead: Lead, status: string) => {
+    await updateLead.mutateAsync({
+      id: lead.id,
       name: lead.name,
       email: lead.email,
-      phone: lead.phone || '',
+      phone: lead.phone ?? null,
       channel: lead.channel,
       microNiche: lead.microNiche,
-      status: lead.status
+      status,
+      budgetRange: lead.budgetRange !== undefined ? Number(lead.budgetRange) : null,
+      urgencyLevel: lead.urgencyLevel !== undefined ? Number(lead.urgencyLevel) : null,
+      companySize: lead.companySize ?? null,
+      decisionMakerStatus: lead.decisionMakerStatus ?? null,
     });
-    setIsEditOpen(true);
   };
 
   const handleDelete = async (id: bigint) => {
-    if (!confirm('Are you sure you want to delete this lead?')) return;
-
-    try {
-      await deleteLead.mutateAsync(id);
-      toast.success('Lead deleted successfully');
-    } catch (error) {
-      toast.error('Failed to delete lead');
-    }
-  };
-
-  const handleExportCSV = (selectedOnly = false) => {
-    const leadsToExport = selectedOnly
-      ? leads.filter(lead => selectedLeadIds.has(lead.id.toString()))
-      : leads;
-
-    const headers = ['id', 'name', 'phone', 'email', 'service_interest', 'status', 'created_at'];
-    const rows = leadsToExport.map(lead => [
-      lead.id.toString(),
-      lead.name,
-      lead.phone || '',
-      lead.email,
-      lead.microNiche,
-      lead.status,
-      new Date(Number(lead.createdAt) / 1000000).toISOString()
-    ]);
-
-    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const timestamp = new Date().toISOString().split('T')[0];
-    a.download = `leads-export-${timestamp}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('CSV exported successfully');
-  };
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedLeadIds(new Set(leads.map(l => l.id.toString())));
-    } else {
-      setSelectedLeadIds(new Set());
-    }
-  };
-
-  const handleSelectLead = (leadId: string, checked: boolean) => {
-    const newSet = new Set(selectedLeadIds);
-    if (checked) {
-      newSet.add(leadId);
-    } else {
-      newSet.delete(leadId);
-    }
-    setSelectedLeadIds(newSet);
+    if (confirm('Delete this lead?')) await deleteLead.mutateAsync(id);
   };
 
   const handleBulkDelete = async () => {
-    if (!confirm(`Are you sure you want to delete ${selectedLeadIds.size} leads?`)) return;
-
-    let successCount = 0;
-    let failureCount = 0;
-
-    const ids = Array.from(selectedLeadIds).map(id => BigInt(id));
-    
-    for (const id of ids) {
-      try {
-        await deleteLead.mutateAsync(id);
-        successCount++;
-      } catch (error) {
-        failureCount++;
-      }
-    }
-
-    if (successCount > 0) {
-      toast.success(`Deleted ${successCount} lead${successCount !== 1 ? 's' : ''} successfully`);
-    }
-    if (failureCount > 0) {
-      toast.error(`Failed to delete ${failureCount} lead${failureCount !== 1 ? 's' : ''}`);
-    }
-    
-    setSelectedLeadIds(new Set());
+    if (!confirm(`Delete ${selectedIds.size} leads?`)) return;
+    for (const id of selectedIds) await deleteLead.mutateAsync(BigInt(id));
+    setSelectedIds(new Set());
   };
 
-  const handleClearSelection = () => {
-    setSelectedLeadIds(new Set());
+  const handleBulkStatusChange = async (status: string) => {
+    for (const id of selectedIds) {
+      const lead = leads.find(l => l.id.toString() === id);
+      if (lead) await handleStatusChange(lead, status);
+    }
+    setSelectedIds(new Set());
   };
 
-  const getPaymentLinkForLead = (leadId: bigint) => {
-    return paymentLinks.find(pl => pl.leadId === leadId);
+  const handleExportCSV = () => {
+    const rows = [['Name', 'Email', 'Phone', 'Channel', 'Status', 'Score']];
+    filtered.forEach(l => rows.push([l.name, l.email, l.phone ?? '', l.channel, l.status, l.qualificationScore.toString()]));
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'leads.csv'; a.click();
   };
+
+  const handleExportSelected = () => {
+    const selected = leads.filter(l => selectedIds.has(l.id.toString()));
+    const rows = [['Name', 'Email', 'Status', 'Score']];
+    selected.forEach(l => rows.push([l.name, l.email, l.status, l.qualificationScore.toString()]));
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'selected-leads.csv'; a.click();
+  };
+
+  const getLeadPaymentLink = (leadId: bigint) =>
+    paymentLinks.find(pl => pl.leadId === leadId) ?? null;
+
+  const handleOpenPaymentLink = async (lead: Lead) => {
+    // Create a payment link if none exists
+    const existing = getLeadPaymentLink(lead.id);
+    if (!existing) {
+      await createPaymentLink.mutateAsync({ leadId: lead.id, amount: BigInt(0) });
+    }
+    setPaymentLinkLead(lead);
+    setPaymentLinkDialogOpen(true);
+  };
+
+  const scoreColor = (score: number) => {
+    if (score >= 70) return 'text-green-400';
+    if (score >= 40) return 'text-brand-400';
+    return 'text-muted-foreground';
+  };
+
+  const statuses = ['all', 'New Lead', 'Contacted', 'Qualified', 'Proposal Sent', 'Closed', 'Lost', 'paid'];
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Lead Management</h1>
-          <p className="text-soft-gray mt-1">Manage up to 3000 leads across channels</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">Leads</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">{leads.length} total leads</p>
         </div>
-        <div className="flex gap-3">
-          <Button onClick={() => handleExportCSV(false)} variant="outline" className="border-border">
-            <Download className="w-4 h-4 mr-2" />
-            Export CSV
-          </Button>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="gradient-teal-glow text-black font-semibold">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Lead
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="glass-panel border-border max-w-md">
-              <DialogHeader>
-                <DialogTitle className="text-foreground">Add New Lead</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="bg-input border-border"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="bg-input border-border"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="bg-input border-border"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="channel">Channel</Label>
-                  <Select value={formData.channel} onValueChange={(value) => setFormData({ ...formData, channel: value })}>
-                    <SelectTrigger className="bg-input border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CHANNELS.map(channel => (
-                        <SelectItem key={channel} value={channel}>{channel}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="microNiche">Micro Niche</Label>
-                  <Select value={formData.microNiche} onValueChange={(value) => setFormData({ ...formData, microNiche: value })}>
-                    <SelectTrigger className="bg-input border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MICRO_NICHES.map(niche => (
-                        <SelectItem key={niche} value={niche}>{niche}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  onClick={handleCreateSubmit}
-                  disabled={createLead.isPending}
-                  className="w-full gradient-teal text-black font-semibold"
-                >
-                  {createLead.isPending ? 'Creating...' : 'Create Lead'}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+        <div className="flex items-center gap-2">
+          <button onClick={handleExportCSV} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border text-sm text-muted-foreground hover:text-foreground hover:border-brand-500/50 transition-all">
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+          <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl gradient-brand text-dark-500 font-semibold text-sm hover:opacity-90 transition-opacity glow-brand-sm">
+            <Plus className="w-4 h-4" />
+            Add Lead
+          </button>
         </div>
       </div>
 
-      {selectedLeadIds.size > 0 && (
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search leads..."
+            className="pl-9 pr-4 py-2 rounded-xl bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition-all"
+          />
+        </div>
+        <div className="flex items-center gap-1 flex-wrap">
+          {statuses.map(s => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                statusFilter === s
+                  ? 'gradient-brand text-dark-500'
+                  : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-brand-500/30'
+              }`}
+            >
+              {s === 'all' ? 'All' : s}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Bulk actions */}
+      {selectedIds.size > 0 && (
         <BulkActionsToolbar
-          selectedCount={selectedLeadIds.size}
-          onChangeStatus={() => setIsBulkStatusOpen(true)}
-          onExport={() => handleExportCSV(true)}
+          selectedCount={selectedIds.size}
+          onExport={handleExportSelected}
           onDelete={handleBulkDelete}
-          onClear={handleClearSelection}
+          onChangeStatus={() => handleBulkStatusChange('Contacted')}
+          onClear={() => setSelectedIds(new Set())}
         />
       )}
 
-      <Card className="glass-panel border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground">All Leads ({leads.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {leadsLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
+      {/* Leads Table */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="glass-card rounded-xl p-4 border border-border animate-pulse">
+              <div className="h-4 bg-muted rounded w-1/4 mb-2" />
+              <div className="h-3 bg-muted rounded w-1/3" />
             </div>
-          ) : leads.length === 0 ? (
-            <p className="text-soft-gray text-center py-8">No leads yet. Add your first lead to get started!</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left p-3">
-                      <Checkbox
-                        checked={selectedLeadIds.size === leads.length && leads.length > 0}
-                        onCheckedChange={handleSelectAll}
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16">
+          <Users className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-muted-foreground">No leads found</p>
+        </div>
+      ) : (
+        <div className="glass-card rounded-2xl border border-border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border bg-background/50">
+                  <th className="w-10 px-4 py-3">
+                    <input type="checkbox" className="rounded border-border accent-brand-500"
+                      checked={selectedIds.size === filtered.length && filtered.length > 0}
+                      onChange={e => setSelectedIds(e.target.checked ? new Set(filtered.map(l => l.id.toString())) : new Set())}
+                    />
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Lead</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Score</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {filtered.map(lead => (
+                  <tr key={lead.id.toString()} className="hover:bg-brand-500/3 transition-colors">
+                    <td className="px-4 py-3">
+                      <input type="checkbox" className="rounded border-border accent-brand-500"
+                        checked={selectedIds.has(lead.id.toString())}
+                        onChange={() => toggleSelect(lead.id.toString())}
                       />
-                    </th>
-                    <th className="text-left p-3 text-soft-gray font-medium">Name</th>
-                    <th className="text-left p-3 text-soft-gray font-medium">Email</th>
-                    <th className="text-left p-3 text-soft-gray font-medium">Channel</th>
-                    <th className="text-left p-3 text-soft-gray font-medium">Niche</th>
-                    <th className="text-left p-3 text-soft-gray font-medium">Status</th>
-                    <th className="text-left p-3 text-soft-gray font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leads.map((lead) => (
-                    <tr key={lead.id.toString()} className="border-b border-border/50 hover:bg-secondary/20">
-                      <td className="p-3">
-                        <Checkbox
-                          checked={selectedLeadIds.has(lead.id.toString())}
-                          onCheckedChange={(checked) => handleSelectLead(lead.id.toString(), checked as boolean)}
-                        />
-                      </td>
-                      <td className="p-3 text-foreground">{lead.name}</td>
-                      <td className="p-3 text-soft-gray">{lead.email}</td>
-                      <td className="p-3 text-soft-gray">{lead.channel}</td>
-                      <td className="p-3 text-soft-gray">{lead.microNiche}</td>
-                      <td className="p-3">
-                        <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full border border-primary/30">
-                          {lead.status}
-                        </span>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEdit(lead)}
-                            className="text-primary hover:text-primary/80"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(lead.id)}
-                            className="text-destructive hover:text-destructive/80"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg gradient-brand-subtle border border-brand-500/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-bold text-brand-400">{lead.name.charAt(0)}</span>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="glass-panel border-border max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Edit Lead</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="edit-name">Name *</Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="bg-input border-border"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-email">Email *</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="bg-input border-border"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-phone">Phone</Label>
-              <Input
-                id="edit-phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="bg-input border-border"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-channel">Channel</Label>
-              <Select value={formData.channel} onValueChange={(value) => setFormData({ ...formData, channel: value })}>
-                <SelectTrigger className="bg-input border-border">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CHANNELS.map(channel => (
-                    <SelectItem key={channel} value={channel}>{channel}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="edit-microNiche">Micro Niche</Label>
-              <Select value={formData.microNiche} onValueChange={(value) => setFormData({ ...formData, microNiche: value })}>
-                <SelectTrigger className="bg-input border-border">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MICRO_NICHES.map(niche => (
-                    <SelectItem key={niche} value={niche}>{niche}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="edit-status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                <SelectTrigger className="bg-input border-border">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUSES.map(status => (
-                    <SelectItem key={status} value={status}>{status}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button
-              onClick={handleEditSubmit}
-              disabled={updateLead.isPending}
-              className="w-full gradient-teal text-black font-semibold"
-            >
-              {updateLead.isPending ? 'Updating...' : 'Update Lead'}
-            </Button>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{lead.name}</p>
+                          <p className="text-xs text-muted-foreground">{lead.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs text-muted-foreground">{lead.channel}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={lead.status}
+                        onChange={e => handleStatusChange(lead, e.target.value)}
+                        className={`text-xs px-2 py-1 rounded-lg border font-medium bg-transparent cursor-pointer focus:outline-none ${STATUS_COLORS[lead.status] ?? 'text-muted-foreground bg-muted/30 border-border'}`}
+                      >
+                        {['New Lead', 'Contacted', 'Qualified', 'Proposal Sent', 'Closed', 'Lost', 'paid'].map(s => (
+                          <option key={s} value={s} className="bg-card text-foreground">{s}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full rounded-full gradient-brand"
+                            style={{ width: `${lead.qualificationScore}%` }}
+                          />
+                        </div>
+                        <span className={`text-xs font-semibold ${scoreColor(Number(lead.qualificationScore))}`}>
+                          {lead.qualificationScore.toString()}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleOpenPaymentLink(lead)}
+                          className="w-7 h-7 rounded-lg bg-background border border-border flex items-center justify-center hover:border-brand-500/50 hover:bg-brand-500/5 transition-all"
+                          title="Payment Link"
+                        >
+                          <Link className="w-3 h-3 text-brand-400" />
+                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDelete(lead.id)}
+                            className="w-7 h-7 rounded-lg bg-background border border-border flex items-center justify-center hover:border-destructive/50 hover:bg-destructive/5 transition-all"
+                          >
+                            <Trash2 className="w-3 h-3 text-muted-foreground" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
-      <BulkStatusChangeDialog
-        open={isBulkStatusOpen}
-        onOpenChange={setIsBulkStatusOpen}
-        selectedLeadIds={Array.from(selectedLeadIds).map(id => BigInt(id))}
-        leads={leads}
-        onSuccess={() => {
-          setIsBulkStatusOpen(false);
-          setSelectedLeadIds(new Set());
-        }}
-      />
+      {/* Create Lead Modal */}
+      {showCreate && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-card rounded-2xl p-6 w-full max-w-lg border border-border">
+            <h2 className="text-lg font-display font-bold text-foreground mb-5">Add New Lead</h2>
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Name *</label>
+                  <input type="text" required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl bg-background border border-border text-sm text-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition-all" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Email *</label>
+                  <input type="email" required value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl bg-background border border-border text-sm text-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition-all" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Phone</label>
+                  <input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl bg-background border border-border text-sm text-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition-all" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Channel</label>
+                  <select value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl bg-background border border-border text-sm text-foreground focus:outline-none focus:border-brand-500 transition-all">
+                    {['Website', 'WhatsApp', 'Instagram', 'Referral', 'Cold Outreach', 'Other'].map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Micro Niche *</label>
+                <input type="text" required value={form.microNiche} onChange={e => setForm(f => ({ ...f, microNiche: e.target.value }))}
+                  placeholder="e.g. SaaS, E-commerce, Healthcare"
+                  className="w-full px-3 py-2 rounded-xl bg-background border border-border text-sm text-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition-all" />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Budget</label>
+                  <select value={form.budgetRange} onChange={e => setForm(f => ({ ...f, budgetRange: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl bg-background border border-border text-sm text-foreground focus:outline-none focus:border-brand-500 transition-all">
+                    <option value="0">Low</option>
+                    <option value="1">Medium</option>
+                    <option value="2">High</option>
+                    <option value="3">Enterprise</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Urgency</label>
+                  <select value={form.urgencyLevel} onChange={e => setForm(f => ({ ...f, urgencyLevel: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl bg-background border border-border text-sm text-foreground focus:outline-none focus:border-brand-500 transition-all">
+                    <option value="0">Low</option>
+                    <option value="1">Medium</option>
+                    <option value="2">High</option>
+                    <option value="3">Immediate</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">Company</label>
+                  <select value={form.companySize} onChange={e => setForm(f => ({ ...f, companySize: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl bg-background border border-border text-sm text-foreground focus:outline-none focus:border-brand-500 transition-all">
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                  </select>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={form.decisionMaker} onChange={e => setForm(f => ({ ...f, decisionMaker: e.target.checked }))}
+                  className="rounded border-border accent-brand-500" />
+                <span className="text-sm text-foreground">Decision Maker</span>
+              </label>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowCreate(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-background border border-border text-sm text-muted-foreground hover:text-foreground transition-all">
+                  Cancel
+                </button>
+                <button type="submit" disabled={createLead.isPending}
+                  className="flex-1 py-2.5 rounded-xl gradient-brand text-dark-500 font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2">
+                  {createLead.isPending && <span className="w-4 h-4 border-2 border-dark-500/30 border-t-dark-500 rounded-full animate-spin" />}
+                  Create Lead
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-      {currentPaymentLink && (
+      {/* Payment Link Dialog */}
+      {paymentLinkLead && (
         <PaymentLinkDialog
-          open={isPaymentLinkOpen}
-          onOpenChange={setIsPaymentLinkOpen}
-          paymentLink={currentPaymentLink}
+          open={paymentLinkDialogOpen}
+          onOpenChange={(open) => {
+            setPaymentLinkDialogOpen(open);
+            if (!open) setPaymentLinkLead(null);
+          }}
+          paymentLink={getLeadPaymentLink(paymentLinkLead.id)}
         />
       )}
     </div>

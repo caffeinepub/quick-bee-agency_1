@@ -2,9 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-add-an-auto-whatsapp-replies-automation-card-section-on-the-automation-page-under-integrations-api-it-should-include-a-toggle-to-enable-disable-a-description-automated-responses-for-whatsapp-messages-and-a-configuration-panel-for-setting-up-a-whatsapp-api-key-webhook-url-persist-the-enabled-state-and-config-to-the-backend-via-the-existing-integrationsettings-mechanism",
-      "featureTitle": "Add an 'Auto WhatsApp Replies' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Automated responses for WhatsApp messages'), and a configuration panel for setting up a WhatsApp API key/webhook URL. Persist the enabled state and config to the backend via the existing integrationSettings mechanism.",
+      "featureId": "feature-rebuild-the-automationpage-to-feature-a-dedicated-ai-sales-system-section-as-the-primary-focus-displaying-clearly-organized-panels-for-1-sales-system-configuration-api-endpoint-api-key-input-with-connection-test-2-automation-rules-toggles-e-g-whatsapp-auto-reply-proposal-auto-send-lead-follow-up-and-3-integration-status-indicators-the-page-must-use-the-teal-green-black-theme-consistently",
+      "featureTitle": "Rebuild the AutomationPage to feature a dedicated 'AI Sales System' section as the primary focus, displaying clearly organized panels for: (1) Sales System Configuration (API endpoint + API key input with connection test), (2) Automation Rules toggles (e.g., WhatsApp auto-reply, proposal auto-send, lead follow-up), and (3) Integration status indicators. The page must use the teal-green + black theme consistently.",
       "files": [
+        "frontend/src/components/automation/SalesSystemConfigDialog.tsx",
         "frontend/src/pages/AutomationPage.tsx"
       ],
       "components": [
@@ -17,7 +18,8 @@
         "github-export-icp-cli@1.0.0",
         "http-outcalls@3.0.0",
         "qr-code@1.0.0",
-        "camera@1.0.0"
+        "camera@1.0.0",
+        "blob-storage@4.0.0"
       ],
       "testIds": [
         "REQ-1"
@@ -25,10 +27,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-a-sequence-builder-automation-card-section-on-the-automation-page-under-integrations-api-it-should-include-a-toggle-to-enable-disable-a-description-create-automated-in-app-task-sequences-and-a-simple-interface-for-defining-a-sequence-of-in-app-tasks-e-g-a-list-of-task-steps-with-name-and-delay-persist-the-enabled-state-and-sequence-config-to-the-backend",
-      "featureTitle": "Add a 'Sequence Builder' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Create automated in-app task sequences'), and a simple interface for defining a sequence of in-app tasks (e.g., a list of task steps with name and delay). Persist the enabled state and sequence config to the backend.",
+      "featureId": "feature-rebuild-the-servicerecommendationpage-as-a-fully-functional-ai-powered-service-recommendation-tool-the-page-must-collect-business-type-budget-range-and-business-goals-from-the-user-via-a-form-then-call-the-configured-ai-api-endpoint-from-salessystemconfig-to-return-and-display-tailored-service-recommendations-with-name-description-and-a-suggested-pricing-tier-if-no-api-is-configured-show-a-fallback-rule-based-recommendation",
+      "featureTitle": "Rebuild the ServiceRecommendationPage as a fully functional AI-powered service recommendation tool. The page must collect: business type, budget range, and business goals from the user via a form, then call the configured AI/API endpoint (from SalesSystemConfig) to return and display tailored service recommendations with name, description, and a suggested pricing tier. If no API is configured, show a fallback rule-based recommendation.",
       "files": [
-        "frontend/src/pages/AutomationPage.tsx"
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/ServiceRecommendationPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -40,7 +43,8 @@
         "github-export-icp-cli@1.0.0",
         "http-outcalls@3.0.0",
         "qr-code@1.0.0",
-        "camera@1.0.0"
+        "camera@1.0.0",
+        "blob-storage@4.0.0"
       ],
       "testIds": [
         "REQ-2"
@@ -48,10 +52,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-a-proposal-auto-send-automation-card-section-on-the-automation-page-under-integrations-api-it-should-include-a-toggle-to-enable-disable-a-description-auto-generate-proposals-when-leads-are-qualified-and-configuration-options-for-the-trigger-condition-e-g-when-a-lead-reaches-a-qualified-status-persist-the-enabled-state-and-config-to-the-backend",
-      "featureTitle": "Add a 'Proposal Auto-Send' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Auto-generate proposals when leads are qualified'), and configuration options for the trigger condition (e.g., when a lead reaches a qualified status). Persist the enabled state and config to the backend.",
+      "featureId": "feature-rebuild-the-proposalgeneratorpage-as-a-fully-functional-ai-powered-proposal-creation-tool-the-page-must-include-a-form-with-fields-for-client-name-client-business-type-selected-services-project-scope-notes-and-budget-on-submission-it-calls-the-configured-ai-api-endpoint-to-generate-a-professional-proposal-the-generated-proposal-must-be-displayed-in-a-formatted-preview-and-support-downloading-as-a-print-formatted-pdf",
+      "featureTitle": "Rebuild the ProposalGeneratorPage as a fully functional AI-powered proposal creation tool. The page must include a form with fields for: client name, client business type, selected services, project scope/notes, and budget. On submission, it calls the configured AI/API endpoint to generate a professional proposal. The generated proposal must be displayed in a formatted preview and support downloading as a print-formatted PDF.",
       "files": [
-        "frontend/src/pages/AutomationPage.tsx"
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/ProposalGeneratorPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -63,7 +68,8 @@
         "github-export-icp-cli@1.0.0",
         "http-outcalls@3.0.0",
         "qr-code@1.0.0",
-        "camera@1.0.0"
+        "camera@1.0.0",
+        "blob-storage@4.0.0"
       ],
       "testIds": [
         "REQ-3"
@@ -71,10 +77,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-a-payment-confirmation-automation-card-section-on-the-automation-page-under-integrations-api-it-should-include-a-toggle-to-enable-disable-a-description-automated-payment-confirmation-notifications-and-configuration-for-notification-channels-e-g-in-app-email-placeholder-persist-the-enabled-state-and-config-to-the-backend",
-      "featureTitle": "Add a 'Payment Confirmation' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Automated payment confirmation notifications'), and configuration for notification channels (e.g., in-app, email placeholder). Persist the enabled state and config to the backend.",
+      "featureId": "feature-add-a-useupdatesalessystemconfig-mutation-and-usegetsalessystemconfig-query-in-frontend-src-hooks-usequeries-ts-to-connect-the-frontend-sales-system-config-panel-to-the-backend-storage-functions",
+      "featureTitle": "Add a `useUpdateSalesSystemConfig` mutation and `useGetSalesSystemConfig` query in `frontend/src/hooks/useQueries.ts` to connect the frontend Sales System Config panel to the backend storage functions.",
       "files": [
-        "frontend/src/pages/AutomationPage.tsx"
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -86,18 +92,20 @@
         "github-export-icp-cli@1.0.0",
         "http-outcalls@3.0.0",
         "qr-code@1.0.0",
-        "camera@1.0.0"
+        "camera@1.0.0",
+        "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-4"
+        "REQ-5"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-a-project-onboarding-automation-card-section-on-the-automation-page-under-integrations-api-it-should-include-a-toggle-to-enable-disable-a-description-auto-trigger-onboarding-after-payment-and-configuration-for-the-onboarding-flow-trigger-e-g-on-successful-payment-event-persist-the-enabled-state-and-config-to-the-backend",
-      "featureTitle": "Add a 'Project Onboarding' automation card/section on the Automation Page under Integrations & API. It should include a toggle to enable/disable, a description ('Auto-trigger onboarding after payment'), and configuration for the onboarding flow trigger (e.g., on successful payment event). Persist the enabled state and config to the backend.",
+      "featureId": "feature-add-sidebar-navigation-entries-for-service-recommendation-and-proposal-generator-pages-under-an-ai-sales-tools-group-or-within-the-existing-automation-section-visible-to-admin-and-manager-roles-ensure-the-teal-green-black-theme-is-applied-to-nav-items-consistently",
+      "featureTitle": "Add sidebar navigation entries for 'Service Recommendation' and 'Proposal Generator' pages under an 'AI Sales Tools' group or within the existing automation section, visible to Admin and Manager roles. Ensure the teal-green + black theme is applied to nav items consistently.",
       "files": [
-        "frontend/src/pages/AutomationPage.tsx"
+        "frontend/src/App.tsx",
+        "frontend/src/components/layout/SidebarNav.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -109,10 +117,11 @@
         "github-export-icp-cli@1.0.0",
         "http-outcalls@3.0.0",
         "qr-code@1.0.0",
-        "camera@1.0.0"
+        "camera@1.0.0",
+        "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-5"
+        "REQ-6"
       ],
       "confidence": "high"
     }

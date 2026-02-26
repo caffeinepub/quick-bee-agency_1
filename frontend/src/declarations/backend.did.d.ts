@@ -53,14 +53,19 @@ export interface IntegrationSettings {
 export interface Lead {
   'id' : bigint,
   'status' : string,
+  'urgencyLevel' : [] | [bigint],
   'assignedTo' : [] | [Principal],
   'name' : string,
   'createdAt' : Time,
   'createdBy' : Principal,
   'email' : string,
   'microNiche' : string,
+  'companySize' : [] | [string],
+  'qualificationScore' : bigint,
   'phone' : [] | [string],
   'channel' : string,
+  'budgetRange' : [] | [bigint],
+  'decisionMakerStatus' : [] | [boolean],
 }
 export interface LegalPage {
   'id' : bigint,
@@ -118,6 +123,14 @@ export interface Project {
   'onboardingData' : [] | [OnboardingData],
   'serviceId' : bigint,
 }
+export interface SalesSystemConfig {
+  'description' : string,
+  'systemSettings' : string,
+  'enabled' : boolean,
+  'apiEndpoint' : string,
+  'apiKey' : string,
+  'systemName' : string,
+}
 export interface Service {
   'id' : bigint,
   'qrCodeDataUrl' : [] | [string],
@@ -174,6 +187,17 @@ export interface UserProfile {
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface _CaffeineStorageCreateCertificateResult {
+  'method' : string,
+  'blob_hash' : string,
+}
+export interface _CaffeineStorageRefillInformation {
+  'proposed_top_up_amount' : [] | [bigint],
+}
+export interface _CaffeineStorageRefillResult {
+  'success' : [] | [boolean],
+  'topped_up_amount' : [] | [bigint],
+}
 export interface http_header { 'value' : string, 'name' : string }
 export interface http_request_result {
   'status' : bigint,
@@ -181,6 +205,21 @@ export interface http_request_result {
   'headers' : Array<http_header>,
 }
 export interface _SERVICE {
+  '_caffeineStorageBlobIsLive' : ActorMethod<[Uint8Array], boolean>,
+  '_caffeineStorageBlobsToDelete' : ActorMethod<[], Array<Uint8Array>>,
+  '_caffeineStorageConfirmBlobDeletion' : ActorMethod<
+    [Array<Uint8Array>],
+    undefined
+  >,
+  '_caffeineStorageCreateCertificate' : ActorMethod<
+    [string],
+    _CaffeineStorageCreateCertificateResult
+  >,
+  '_caffeineStorageRefillCashier' : ActorMethod<
+    [[] | [_CaffeineStorageRefillInformation]],
+    _CaffeineStorageRefillResult
+  >,
+  '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'assignLead' : ActorMethod<[bigint, Principal], undefined>,
@@ -203,7 +242,17 @@ export interface _SERVICE {
   'createCoupon' : ActorMethod<[string, bigint, [] | [Time]], undefined>,
   'createGeneratorLog' : ActorMethod<[string, string, string], bigint>,
   'createLead' : ActorMethod<
-    [string, string, [] | [string], string, string],
+    [
+      string,
+      string,
+      [] | [string],
+      string,
+      string,
+      [] | [bigint],
+      [] | [bigint],
+      [] | [string],
+      [] | [boolean],
+    ],
     bigint
   >,
   'createLegalPage' : ActorMethod<[string, string], bigint>,
@@ -252,6 +301,7 @@ export interface _SERVICE {
     [Principal],
     [] | [IntegrationSettings]
   >,
+  'getLeadsByScoreRange' : ActorMethod<[bigint, bigint], Array<Lead>>,
   'getLegalPage' : ActorMethod<[bigint], [] | [LegalPage]>,
   'getMyCRMActivities' : ActorMethod<[], Array<CRMActivity>>,
   'getMyGeneratorLogs' : ActorMethod<[], Array<GeneratorLog>>,
@@ -263,6 +313,7 @@ export interface _SERVICE {
   'getPaymentLinks' : ActorMethod<[], Array<PaymentLink>>,
   'getProject' : ActorMethod<[bigint], [] | [Project]>,
   'getProjectsByClient' : ActorMethod<[Principal], Array<Project>>,
+  'getSalesSystemConfig' : ActorMethod<[Principal], [] | [SalesSystemConfig]>,
   'getService' : ActorMethod<[bigint], [] | [Service]>,
   'getServiceRazorpayConfig' : ActorMethod<
     [bigint],
@@ -276,6 +327,7 @@ export interface _SERVICE {
   'markNotificationAsRead' : ActorMethod<[bigint], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'saveIntegrationSettings' : ActorMethod<[IntegrationSettings], undefined>,
+  'saveSalesSystemConfig' : ActorMethod<[SalesSystemConfig], undefined>,
   'setPaymentLinkQrCode' : ActorMethod<[bigint, string], undefined>,
   'setPaymentLinkUrl' : ActorMethod<[bigint, string], undefined>,
   'setRazorpayConfiguration' : ActorMethod<[string, string, string], undefined>,
@@ -288,7 +340,19 @@ export interface _SERVICE {
     undefined
   >,
   'updateLead' : ActorMethod<
-    [bigint, string, string, [] | [string], string, string, string],
+    [
+      bigint,
+      string,
+      string,
+      [] | [string],
+      string,
+      string,
+      string,
+      [] | [bigint],
+      [] | [bigint],
+      [] | [string],
+      [] | [boolean],
+    ],
     undefined
   >,
   'updateLegalPage' : ActorMethod<[bigint, string, string], undefined>,

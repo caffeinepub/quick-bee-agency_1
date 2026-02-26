@@ -1,133 +1,122 @@
-import { useState } from 'react';
-import { useGetCallerUserRole, useGetMyNotifications, useMarkNotificationAsRead } from '../../hooks/useQueries';
-import { useInternetIdentity } from '../../hooks/useInternetIdentity';
-import { useQueryClient } from '@tanstack/react-query';
-import { Button } from '../ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Bell, User, LogOut } from 'lucide-react';
-import { Badge } from '../ui/badge';
+import React, { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
+import { Bell, Search, ChevronDown, Check } from 'lucide-react';
+import { useGetMyNotifications, useMarkNotificationAsRead } from '../../hooks/useQueries';
+import { useGetCallerUserProfile } from '../../hooks/useQueries';
 
 export default function TopNav() {
-  const { data: userRole } = useGetCallerUserRole();
-  const { data: notifications = [] } = useGetMyNotifications();
-  const markAsRead = useMarkNotificationAsRead();
-  const { clear } = useInternetIdentity();
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [notifOpen, setNotifOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { data: notifications = [] } = useGetMyNotifications();
+  const { data: userProfile } = useGetCallerUserProfile();
+  const markAsRead = useMarkNotificationAsRead();
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
+  const recentNotifications = notifications.slice(0, 5);
 
-  const handleLogout = async () => {
-    await clear();
-    queryClient.clear();
-  };
-
-  const handleNotificationClick = async (notification: typeof notifications[0]) => {
-    if (!notification.isRead) {
-      await markAsRead.mutateAsync(notification.id);
-    }
-    setNotifOpen(false);
-    
-    // Navigate to relevant page based on notification type
-    if (notification.notificationType.includes('lead')) {
+  const handleNotificationClick = async (id: bigint, type: string) => {
+    await markAsRead.mutateAsync(id);
+    setShowNotifications(false);
+    if (type === 'lead_qualified' || type === 'payment_confirmed') {
       navigate({ to: '/leads' });
-    } else if (notification.notificationType.includes('payment')) {
-      navigate({ to: '/payments' });
+    } else if (type === 'project_update') {
+      navigate({ to: '/projects' });
     }
   };
 
   return (
-    <div className="h-16 glass-panel border-b border-border flex items-center justify-between px-6">
-      <div className="flex items-center gap-4">
-        <h2 className="text-xl font-bold gradient-text">Quick Bee Agency OS</h2>
+    <header className="h-14 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-6 flex-shrink-0">
+      {/* Search */}
+      <div className="flex items-center gap-3 flex-1 max-w-md">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search..."
+            className="w-full pl-9 pr-4 py-2 text-sm bg-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition-all"
+          />
+        </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <Popover open={notifOpen} onOpenChange={setNotifOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="w-5 h-5" />
-              {unreadCount > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                >
-                  {unreadCount}
-                </Badge>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="glass-panel border-border w-80 p-0" align="end">
-            <div className="p-4 border-b border-border">
-              <h3 className="font-semibold text-foreground">Notifications</h3>
-              <p className="text-xs text-soft-gray">{unreadCount} unread</p>
-            </div>
-            <div className="max-h-96 overflow-y-auto">
-              {notifications.length === 0 ? (
-                <p className="text-soft-gray text-center py-8 text-sm">No notifications</p>
-              ) : (
-                notifications.map((notif) => (
-                  <button
-                    key={notif.id.toString()}
-                    onClick={() => handleNotificationClick(notif)}
-                    className={`w-full text-left p-4 border-b border-border hover:bg-secondary/30 transition-colors ${
-                      !notif.isRead ? 'bg-primary/5' : ''
-                    }`}
-                  >
-                    <div className="flex items-start gap-2">
-                      {!notif.isRead && (
-                        <div className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-foreground">{notif.message}</p>
-                        <p className="text-xs text-soft-gray mt-1">
-                          {new Date(Number(notif.createdAt) / 1000000).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-            {notifications.length > 0 && (
-              <div className="p-2 border-t border-border">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => {
-                    setNotifOpen(false);
-                    navigate({ to: '/notifications' });
-                  }}
-                >
-                  View All Notifications
-                </Button>
-              </div>
+      {/* Right side */}
+      <div className="flex items-center gap-3">
+        {/* Notifications */}
+        <div className="relative">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="relative w-9 h-9 rounded-xl bg-background border border-border flex items-center justify-center hover:border-brand-500/50 hover:bg-brand-500/5 transition-all"
+          >
+            <Bell className="w-4 h-4 text-muted-foreground" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full gradient-brand text-dark-500 text-xs font-bold flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
             )}
-          </PopoverContent>
-        </Popover>
+          </button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <User className="w-5 h-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="glass-panel border-border">
-            <DropdownMenuLabel className="text-foreground">
-              Role: {userRole || 'Loading...'}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-border" />
-            <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          {showNotifications && (
+            <div className="absolute right-0 top-11 w-80 glass-card rounded-2xl border border-border shadow-card z-50 overflow-hidden">
+              <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                <span className="text-sm font-semibold text-foreground">Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="text-xs text-brand-400 font-medium">{unreadCount} unread</span>
+                )}
+              </div>
+              <div className="max-h-72 overflow-y-auto scrollbar-thin">
+                {recentNotifications.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                    No notifications yet
+                  </div>
+                ) : (
+                  recentNotifications.map(n => (
+                    <button
+                      key={n.id.toString()}
+                      onClick={() => handleNotificationClick(n.id, n.notificationType)}
+                      className={`w-full text-left px-4 py-3 hover:bg-brand-500/5 transition-colors border-b border-border/50 last:border-0 ${
+                        !n.isRead ? 'bg-brand-500/5' : ''
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                          n.isRead ? 'bg-muted-foreground/30' : 'bg-brand-400'
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-foreground leading-relaxed">{n.message}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {new Date(Number(n.createdAt) / 1_000_000).toLocaleDateString()}
+                          </p>
+                        </div>
+                        {n.isRead && <Check className="w-3 h-3 text-brand-400/60 flex-shrink-0 mt-1" />}
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+              <div className="px-4 py-2 border-t border-border">
+                <button
+                  onClick={() => { setShowNotifications(false); navigate({ to: '/notifications' }); }}
+                  className="text-xs text-brand-400 hover:text-brand-300 transition-colors font-medium"
+                >
+                  View all notifications →
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* User menu */}
+        <button className="flex items-center gap-2 px-3 py-2 rounded-xl bg-background border border-border hover:border-brand-500/50 hover:bg-brand-500/5 transition-all">
+          <div className="w-6 h-6 rounded-lg gradient-brand flex items-center justify-center">
+            <span className="text-xs font-bold text-dark-500">
+              {userProfile?.name?.charAt(0)?.toUpperCase() ?? 'U'}
+            </span>
+          </div>
+          <span className="text-sm font-medium text-foreground hidden sm:block max-w-24 truncate">
+            {userProfile?.name ?? 'User'}
+          </span>
+          <ChevronDown className="w-3 h-3 text-muted-foreground" />
+        </button>
       </div>
-    </div>
+    </header>
   );
 }

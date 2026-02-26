@@ -1,106 +1,113 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add Automation Integrations & API Options to Automation Page",
+  "title": "Rebuild AI Sales System Automation Page (Version 14 Features)",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add Auto WhatsApp Replies automation card to Automation Page with toggle, description, and configuration panel for API key/webhook URL",
+      "summary": "Rebuild AutomationPage with dedicated AI Sales System section featuring Config, Automation Rules, and Integration Status panels using teal-green + black theme",
       "acceptanceCriteria": [
-        "Auto WhatsApp Replies card is visible on the Automation Page under Integrations & API.",
-        "Toggle enables/disables the automation and persists state to the backend.",
-        "Configuration fields for WhatsApp API key/webhook URL are shown when enabled.",
-        "Description 'Automated responses for WhatsApp messages' is displayed on the card."
+        "AutomationPage renders three distinct sections: Sales System Config, Automation Rules, and Integration Status",
+        "Sales System Config panel contains fields for API endpoint URL and API key with a 'Test Connection' button",
+        "Automation Rules section shows toggles for at least: WhatsApp auto-reply, proposal auto-send, and lead follow-up",
+        "All UI elements use the teal-green + black color theme",
+        "Page is accessible from the sidebar navigation"
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/AutomationPage.tsx",
           "operation": "modify",
-          "description": "Add Auto WhatsApp Replies automation card in the Integrations & API section with a toggle, description text 'Automated responses for WhatsApp messages', and a collapsible configuration panel containing input fields for WhatsApp API key and webhook URL. Wire the toggle and configuration inputs to use the existing integrationSettings hooks to persist autoWhatsAppReplies.enabled and autoWhatsAppReplies.config to the backend. Ensure the card follows the existing automation card styling and layout pattern."
+          "description": "Rebuild the page to feature three distinct sections: (1) Sales System Configuration panel with API endpoint and key inputs plus 'Test Connection' button using SalesSystemConfigDialog, (2) Automation Rules toggles section for WhatsApp auto-reply, proposal auto-send, and lead follow-up using the existing IntegrationSettings structure, and (3) Integration Status indicators showing connection health. Use the teal-green brand color (#14b8a6) consistently for active states, buttons, and highlights. Leverage Card components from shadcn-ui and apply the dark theme palette from tailwind.config.js."
+        },
+        {
+          "path": "frontend/src/components/automation/SalesSystemConfigDialog.tsx",
+          "operation": "modify",
+          "description": "Update the dialog to use the new useGetSalesSystemConfig and useUpdateSalesSystemConfig hooks from useQueries.ts. Pre-populate fields with fetched config data. On save, call the update mutation and show success/error toasts. Keep the existing connection test logic but update to use the new backend config structure. Ensure teal-green brand styling for primary actions."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Add Sequence Builder automation card to Automation Page with toggle, description, and interface for defining task sequences",
+      "summary": "Rebuild ServiceRecommendationPage as AI-powered tool collecting business type, budget, goals and displaying tailored service recommendations with fallback logic",
       "acceptanceCriteria": [
-        "Sequence Builder card is visible on the Automation Page under Integrations & API.",
-        "Toggle enables/disables the sequence builder and persists state.",
-        "UI allows adding, editing, and removing task steps in a sequence.",
-        "Description 'Create automated in-app task sequences' is displayed on the card."
+        "Form collects business type (dropdown or text), budget range (slider or input), and goals (multi-select or textarea)",
+        "Submitting the form calls the configured API endpoint if set, otherwise uses rule-based logic",
+        "Recommendations are displayed as cards showing service name, description, and suggested tier",
+        "Loading state is shown while the recommendation is being fetched",
+        "Error state is shown if the API call fails, with a fallback to rule-based results"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/AutomationPage.tsx",
+          "path": "frontend/src/pages/ServiceRecommendationPage.tsx",
           "operation": "modify",
-          "description": "Add Sequence Builder automation card in the Integrations & API section with a toggle, description text 'Create automated in-app task sequences', and a collapsible configuration panel containing a simple interface for managing task sequence steps (list of task steps with name and delay fields, plus add/remove buttons). Wire the toggle and sequence config to use the existing integrationSettings hooks to persist sequenceBuilder.enabled and sequenceBuilder.config (serialized as JSON) to the backend. Follow the existing card styling pattern."
+          "description": "Rebuild the page as a comprehensive AI-powered service recommendation tool. Create a multi-field form collecting: business type (Select or Input), budget range (Slider or number Input with range labels), and business goals (multi-select Checkbox group or Textarea). On form submission, check if a Sales System API endpoint is configured via useGetSalesSystemConfig. If configured, call the external AI API endpoint with the form data using a custom mutation hook that performs a fetch request. Display loading state with Skeleton loaders. On success, render service recommendations as Card components showing service name, description, and suggested pricing tier (Basic/Pro/Premium). If the API call fails or no endpoint is configured, fall back to rule-based recommendation logic using the servicesCatalog data and simple matching heuristics based on budget and business type. Use teal-green brand colors for the submit button and recommendation cards. Handle all error states gracefully with user-friendly messages and the fallback flow."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add a new mutation hook useGetServiceRecommendations that accepts form data (businessType, budgetRange, goals) and conditionally calls either the configured AI API endpoint from SalesSystemConfig or executes rule-based logic locally. The hook should handle both API response parsing and fallback recommendation generation. Return structured recommendation objects with name, description, and suggestedTier fields."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Add Proposal Auto-Send automation card to Automation Page with toggle, description, and trigger condition configuration",
+      "summary": "Rebuild ProposalGeneratorPage as AI-powered tool with form for client details, service selection, scope, budget, generating formatted proposals with PDF download",
       "acceptanceCriteria": [
-        "Proposal Auto-Send card is visible on the Automation Page under Integrations & API.",
-        "Toggle enables/disables the automation and persists state.",
-        "Configuration for trigger condition (lead qualified status) is shown when enabled.",
-        "Description 'Auto-generate proposals when leads are qualified' is displayed on the card."
+        "Form includes fields for client name, business type, service selection, scope notes, and budget",
+        "Submitting calls the configured AI API endpoint if available, otherwise generates a template-based proposal",
+        "Generated proposal is displayed in a styled preview panel",
+        "A 'Download PDF' button triggers a print-formatted PDF download of the proposal",
+        "Loading and error states are handled gracefully"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/AutomationPage.tsx",
+          "path": "frontend/src/pages/ProposalGeneratorPage.tsx",
           "operation": "modify",
-          "description": "Add Proposal Auto-Send automation card in the Integrations & API section with a toggle, description text 'Auto-generate proposals when leads are qualified', and a collapsible configuration panel containing a dropdown or select input for choosing the trigger condition (e.g., lead status = qualified). Wire the toggle and config to use the existing integrationSettings hooks to persist proposalAutoSend.enabled and proposalAutoSend.config to the backend. Maintain consistent card styling."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Add Payment Confirmation automation card to Automation Page with toggle, description, and notification channel configuration",
-      "acceptanceCriteria": [
-        "Payment Confirmation card is visible on the Automation Page under Integrations & API.",
-        "Toggle enables/disables the automation and persists state.",
-        "Configuration options for notification channel are displayed when enabled.",
-        "Description 'Automated payment confirmation notifications' is displayed on the card."
-      ],
-      "file_operations": [
+          "description": "Rebuild the page as a fully functional AI-powered proposal creation tool. Create a comprehensive form with fields for: client name (Input), client business type (Select or Input), selected services (multi-select using available services from getAllServices query), project scope/notes (Textarea), and budget (number Input). On submission, check if a Sales System API endpoint is configured via useGetSalesSystemConfig. If configured, call the external AI API with the form data to generate a professional proposal. If not configured or API fails, generate a template-based proposal using predefined structure and the form data. Display the generated proposal in a formatted preview panel using styled typography and proper spacing. Include a 'Download PDF' button that triggers window.print() on a print-optimized version of the proposal content (use @media print CSS or a dedicated print component). Show loading state during generation with Spinner/Skeleton. Handle errors gracefully with fallback to template generation. Use teal-green brand styling for primary actions."
+        },
         {
-          "path": "frontend/src/pages/AutomationPage.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Add Payment Confirmation automation card in the Integrations & API section with a toggle, description text 'Automated payment confirmation notifications', and a collapsible configuration panel containing checkboxes or radio buttons for selecting notification channels (e.g., in-app, email placeholder). Wire the toggle and config to use the existing integrationSettings hooks to persist paymentConfirmation.enabled and paymentConfirmation.config to the backend. Follow existing card styling."
+          "description": "Add a new mutation hook useGenerateProposal that accepts proposal form data (clientName, businessType, selectedServices, scope, budget) and conditionally calls either the configured AI API endpoint from SalesSystemConfig or generates a template-based proposal locally. The hook should handle API response parsing and fallback template generation, returning formatted proposal content as a string or structured object."
         }
       ]
     },
     {
       "id": "REQ-5",
-      "summary": "Add Project Onboarding automation card to Automation Page with toggle, description, and payment trigger configuration",
+      "summary": "Add useUpdateSalesSystemConfig mutation and useGetSalesSystemConfig query in useQueries.ts to connect frontend to backend storage",
       "acceptanceCriteria": [
-        "Project Onboarding card is visible on the Automation Page under Integrations & API.",
-        "Toggle enables/disables the automation and persists state.",
-        "Configuration for the payment trigger condition is displayed when enabled.",
-        "Description 'Auto-trigger onboarding after payment' is displayed on the card."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/AutomationPage.tsx",
-          "operation": "modify",
-          "description": "Add Project Onboarding automation card in the Integrations & API section with a toggle, description text 'Auto-trigger onboarding after payment', and a collapsible configuration panel containing an input or dropdown for configuring the payment trigger condition (e.g., on successful payment event). Wire the toggle and config to use the existing integrationSettings hooks to persist projectOnboarding.enabled and projectOnboarding.config to the backend. Follow existing card styling."
-        }
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "summary": "Update or add React Query mutation hooks to support reading and writing the five new automation integration settings",
-      "acceptanceCriteria": [
-        "React Query hooks exist for fetching and updating all five new automation integration settings.",
-        "Toggling any of the five new automations on the Automation Page persists the change to the backend.",
-        "Configuration inputs for each automation persist their values to the backend on save."
+        "`useGetSalesSystemConfig` fetches and caches the stored API endpoint and key",
+        "`useUpdateSalesSystemConfig` calls the backend update function and invalidates the config cache on success",
+        "SalesSystemConfigDialog uses these hooks for loading and saving config",
+        "Toast notification confirms successful save or reports error"
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Review the existing useGetIntegrationSettings and useSaveIntegrationSettings hooks to ensure they support the new automation fields (autoWhatsAppReplies, sequenceBuilder, proposalAutoSend, paymentConfirmation, projectOnboarding) in the IntegrationSettings type. If necessary, add typed helper hooks or update mutation logic to handle the new automation config objects with enabled flags and config blobs. Ensure these hooks are used in AutomationPage.tsx for persisting toggle states and configuration data to the backend."
+          "description": "Add useGetSalesSystemConfig query hook that calls actor.getSalesSystemConfig(userPrincipal) with query key ['salesSystemConfig', userPrincipal]. Enable only when actor is available and user is authenticated. Add useUpdateSalesSystemConfig mutation hook that calls actor.saveSalesSystemConfig(config) and invalidates the ['salesSystemConfig'] query cache on success. Both hooks should follow the existing patterns in the file for error handling and TypeScript typing using the SalesSystemConfig interface from backend.d.ts."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Add sidebar navigation entries for Service Recommendation and Proposal Generator under AI Sales Tools group, visible to Admin and Manager with teal-green theme",
+      "acceptanceCriteria": [
+        "Sidebar shows links to '/service-recommendation' and '/proposal-generator' routes",
+        "Links are only visible to Admin and Manager roles",
+        "Active state highlight uses teal-green brand color",
+        "Routes are registered in App.tsx and render the correct pages"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/layout/SidebarNav.tsx",
+          "operation": "modify",
+          "description": "Add two new navigation items under an 'AI Sales Tools' group or within the existing automation section: (1) 'Service Recommendation' linking to '/service-recommendation' and (2) 'Proposal Generator' linking to '/proposal-generator'. Both items should only be visible when userRole is 'admin' or matches the manager-equivalent role used in the app. Use appropriate icons from lucide-react (e.g., Sparkles or Wand2 for AI features). Ensure active state highlighting uses the teal-green brand color (#14b8a6) consistent with other nav items. Follow the existing navigation item structure and role-filtering patterns in the component."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Register two new routes in the TanStack Router configuration: (1) Route with path='/service-recommendation' rendering ServiceRecommendationPage and (2) Route with path='/proposal-generator' rendering ProposalGeneratorPage. Both routes should require authentication and be accessible to Admin and Manager roles. Follow the existing route registration patterns in the file, including any auth guards or layout wrappers used for other protected pages."
         }
       ]
     }

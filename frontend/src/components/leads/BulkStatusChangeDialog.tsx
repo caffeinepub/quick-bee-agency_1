@@ -22,14 +22,14 @@ export default function BulkStatusChangeDialog({
   onOpenChange,
   selectedLeadIds,
   leads,
-  onSuccess
+  onSuccess,
 }: BulkStatusChangeDialogProps) {
   const [newStatus, setNewStatus] = useState('contacted');
   const [isUpdating, setIsUpdating] = useState(false);
   const updateLead = useUpdateLead();
 
-  const selectedLeads = leads.filter(lead => 
-    selectedLeadIds.some(id => id === lead.id)
+  const selectedLeads = leads.filter((lead) =>
+    selectedLeadIds.some((id) => id === lead.id),
   );
 
   const handleBulkUpdate = async () => {
@@ -43,13 +43,13 @@ export default function BulkStatusChangeDialog({
           id: lead.id,
           name: lead.name,
           email: lead.email,
-          phone: lead.phone || null,
+          phone: lead.phone ?? null,
           channel: lead.channel,
           microNiche: lead.microNiche,
-          status: newStatus
+          status: newStatus,
         });
         successCount++;
-      } catch (error) {
+      } catch {
         failureCount++;
       }
     }
@@ -68,20 +68,24 @@ export default function BulkStatusChangeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-panel border-border">
+      <DialogContent className="bg-card border-border">
         <DialogHeader>
           <DialogTitle className="text-foreground">Bulk Status Change</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <p className="text-soft-gray mb-4">
-              You are about to update the status of {selectedLeads.length} lead{selectedLeads.length !== 1 ? 's' : ''}:
+            <p className="text-muted-foreground mb-4">
+              You are about to update the status of {selectedLeads.length} lead
+              {selectedLeads.length !== 1 ? 's' : ''}:
             </p>
             <div className="max-h-40 overflow-y-auto space-y-2 mb-4">
-              {selectedLeads.map(lead => (
-                <div key={lead.id.toString()} className="text-sm p-2 bg-secondary/30 rounded border border-border">
+              {selectedLeads.map((lead) => (
+                <div
+                  key={lead.id.toString()}
+                  className="text-sm p-2 bg-secondary/30 rounded border border-border"
+                >
                   <span className="font-semibold text-foreground">{lead.name}</span>
-                  <span className="text-soft-gray ml-2">({lead.status})</span>
+                  <span className="text-muted-foreground ml-2">({lead.status})</span>
                 </div>
               ))}
             </div>
@@ -93,7 +97,7 @@ export default function BulkStatusChangeDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {STATUSES.map(s => (
+                {STATUSES.map((s) => (
                   <SelectItem key={s} value={s}>
                     {s}
                   </SelectItem>
@@ -113,7 +117,7 @@ export default function BulkStatusChangeDialog({
           <Button
             onClick={handleBulkUpdate}
             disabled={isUpdating}
-            className="gradient-teal text-black font-semibold"
+            className="bg-primary text-primary-foreground font-semibold"
           >
             {isUpdating ? 'Updating...' : 'Update All'}
           </Button>
