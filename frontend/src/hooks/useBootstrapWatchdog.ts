@@ -1,24 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-const BOOTSTRAP_TIMEOUT_MS = 5000; // Reduced from 8 to 5 seconds
-
-export function useBootstrapWatchdog() {
+export function useBootstrapWatchdog(timeoutMs = 5000) {
   const [hasTimedOut, setHasTimedOut] = useState(false);
-  const [resetKey, setResetKey] = useState(0);
+  const [startTime] = useState(Date.now());
+
+  const reset = useCallback(() => {
+    setHasTimedOut(false);
+  }, []);
 
   useEffect(() => {
-    setHasTimedOut(false);
-    
     const timer = setTimeout(() => {
       setHasTimedOut(true);
-    }, BOOTSTRAP_TIMEOUT_MS);
+    }, timeoutMs);
 
     return () => clearTimeout(timer);
-  }, [resetKey]);
-
-  const reset = () => {
-    setResetKey(prev => prev + 1);
-  };
+  }, [timeoutMs, startTime]);
 
   return { hasTimedOut, reset };
 }

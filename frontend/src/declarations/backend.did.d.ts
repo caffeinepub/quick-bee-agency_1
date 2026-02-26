@@ -50,6 +50,14 @@ export interface IntegrationSettings {
   'automations' : AutomationSettings,
   'webhookUrl' : [] | [string],
 }
+export interface Invoice {
+  'clientId' : Principal,
+  'createdAt' : Time,
+  'invoiceId' : string,
+  'totalPaid' : bigint,
+  'gstAmount' : bigint,
+  'serviceBreakdown' : string,
+}
 export interface Lead {
   'id' : bigint,
   'status' : string,
@@ -104,6 +112,8 @@ export interface Order {
   'projectId' : bigint,
   'amount' : bigint,
 }
+export type PasswordAuthResult = { 'ok' : Token } |
+  { 'error' : string };
 export interface PaymentLink {
   'id' : bigint,
   'qrCodeDataUrl' : [] | [string],
@@ -114,6 +124,14 @@ export interface PaymentLink {
   'amount' : bigint,
   'paymentLinkUrl' : [] | [string],
 }
+export interface PaymentLog {
+  'status' : string,
+  'signature' : string,
+  'orderId' : string,
+  'paymentId' : string,
+  'timestamp' : Time,
+  'amount' : bigint,
+}
 export interface PricingTier { 'features' : Array<string>, 'price' : bigint }
 export interface Project {
   'id' : bigint,
@@ -122,6 +140,12 @@ export interface Project {
   'clientId' : Principal,
   'onboardingData' : [] | [OnboardingData],
   'serviceId' : bigint,
+}
+export interface RecommendationOutput {
+  'projectedROI' : [] | [string],
+  'upsellSuggestion' : string,
+  'budget' : [] | [bigint],
+  'recommendedService' : string,
 }
 export interface SalesSystemConfig {
   'description' : string,
@@ -170,6 +194,11 @@ export type StripeSessionStatus = {
   } |
   { 'failed' : { 'error' : string } };
 export type Time = bigint;
+export interface Token {
+  'principal' : Principal,
+  'issuedAt' : Time,
+  'expiry' : Time,
+}
 export interface TransformationInput {
   'context' : Uint8Array,
   'response' : http_request_result,
@@ -187,6 +216,12 @@ export interface UserProfile {
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface WhatsAppMessageLog {
+  'recipientPhone' : string,
+  'deliveryStatus' : string,
+  'sentAt' : Time,
+  'messageType' : string,
+}
 export interface _CaffeineStorageCreateCertificateResult {
   'method' : string,
   'blob_hash' : string,
@@ -264,6 +299,7 @@ export interface _SERVICE {
     [Principal, bigint, [] | [OnboardingData]],
     bigint
   >,
+  'createRecommendation' : ActorMethod<[RecommendationOutput], bigint>,
   'createService' : ActorMethod<
     [
       string,
@@ -284,15 +320,20 @@ export interface _SERVICE {
     bigint
   >,
   'deleteLead' : ActorMethod<[bigint], undefined>,
+  'deleteRecommendation' : ActorMethod<[bigint], undefined>,
   'deleteService' : ActorMethod<[bigint], undefined>,
   'getAllCRMActivities' : ActorMethod<[], Array<CRMActivity>>,
   'getAllGeneratorLogs' : ActorMethod<[], Array<GeneratorLog>>,
+  'getAllInvoices' : ActorMethod<[], Array<Invoice>>,
   'getAllLeads' : ActorMethod<[], Array<Lead>>,
   'getAllLegalPages' : ActorMethod<[], Array<LegalPage>>,
   'getAllOffers' : ActorMethod<[], Array<Offer>>,
   'getAllOrders' : ActorMethod<[], Array<Order>>,
+  'getAllPaymentLogs' : ActorMethod<[], Array<PaymentLog>>,
   'getAllProjects' : ActorMethod<[], Array<Project>>,
+  'getAllRecommendations' : ActorMethod<[], Array<RecommendationOutput>>,
   'getAllServices' : ActorMethod<[], Array<Service>>,
+  'getAllWhatsAppLogs' : ActorMethod<[], Array<WhatsAppMessageLog>>,
   'getCRMActivitiesByLead' : ActorMethod<[bigint], Array<CRMActivity>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
@@ -301,18 +342,22 @@ export interface _SERVICE {
     [Principal],
     [] | [IntegrationSettings]
   >,
+  'getInvoice' : ActorMethod<[string], [] | [Invoice]>,
   'getLeadsByScoreRange' : ActorMethod<[bigint, bigint], Array<Lead>>,
   'getLegalPage' : ActorMethod<[bigint], [] | [LegalPage]>,
   'getMyCRMActivities' : ActorMethod<[], Array<CRMActivity>>,
   'getMyGeneratorLogs' : ActorMethod<[], Array<GeneratorLog>>,
+  'getMyInvoices' : ActorMethod<[], Array<Invoice>>,
   'getMyLeads' : ActorMethod<[], Array<Lead>>,
   'getMyNotifications' : ActorMethod<[], Array<Notification>>,
   'getMyPaymentLinks' : ActorMethod<[], Array<PaymentLink>>,
   'getOrdersByClient' : ActorMethod<[Principal], Array<Order>>,
   'getOrdersByProject' : ActorMethod<[bigint], Array<Order>>,
   'getPaymentLinks' : ActorMethod<[], Array<PaymentLink>>,
+  'getPaymentLog' : ActorMethod<[string], [] | [PaymentLog]>,
   'getProject' : ActorMethod<[bigint], [] | [Project]>,
   'getProjectsByClient' : ActorMethod<[Principal], Array<Project>>,
+  'getRecommendation' : ActorMethod<[bigint], [] | [RecommendationOutput]>,
   'getSalesSystemConfig' : ActorMethod<[Principal], [] | [SalesSystemConfig]>,
   'getService' : ActorMethod<[bigint], [] | [Service]>,
   'getServiceRazorpayConfig' : ActorMethod<
@@ -321,13 +366,19 @@ export interface _SERVICE {
   >,
   'getStripeSessionStatus' : ActorMethod<[string], StripeSessionStatus>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'getWhatsAppLog' : ActorMethod<[string], [] | [WhatsAppMessageLog]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isRazorpayConfigured' : ActorMethod<[], boolean>,
   'isStripeConfigured' : ActorMethod<[], boolean>,
+  'login' : ActorMethod<[string, string], PasswordAuthResult>,
   'markNotificationAsRead' : ActorMethod<[bigint], undefined>,
+  'register' : ActorMethod<[string, string, UserRole], PasswordAuthResult>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'saveIntegrationSettings' : ActorMethod<[IntegrationSettings], undefined>,
+  'saveInvoice' : ActorMethod<[Invoice], undefined>,
+  'savePaymentLog' : ActorMethod<[PaymentLog], undefined>,
   'saveSalesSystemConfig' : ActorMethod<[SalesSystemConfig], undefined>,
+  'saveWhatsAppLog' : ActorMethod<[WhatsAppMessageLog], undefined>,
   'setPaymentLinkQrCode' : ActorMethod<[bigint, string], undefined>,
   'setPaymentLinkUrl' : ActorMethod<[bigint, string], undefined>,
   'setRazorpayConfiguration' : ActorMethod<[string, string, string], undefined>,
@@ -359,6 +410,10 @@ export interface _SERVICE {
   'updateOrderStatus' : ActorMethod<[bigint, string], undefined>,
   'updatePaymentLinkStatus' : ActorMethod<[bigint, string], undefined>,
   'updateProjectStatus' : ActorMethod<[bigint, string], undefined>,
+  'updateRecommendation' : ActorMethod<
+    [bigint, RecommendationOutput],
+    undefined
+  >,
   'updateService' : ActorMethod<
     [
       bigint,

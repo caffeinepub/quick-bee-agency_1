@@ -1,176 +1,186 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { Plus, Search, Package, Star, Eye, EyeOff, Edit, Trash2, ExternalLink } from 'lucide-react';
-import { useGetAllServices, useIsCallerAdmin } from '../hooks/useQueries';
+import { useGetAllServices, useDeleteService, useIsCallerAdmin } from '../hooks/useQueries';
 import ServiceCreateDialog from '../components/services/ServiceCreateDialog';
 import ServiceEditDialog from '../components/services/ServiceEditDialog';
-import ServiceDeleteDialog from '../components/services/ServiceDeleteDialog';
-import { Service } from '../backend';
+import ServicePaymentInfoDialog from '../components/services/ServicePaymentInfoDialog';
+import ServiceRazorpayDialog from '../components/services/ServiceRazorpayDialog';
+import type { Service } from '../backend';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
+} from '@/components/ui/alert-dialog';
+import { Search, Plus, Edit, Trash2, ExternalLink, QrCode, CreditCard, Package } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function ServicesPage() {
   const navigate = useNavigate();
-  const { data: services = [], isLoading } = useGetAllServices();
   const { data: isAdmin } = useIsCallerAdmin();
+  const { data: services = [], isLoading } = useGetAllServices();
+  const deleteService = useDeleteService();
   const [search, setSearch] = useState('');
-  const [showCreate, setShowCreate] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [editService, setEditService] = useState<Service | null>(null);
-  const [deleteService, setDeleteService] = useState<Service | null>(null);
+  const [deleteServiceTarget, setDeleteServiceTarget] = useState<Service | null>(null);
+  const [paymentInfoService, setPaymentInfoService] = useState<Service | null>(null);
+  const [razorpayService, setRazorpayService] = useState<Service | null>(null);
 
   const filtered = services.filter(s =>
     s.name.toLowerCase().includes(search.toLowerCase()) ||
     s.category.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleDelete = async () => {
+    if (!deleteServiceTarget) return;
+    try {
+      await deleteService.mutateAsync(deleteServiceTarget.id);
+      toast.success('Service deleted');
+      setDeleteServiceTarget(null);
+    } catch {
+      toast.error('Failed to delete service');
+    }
+  };
+
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Services</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">{services.length} services available</p>
+          <h1 className="text-2xl font-bold font-display text-foreground">Services</h1>
+          <p className="text-muted-foreground text-sm mt-1">Browse and manage agency services</p>
         </div>
         {isAdmin && (
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl gradient-brand text-dark-500 font-semibold text-sm hover:opacity-90 transition-opacity glow-brand-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Add Service
-          </button>
+          <Button onClick={() => setCreateOpen(true)} className="gap-2">
+            <Plus className="w-4 h-4" /> Add Service
+          </Button>
         )}
       </div>
 
       {/* Search */}
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
+        <Input
           placeholder="Search services..."
-          className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition-all text-sm"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9 bg-muted/30 border-border/50"
         />
       </div>
 
-      {/* Services Grid */}
+      {/* Services grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="glass-card rounded-2xl p-5 border border-border animate-pulse">
-              <div className="h-4 bg-muted rounded w-3/4 mb-3" />
-              <div className="h-3 bg-muted rounded w-full mb-2" />
-              <div className="h-3 bg-muted rounded w-2/3" />
-            </div>
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <Skeleton key={i} className="h-48 rounded-xl" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
-          <Package className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+          <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground">No services found</p>
-          {isAdmin && (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="mt-4 px-4 py-2 rounded-xl gradient-brand text-dark-500 font-medium text-sm hover:opacity-90 transition-opacity"
-            >
-              Create your first service
-            </button>
-          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(service => (
-            <div
-              key={service.id.toString()}
-              className="glass-card rounded-2xl p-5 border border-border card-hover group"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <div className="w-9 h-9 rounded-xl gradient-brand-subtle border border-brand-500/20 flex items-center justify-center flex-shrink-0">
-                    <Package className="w-4 h-4 text-brand-400" />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-semibold text-foreground truncate">{service.name}</h3>
-                    <p className="text-xs text-muted-foreground truncate">{service.category}</p>
-                  </div>
+          {filtered.map((service) => (
+            <Card key={service.id.toString()} className="glass border-border/50 hover:border-primary/30 transition-all group">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <CardTitle className="text-base font-display line-clamp-2">{service.name}</CardTitle>
+                  <Badge variant="outline" className="text-xs shrink-0">{service.category}</Badge>
                 </div>
-                <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                  {service.settings.isFeatured && (
-                    <Star className="w-3.5 h-3.5 text-brand-400 fill-brand-400" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground line-clamp-2">{service.description}</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>Basic: ₹{Number(service.pricingBasic.price).toLocaleString()}</span>
+                  <span>•</span>
+                  <span>Pro: ₹{Number(service.pricingPro.price).toLocaleString()}</span>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 text-xs"
+                    onClick={() => navigate({ to: `/authenticated/services/${service.id.toString()}` })}
+                  >
+                    <ExternalLink className="w-3 h-3 mr-1" /> View
+                  </Button>
+                  {isAdmin && (
+                    <>
+                      <Button size="sm" variant="ghost" onClick={() => setEditService(service)} className="h-8 w-8 p-0">
+                        <Edit className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setPaymentInfoService(service)} className="h-8 w-8 p-0">
+                        <QrCode className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setRazorpayService(service)} className="h-8 w-8 p-0">
+                        <CreditCard className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setDeleteServiceTarget(service)}
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </>
                   )}
-                  {service.settings.isVisible ? (
-                    <Eye className="w-3.5 h-3.5 text-brand-400" />
-                  ) : (
-                    <EyeOff className="w-3.5 h-3.5 text-muted-foreground" />
-                  )}
                 </div>
-              </div>
-
-              <p className="text-xs text-muted-foreground line-clamp-2 mb-4">{service.description}</p>
-
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Starting from</p>
-                  <p className="text-lg font-display font-bold text-brand-400">
-                    ₹{(Number(service.pricingBasic.price) / 100).toLocaleString('en-IN')}
-                  </p>
-                </div>
-                <span className="text-xs px-2 py-1 rounded-lg bg-brand-500/10 text-brand-400 border border-brand-500/20 font-medium">
-                  {service.settings.availability}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => navigate({ to: '/services/$serviceId', params: { serviceId: service.id.toString() } })}
-                  className="flex-1 py-2 rounded-xl gradient-brand text-dark-500 font-medium text-xs hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  View Details
-                </button>
-                {isAdmin && (
-                  <>
-                    <button
-                      onClick={() => setEditService(service)}
-                      className="w-8 h-8 rounded-xl bg-background border border-border flex items-center justify-center hover:border-brand-500/50 hover:bg-brand-500/5 transition-all"
-                    >
-                      <Edit className="w-3.5 h-3.5 text-muted-foreground" />
-                    </button>
-                    <button
-                      onClick={() => setDeleteService(service)}
-                      className="w-8 h-8 rounded-xl bg-background border border-border flex items-center justify-center hover:border-destructive/50 hover:bg-destructive/5 transition-all"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
 
       {/* Dialogs */}
-      {showCreate && (
-        <ServiceCreateDialog
-          open={showCreate}
-          onOpenChange={(open) => setShowCreate(open)}
-        />
-      )}
+      <ServiceCreateDialog open={createOpen} onOpenChange={setCreateOpen} />
       {editService && (
         <ServiceEditDialog
           service={editService}
           open={!!editService}
-          onOpenChange={(open) => { if (!open) setEditService(null); }}
+          onOpenChange={(open) => !open && setEditService(null)}
         />
       )}
-      {deleteService && (
-        <ServiceDeleteDialog
-          service={deleteService}
-          open={!!deleteService}
-          onOpenChange={(open) => { if (!open) setDeleteService(null); }}
-          onSuccess={() => setDeleteService(null)}
+      {paymentInfoService && (
+        <ServicePaymentInfoDialog
+          service={paymentInfoService}
+          open={!!paymentInfoService}
+          onOpenChange={(open) => !open && setPaymentInfoService(null)}
         />
       )}
+      {razorpayService && (
+        <ServiceRazorpayDialog
+          service={razorpayService}
+          open={!!razorpayService}
+          onOpenChange={(open) => !open && setRazorpayService(null)}
+        />
+      )}
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteServiceTarget} onOpenChange={(open) => !open && setDeleteServiceTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Service</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteServiceTarget?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

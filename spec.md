@@ -1,15 +1,16 @@
 # Specification
 
 ## Summary
-**Goal:** Rebuild the AI Sales System automation-related pages (AutomationPage, ServiceRecommendationPage, ProposalGeneratorPage) with full functionality, backend persistence, and proper sidebar navigation using the existing teal-green + black theme.
+**Goal:** Debug and fix API settings persistence, automation toggles, webhook triggers, AI module responses, and export functionality across the QuickBee Sales Engine dashboard.
 
 **Planned changes:**
-- Rebuild `AutomationPage` with three sections: Sales System Configuration (API endpoint + API key + Test Connection), Automation Rules toggles (WhatsApp auto-reply, proposal auto-send, lead follow-up), and Integration Status indicators
-- Rebuild `ServiceRecommendationPage` as an AI-powered form (business type, budget range, goals) that calls the configured API endpoint and displays service recommendation cards; falls back to rule-based logic if no API is configured
-- Rebuild `ProposalGeneratorPage` as an AI-powered proposal creation form (client name, business type, services, scope, budget) that generates a formatted proposal preview with a downloadable PDF option
-- Add `getSalesSystemConfig` (query) and `setSalesSystemConfig` (update, admin/manager only) functions to the backend Motoko actor with upgrade-persistent storage
-- Add `useGetSalesSystemConfig` and `useUpdateSalesSystemConfig` hooks in `useQueries.ts` to connect the config panel to the backend
-- Add sidebar navigation entries for "Service Recommendation" and "Proposal Generator" under an AI Sales Tools group, visible to Admin and Manager roles, with teal-green active state
-- Register `/service-recommendation` and `/proposal-generator` routes in `App.tsx`
+- Implement a centralized localStorage-backed config store for all API settings (API Endpoint, API Key, WhatsApp Token, Razorpay Keys, Email API Key, CRM Webhook URL, Automation Webhook URL) so values persist across navigation and re-renders, with a "Saved successfully" confirmation toast
+- Fix all webhook trigger functions (form submission, lead qualification, payment success, project creation) to send correct HTTP POST requests with proper JSON payloads, Content-Type and Authorization headers, using URLs from the centralized config store
+- Add a Webhook Log panel on the Automation page showing timestamped entries with status, URL, and response code for every outgoing webhook attempt; show green/red toasts for success/failure
+- Fix automation toggles (WhatsApp Auto-Reply, Proposal Auto-Send, Lead Follow-Up Sequences, Payment Confirmation, Project Onboarding) so they truly block or allow their respective webhook/API calls, with state persisted to localStorage
+- Fix AI Smart Systems modules (Service Recommendation, Proposal Generator, Pricing Strategy, Closing Scripts, Follow-Up Messages, Lead Qualification) to correctly call the saved API Endpoint with Bearer auth, display AI responses, show loading spinners, and handle errors
+- Fix Razorpay payment webhook handling to fire the Automation Webhook URL with a payment payload on payment success, and fix WhatsApp Auto-Reply to POST a WhatsApp message payload when the toggle is ON and the token/URL are configured
+- Fix PDF and CSV export functions across Leads, AI result pages, WhatsApp Logs, Invoice History, and Data Export Center to produce valid downloadable files with loading and error states
+- Add real-time connection status badges (green/red/grey) for each integration and "Test Connection" buttons for CRM Webhook URL and Automation Webhook URL that fire a test POST and update the badge immediately
 
-**User-visible outcome:** Admins and managers can configure an AI API endpoint, toggle automation rules, get AI-powered service recommendations, and generate downloadable client proposals — all within a consistent teal-green + black themed interface accessible from the sidebar.
+**User-visible outcome:** All API settings are reliably saved and used across the dashboard; automation toggles correctly enable/disable their features; webhooks fire with proper payloads and their results are logged; AI modules display generated responses; exports produce valid files; and each integration shows a live connection status with testability.

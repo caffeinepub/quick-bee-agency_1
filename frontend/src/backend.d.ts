@@ -7,6 +7,12 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export interface RecommendationOutput {
+    projectedROI?: string;
+    upsellSuggestion: string;
+    budget?: bigint;
+    recommendedService: string;
+}
 export interface PricingTier {
     features: Array<string>;
     price: bigint;
@@ -17,6 +23,14 @@ export interface TransformationOutput {
     headers: Array<http_header>;
 }
 export type Time = bigint;
+export interface PaymentLog {
+    status: string;
+    signature: string;
+    orderId: string;
+    paymentId: string;
+    timestamp: Time;
+    amount: bigint;
+}
 export interface IntegrationSettings {
     stripeEnabled: boolean;
     razorpayEnabled: boolean;
@@ -71,6 +85,11 @@ export interface TransformationInput {
     context: Uint8Array;
     response: http_request_result;
 }
+export interface Token {
+    principal: Principal;
+    issuedAt: Time;
+    expiry: Time;
+}
 export type StripeSessionStatus = {
     __kind__: "completed";
     completed: {
@@ -83,14 +102,6 @@ export type StripeSessionStatus = {
         error: string;
     };
 };
-export interface GeneratorLog {
-    id: bigint;
-    inputData: string;
-    userId: Principal;
-    createdAt: Time;
-    outputData: string;
-    generatorType: string;
-}
 export interface StripeConfiguration {
     allowedCountries: Array<string>;
     secretKey: string;
@@ -105,12 +116,26 @@ export interface PaymentLink {
     amount: bigint;
     paymentLinkUrl?: string;
 }
+export interface GeneratorLog {
+    id: bigint;
+    inputData: string;
+    userId: Principal;
+    createdAt: Time;
+    outputData: string;
+    generatorType: string;
+}
 export interface OnboardingData {
     businessName: string;
     goals: string;
     niche: string;
     budget: bigint;
     timeline: string;
+}
+export interface WhatsAppMessageLog {
+    recipientPhone: string;
+    deliveryStatus: string;
+    sentAt: Time;
+    messageType: string;
 }
 export interface Coupon {
     expiresAt?: Time;
@@ -135,16 +160,27 @@ export interface Service {
     category: string;
     paymentLinkUrl?: string;
 }
+export type PasswordAuthResult = {
+    __kind__: "ok";
+    ok: Token;
+} | {
+    __kind__: "error";
+    error: string;
+};
+export interface Invoice {
+    clientId: Principal;
+    createdAt: Time;
+    invoiceId: string;
+    totalPaid: bigint;
+    gstAmount: bigint;
+    serviceBreakdown: string;
+}
 export interface AutomationSettings {
     projectOnboarding: AutomationConfig;
     paymentConfirmation: AutomationConfig;
     sequenceBuilder: AutomationConfig;
     autoWhatsAppReplies: AutomationConfig;
     proposalAutoSend: AutomationConfig;
-}
-export interface AutomationConfig {
-    enabled: boolean;
-    config: string;
 }
 export interface Order {
     id: bigint;
@@ -162,6 +198,10 @@ export interface http_request_result {
     status: bigint;
     body: Uint8Array;
     headers: Array<http_header>;
+}
+export interface AutomationConfig {
+    enabled: boolean;
+    config: string;
 }
 export interface ShoppingItem {
     productName: string;
@@ -223,46 +263,62 @@ export interface backendInterface {
     createOrder(projectId: bigint, amount: bigint): Promise<bigint>;
     createPaymentLink(leadId: bigint, amount: bigint): Promise<bigint>;
     createProject(clientId: Principal, serviceId: bigint, onboardingData: OnboardingData | null): Promise<bigint>;
+    createRecommendation(recommendation: RecommendationOutput): Promise<bigint>;
     createService(name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings, paymentLinkUrl: string | null, qrCodeDataUrl: string | null, razorpayEnabled: boolean, razorpayKeyId: string | null, razorpayOrderId: string | null): Promise<bigint>;
     deleteLead(id: bigint): Promise<void>;
+    deleteRecommendation(id: bigint): Promise<void>;
     deleteService(id: bigint): Promise<void>;
     getAllCRMActivities(): Promise<Array<CRMActivity>>;
     getAllGeneratorLogs(): Promise<Array<GeneratorLog>>;
+    getAllInvoices(): Promise<Array<Invoice>>;
     getAllLeads(): Promise<Array<Lead>>;
     getAllLegalPages(): Promise<Array<LegalPage>>;
     getAllOffers(): Promise<Array<Offer>>;
     getAllOrders(): Promise<Array<Order>>;
+    getAllPaymentLogs(): Promise<Array<PaymentLog>>;
     getAllProjects(): Promise<Array<Project>>;
+    getAllRecommendations(): Promise<Array<RecommendationOutput>>;
     getAllServices(): Promise<Array<Service>>;
+    getAllWhatsAppLogs(): Promise<Array<WhatsAppMessageLog>>;
     getCRMActivitiesByLead(leadId: bigint): Promise<Array<CRMActivity>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCoupon(code: string): Promise<Coupon | null>;
     getIntegrationSettings(userId: Principal): Promise<IntegrationSettings | null>;
+    getInvoice(invoiceId: string): Promise<Invoice | null>;
     getLeadsByScoreRange(minScore: bigint, maxScore: bigint): Promise<Array<Lead>>;
     getLegalPage(id: bigint): Promise<LegalPage | null>;
     getMyCRMActivities(): Promise<Array<CRMActivity>>;
     getMyGeneratorLogs(): Promise<Array<GeneratorLog>>;
+    getMyInvoices(): Promise<Array<Invoice>>;
     getMyLeads(): Promise<Array<Lead>>;
     getMyNotifications(): Promise<Array<Notification>>;
     getMyPaymentLinks(): Promise<Array<PaymentLink>>;
     getOrdersByClient(clientId: Principal): Promise<Array<Order>>;
     getOrdersByProject(projectId: bigint): Promise<Array<Order>>;
     getPaymentLinks(): Promise<Array<PaymentLink>>;
+    getPaymentLog(orderId: string): Promise<PaymentLog | null>;
     getProject(id: bigint): Promise<Project | null>;
     getProjectsByClient(clientId: Principal): Promise<Array<Project>>;
+    getRecommendation(id: bigint): Promise<RecommendationOutput | null>;
     getSalesSystemConfig(userId: Principal): Promise<SalesSystemConfig | null>;
     getService(id: bigint): Promise<Service | null>;
     getServiceRazorpayConfig(id: bigint): Promise<[boolean, string | null, string | null]>;
     getStripeSessionStatus(sessionId: string): Promise<StripeSessionStatus>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
+    getWhatsAppLog(recipientPhone: string): Promise<WhatsAppMessageLog | null>;
     isCallerAdmin(): Promise<boolean>;
     isRazorpayConfigured(): Promise<boolean>;
     isStripeConfigured(): Promise<boolean>;
+    login(email: string, password: string): Promise<PasswordAuthResult>;
     markNotificationAsRead(id: bigint): Promise<void>;
+    register(email: string, password: string, initialRole: UserRole): Promise<PasswordAuthResult>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     saveIntegrationSettings(settings: IntegrationSettings): Promise<void>;
+    saveInvoice(invoice: Invoice): Promise<void>;
+    savePaymentLog(log: PaymentLog): Promise<void>;
     saveSalesSystemConfig(config: SalesSystemConfig): Promise<void>;
+    saveWhatsAppLog(log: WhatsAppMessageLog): Promise<void>;
     setPaymentLinkQrCode(id: bigint, qrCodeDataUrl: string): Promise<void>;
     setPaymentLinkUrl(id: bigint, url: string): Promise<void>;
     setRazorpayConfiguration(apiKey: string, apiSecret: string, webhookSecret: string): Promise<void>;
@@ -276,6 +332,7 @@ export interface backendInterface {
     updateOrderStatus(id: bigint, status: string): Promise<void>;
     updatePaymentLinkStatus(id: bigint, status: string): Promise<void>;
     updateProjectStatus(id: bigint, status: string): Promise<void>;
+    updateRecommendation(id: bigint, recommendation: RecommendationOutput): Promise<void>;
     updateService(id: bigint, name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings, paymentLinkUrl: string | null, qrCodeDataUrl: string | null, razorpayEnabled: boolean, razorpayKeyId: string | null, razorpayOrderId: string | null): Promise<void>;
     updateServicePaymentInfo(id: bigint, paymentLinkUrl: string | null, qrCodeDataUrl: string | null): Promise<void>;
     updateServiceRazorpay(id: bigint, enabled: boolean, keyId: string | null, orderId: string | null): Promise<void>;

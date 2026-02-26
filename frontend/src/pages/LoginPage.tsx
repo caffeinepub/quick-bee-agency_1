@@ -3,356 +3,220 @@ import { useNavigate } from '@tanstack/react-router';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGetCallerUserProfile, useSaveCallerUserProfile } from '../hooks/useQueries';
-import { Loader2, Zap, Shield, TrendingUp, Users, ChevronRight, Eye, EyeOff } from 'lucide-react';
-import { DEMO_CREDENTIALS, validateDemoCredentials } from '../auth/demoCredentials';
-import { useSession } from '../auth/useSession';
+import { Loader2, LogIn, User, Mail, Building2, Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login, clear, loginStatus, identity, isInitializing } = useInternetIdentity();
   const queryClient = useQueryClient();
-  const { saveSession } = useSession();
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loginError, setLoginError] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [profileName, setProfileName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
   const [profileBusiness, setProfileBusiness] = useState('');
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState('');
 
   const isAuthenticated = !!identity;
-  const { data: userProfile, isLoading: profileLoading, isFetched: profileFetched } = useGetCallerUserProfile();
+  const isLoggingIn = loginStatus === 'logging-in';
+
+  const {
+    data: userProfile,
+    isLoading: profileLoading,
+    isFetched: profileFetched,
+  } = useGetCallerUserProfile();
+
   const saveProfile = useSaveCallerUserProfile();
 
   useEffect(() => {
-    if (isAuthenticated && !profileLoading && profileFetched) {
-      if (userProfile === null) {
-        setShowProfileSetup(true);
-      } else {
-        navigate({ to: '/' });
-      }
+    if (!isAuthenticated || profileLoading || !profileFetched) return;
+    if (userProfile === null) {
+      setShowProfileSetup(true);
+    } else {
+      navigate({ to: '/authenticated' });
     }
   }, [isAuthenticated, profileLoading, profileFetched, userProfile, navigate]);
 
-  const handleDemoLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError('');
-    setIsLoggingIn(true);
+  const handleLogin = async () => {
+    try {
+      await login();
+    } catch (error: unknown) {
+      const err = error as Error;
+      if (err?.message === 'User is already authenticated') {
+        await clear();
+        setTimeout(() => login(), 300);
+      }
+    }
+  };
 
-    const role = validateDemoCredentials(email, password);
-    if (!role) {
-      setLoginError('Invalid email or password. Please check your credentials.');
-      setIsLoggingIn(false);
+  const handleProfileSave = async () => {
+    if (!profileName.trim()) {
+      setProfileError('Name is required');
       return;
     }
-
-    try {
-      await login();
-      saveSession(email, role);
-    } catch (err: unknown) {
-      const error = err as Error;
-      if (error.message === 'User is already authenticated') {
-        await clear();
-        queryClient.clear();
-        setTimeout(() => login(), 300);
-      } else {
-        setLoginError('Login failed. Please try again.');
-      }
-    } finally {
-      setIsLoggingIn(false);
+    if (!profileEmail.trim()) {
+      setProfileError('Email is required');
+      return;
     }
-  };
-
-  const handleIILogin = async () => {
-    setLoginError('');
-    try {
-      await login();
-    } catch (err: unknown) {
-      const error = err as Error;
-      if (error.message === 'User is already authenticated') {
-        await clear();
-        queryClient.clear();
-        setTimeout(() => login(), 300);
-      } else {
-        setLoginError('Login failed. Please try again.');
-      }
-    }
-  };
-
-  const handleProfileSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profileName.trim() || !profileEmail.trim()) return;
-    setIsSavingProfile(true);
+    setProfileError('');
     try {
       await saveProfile.mutateAsync({
         name: profileName.trim(),
         email: profileEmail.trim(),
-        businessName: profileBusiness.trim() || undefined,
+        businessName: profileBusiness.trim() ? profileBusiness.trim() : undefined,
       });
       setShowProfileSetup(false);
-      navigate({ to: '/' });
+      navigate({ to: '/authenticated' });
     } catch {
-      // ignore
-    } finally {
-      setIsSavingProfile(false);
+      setProfileError('Failed to save profile. Please try again.');
     }
   };
 
-  const features = [
-    { icon: Zap, label: 'AI-Powered Tools', desc: 'Smart recommendations & proposals' },
-    { icon: TrendingUp, label: 'Revenue Growth', desc: 'Dynamic pricing & upsell engine' },
-    { icon: Users, label: 'Lead Management', desc: 'Qualify & convert leads faster' },
-    { icon: Shield, label: 'Secure Platform', desc: 'Enterprise-grade security' },
-  ];
-
-  // Demo credentials as array for display
-  const demoCreds = Object.values(DEMO_CREDENTIALS);
-
-  if (isInitializing) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl gradient-brand flex items-center justify-center animate-pulse-glow">
-            <Zap className="w-6 h-6 text-dark-500" />
-          </div>
-          <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
-          <p className="text-muted-foreground text-sm">Initializing...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (showProfileSetup) {
-    return (
-      <div className="min-h-screen bg-background bg-mesh flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="glass-card rounded-2xl p-8 border border-border">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl gradient-brand flex items-center justify-center">
-                <Zap className="w-5 h-5 text-dark-500" />
-              </div>
-              <div>
-                <h2 className="text-xl font-display font-bold text-foreground">Complete Your Profile</h2>
-                <p className="text-sm text-muted-foreground">Tell us about yourself</p>
-              </div>
-            </div>
-            <form onSubmit={handleProfileSave} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Full Name *</label>
-                <input
-                  type="text"
-                  value={profileName}
-                  onChange={e => setProfileName(e.target.value)}
-                  placeholder="Your full name"
-                  required
-                  className="w-full px-4 py-2.5 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/40 transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Email *</label>
-                <input
-                  type="email"
-                  value={profileEmail}
-                  onChange={e => setProfileEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  required
-                  className="w-full px-4 py-2.5 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/40 transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Business Name</label>
-                <input
-                  type="text"
-                  value={profileBusiness}
-                  onChange={e => setProfileBusiness(e.target.value)}
-                  placeholder="Your company name (optional)"
-                  className="w-full px-4 py-2.5 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/40 transition-all"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isSavingProfile || !profileName.trim() || !profileEmail.trim()}
-                className="w-full py-3 rounded-xl gradient-brand text-dark-500 font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSavingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Get Started
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col justify-between p-12">
-        <div className="absolute inset-0 bg-mesh" />
-        <div className="absolute inset-0" style={{
-          background: 'radial-gradient(ellipse at 30% 40%, rgba(0, 191, 166, 0.12) 0%, transparent 60%), radial-gradient(ellipse at 70% 70%, rgba(0, 230, 118, 0.08) 0%, transparent 60%)'
-        }} />
-
-        {/* Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl gradient-brand flex items-center justify-center glow-brand-sm">
-            <Zap className="w-5 h-5 text-dark-500" />
-          </div>
-          <div>
-            <span className="text-xl font-display font-bold gradient-text-brand">Quick Bee</span>
-            <span className="text-xl font-display font-bold text-foreground"> Agency</span>
-          </div>
-        </div>
-
-        {/* Hero content */}
-        <div className="relative z-10 space-y-8">
-          <div>
-            <h1 className="text-4xl font-display font-bold text-foreground leading-tight mb-4">
-              AI-Powered Agency
-              <br />
-              <span className="gradient-text-brand">Platform</span>
-            </h1>
-            <p className="text-muted-foreground text-lg leading-relaxed">
-              Automate your agency operations with intelligent tools for lead management, proposals, pricing, and client onboarding.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            {features.map(({ icon: Icon, label, desc }) => (
-              <div key={label} className="glass rounded-xl p-4 card-hover">
-                <div className="w-8 h-8 rounded-lg gradient-brand-subtle border border-brand-500/20 flex items-center justify-center mb-3">
-                  <Icon className="w-4 h-4 text-brand-400" />
-                </div>
-                <p className="text-sm font-semibold text-foreground">{label}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Bottom stats */}
-        <div className="relative z-10 flex gap-8">
-          {[['500+', 'Clients Served'], ['₹2Cr+', 'Revenue Generated'], ['98%', 'Satisfaction Rate']].map(([val, label]) => (
-            <div key={label}>
-              <p className="text-2xl font-display font-bold gradient-text">{val}</p>
-              <p className="text-xs text-muted-foreground">{label}</p>
-            </div>
-          ))}
-        </div>
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 mesh-bg">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Right Panel - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12">
-        <div className="w-full max-w-md space-y-8">
-          {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-3 justify-center">
-            <div className="w-10 h-10 rounded-xl gradient-brand flex items-center justify-center">
-              <Zap className="w-5 h-5 text-dark-500" />
-            </div>
-            <span className="text-xl font-display font-bold gradient-text-brand">Quick Bee Agency</span>
+      <div className="relative w-full max-w-md">
+        {/* Logo & Brand */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl overflow-hidden mb-4 shadow-cyan logo-glow-lg">
+            <img
+              src="/assets/generated/quickbee-logo.dim_256x256.png"
+              alt="QuickBee"
+              className="w-full h-full object-cover"
+            />
           </div>
+          <h1 className="text-3xl font-heading font-bold text-foreground">QuickBee CRM</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Your intelligent sales automation platform</p>
+        </div>
 
-          <div>
-            <h2 className="text-3xl font-display font-bold text-foreground">Welcome back</h2>
-            <p className="text-muted-foreground mt-2">Sign in to your agency dashboard</p>
-          </div>
-
-          {/* Demo credentials info */}
-          <div className="glass rounded-xl p-4 border border-brand-500/20">
-            <p className="text-xs font-semibold text-brand-400 mb-2 uppercase tracking-wider">Demo Credentials</p>
-            <div className="space-y-1">
-              {demoCreds.map(cred => (
-                <button
-                  key={cred.email}
-                  onClick={() => { setEmail(cred.email); setPassword(cred.password); }}
-                  className="w-full text-left text-xs text-muted-foreground hover:text-brand-400 transition-colors flex items-center justify-between group"
-                >
-                  <span><span className="text-foreground font-medium">{cred.role}</span> — {cred.email}</span>
-                  <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
+        {/* Login Card */}
+        <Card className="shadow-card-lg border-border/60">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-heading">Welcome back</CardTitle>
+            <CardDescription>Sign in with your Internet Identity to continue</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Feature highlights */}
+            <div className="grid grid-cols-3 gap-3 py-2">
+              {[
+                { icon: <Zap size={16} />, label: 'Smart CRM' },
+                { icon: <User size={16} />, label: 'Lead Mgmt' },
+                { icon: <Building2 size={16} />, label: 'Analytics' },
+              ].map((feature) => (
+                <div key={feature.label} className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-muted/50 border border-border/50">
+                  <span className="text-primary">{feature.icon}</span>
+                  <span className="text-xs text-muted-foreground font-medium">{feature.label}</span>
+                </div>
               ))}
             </div>
-          </div>
 
-          {/* Login form */}
-          <form onSubmit={handleDemoLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="admin@quickbee.com"
-                required
-                className="w-full px-4 py-3 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/40 transition-all"
+            <Button
+              onClick={handleLogin}
+              disabled={isLoggingIn || isInitializing}
+              className="w-full h-11 font-semibold text-sm"
+              size="lg"
+            >
+              {isLoggingIn ? (
+                <>
+                  <Loader2 size={16} className="mr-2 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <LogIn size={16} className="mr-2" />
+                  Sign in with Internet Identity
+                </>
+              )}
+            </Button>
+
+            <p className="text-xs text-center text-muted-foreground">
+              Secured by the Internet Computer Protocol.{' '}
+              <span className="text-primary font-medium">No passwords required.</span>
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          © {new Date().getFullYear()} QuickBee CRM. Built with{' '}
+          <span className="text-destructive">♥</span> using{' '}
+          <a
+            href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline font-medium"
+          >
+            caffeine.ai
+          </a>
+        </p>
+      </div>
+
+      {/* Profile Setup Dialog */}
+      <Dialog open={showProfileSetup} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="font-heading">Complete Your Profile</DialogTitle>
+            <DialogDescription>
+              Tell us a bit about yourself to get started with QuickBee CRM.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Full Name *</Label>
+              <Input
+                id="name"
+                placeholder="John Doe"
+                value={profileName}
+                onChange={(e) => setProfileName(e.target.value)}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="w-full px-4 py-3 pr-12 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/40 transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email Address *</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="john@example.com"
+                value={profileEmail}
+                onChange={(e) => setProfileEmail(e.target.value)}
+              />
             </div>
-
-            {loginError && (
-              <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3">
-                {loginError}
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="business">Business Name</Label>
+              <Input
+                id="business"
+                placeholder="Acme Corp (optional)"
+                value={profileBusiness}
+                onChange={(e) => setProfileBusiness(e.target.value)}
+              />
+            </div>
+            {profileError && (
+              <p className="text-sm text-destructive">{profileError}</p>
             )}
-
-            <button
-              type="submit"
-              disabled={isLoggingIn || loginStatus === 'logging-in'}
-              className="w-full py-3 rounded-xl gradient-brand text-dark-500 font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed glow-brand-sm"
+            <Button
+              onClick={handleProfileSave}
+              disabled={saveProfile.isPending}
+              className="w-full"
             >
-              {(isLoggingIn || loginStatus === 'logging-in') ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : null}
-              Sign In
-            </button>
-          </form>
-
-          <div className="relative flex items-center gap-4">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted-foreground">or</span>
-            <div className="flex-1 h-px bg-border" />
+              {saveProfile.isPending ? (
+                <>
+                  <Loader2 size={14} className="mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Get Started'
+              )}
+            </Button>
           </div>
-
-          <button
-            onClick={handleIILogin}
-            disabled={loginStatus === 'logging-in'}
-            className="w-full py-3 rounded-xl bg-card border border-border text-foreground font-medium flex items-center justify-center gap-2 hover:border-brand-500/50 hover:bg-brand-500/5 transition-all disabled:opacity-50"
-          >
-            <Shield className="w-4 h-4 text-brand-400" />
-            Continue with Internet Identity
-          </button>
-
-          <p className="text-center text-xs text-muted-foreground">
-            By signing in, you agree to our{' '}
-            <a href="#" className="text-brand-400 hover:underline">Terms of Service</a>
-            {' '}and{' '}
-            <a href="#" className="text-brand-400 hover:underline">Privacy Policy</a>
-          </p>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

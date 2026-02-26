@@ -8,25 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  Zap,
-  MessageSquare,
-  FileText,
-  UserCheck,
-  CreditCard,
-  FolderOpen,
-  Settings2,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  Sparkles,
-  Wand2,
-  Brain,
-  TrendingUp,
-  MessageCircle,
-  Star,
+  Zap, MessageSquare, FileText, UserCheck, CreditCard, FolderOpen,
+  Settings2, CheckCircle2, XCircle, AlertCircle, Sparkles, Wand2,
+  Brain, TrendingUp, MessageCircle, Star,
 } from 'lucide-react';
 import SalesSystemConfigDialog from '../components/automation/SalesSystemConfigDialog';
 import type { IntegrationSettings, SalesSystemConfig } from '../backend';
+import { Principal } from '@dfinity/principal';
 import { toast } from 'sonner';
 
 const defaultAutomationConfig = { enabled: false, config: '' };
@@ -61,36 +49,11 @@ interface AutomationRule {
 }
 
 const automationRules: AutomationRule[] = [
-  {
-    key: 'autoWhatsAppReplies',
-    label: 'WhatsApp Auto-Reply',
-    description: 'Automatically respond to WhatsApp messages from leads and clients',
-    icon: <MessageSquare className="h-5 w-5" />,
-  },
-  {
-    key: 'proposalAutoSend',
-    label: 'Proposal Auto-Send',
-    description: 'Automatically send proposals when leads reach qualified status',
-    icon: <FileText className="h-5 w-5" />,
-  },
-  {
-    key: 'sequenceBuilder',
-    label: 'Lead Follow-Up Sequences',
-    description: 'Automated follow-up message sequences for nurturing leads',
-    icon: <UserCheck className="h-5 w-5" />,
-  },
-  {
-    key: 'paymentConfirmation',
-    label: 'Payment Confirmation',
-    description: 'Send automated payment confirmation and receipt messages',
-    icon: <CreditCard className="h-5 w-5" />,
-  },
-  {
-    key: 'projectOnboarding',
-    label: 'Project Onboarding',
-    description: 'Trigger onboarding workflows when new projects are created',
-    icon: <FolderOpen className="h-5 w-5" />,
-  },
+  { key: 'autoWhatsAppReplies', label: 'WhatsApp Auto-Reply', description: 'Automatically respond to WhatsApp messages from leads and clients', icon: <MessageSquare className="h-5 w-5" /> },
+  { key: 'proposalAutoSend', label: 'Proposal Auto-Send', description: 'Automatically send proposals when leads reach qualified status', icon: <FileText className="h-5 w-5" /> },
+  { key: 'sequenceBuilder', label: 'Lead Follow-Up Sequences', description: 'Automated follow-up message sequences for nurturing leads', icon: <UserCheck className="h-5 w-5" /> },
+  { key: 'paymentConfirmation', label: 'Payment Confirmation', description: 'Send automated payment confirmation and receipt messages', icon: <CreditCard className="h-5 w-5" /> },
+  { key: 'projectOnboarding', label: 'Project Onboarding', description: 'Trigger onboarding workflows when new projects are created', icon: <FolderOpen className="h-5 w-5" /> },
 ];
 
 interface AISalesSystem {
@@ -101,47 +64,20 @@ interface AISalesSystem {
 }
 
 const aiSalesSystems: AISalesSystem[] = [
-  {
-    key: 'serviceRecommendation',
-    label: 'Service Recommendation',
-    description: 'AI-powered service matching based on client needs and budget',
-    icon: <Sparkles className="h-5 w-5" />,
-  },
-  {
-    key: 'proposalGenerator',
-    label: 'Proposal Generator',
-    description: 'Generate professional proposals automatically from client data',
-    icon: <Wand2 className="h-5 w-5" />,
-  },
-  {
-    key: 'pricingStrategy',
-    label: 'Pricing Strategy',
-    description: 'AI-driven pricing recommendations based on market data',
-    icon: <TrendingUp className="h-5 w-5" />,
-  },
-  {
-    key: 'closingScript',
-    label: 'Closing Scripts',
-    description: 'Generate personalized closing scripts for each prospect',
-    icon: <MessageCircle className="h-5 w-5" />,
-  },
-  {
-    key: 'followUpMessages',
-    label: 'Follow-Up Messages',
-    description: 'Automated follow-up message generation and scheduling',
-    icon: <Brain className="h-5 w-5" />,
-  },
-  {
-    key: 'leadQualification',
-    label: 'Lead Qualification',
-    description: 'AI-powered lead scoring and qualification analysis',
-    icon: <Star className="h-5 w-5" />,
-  },
+  { key: 'serviceRecommendation', label: 'Service Recommendation', description: 'AI-powered service matching based on client needs and budget', icon: <Sparkles className="h-5 w-5" /> },
+  { key: 'proposalGenerator', label: 'Proposal Generator', description: 'Generate professional proposals automatically from client data', icon: <Wand2 className="h-5 w-5" /> },
+  { key: 'pricingStrategy', label: 'Pricing Strategy', description: 'AI-driven pricing recommendations based on market data', icon: <TrendingUp className="h-5 w-5" /> },
+  { key: 'closingScript', label: 'Closing Scripts', description: 'Generate personalized closing scripts for each prospect', icon: <MessageCircle className="h-5 w-5" /> },
+  { key: 'followUpMessages', label: 'Follow-Up Messages', description: 'Automated follow-up message generation and scheduling', icon: <Brain className="h-5 w-5" /> },
+  { key: 'leadQualification', label: 'Lead Qualification', description: 'AI-powered lead scoring and qualification analysis', icon: <Star className="h-5 w-5" /> },
 ];
+
+// Anonymous principal used as fallback when identity is not yet available
+const ANON_PRINCIPAL = Principal.anonymous();
 
 export default function AutomationPage() {
   const { identity } = useInternetIdentity();
-  const userId = identity?.getPrincipal().toString();
+  const userId: Principal = identity?.getPrincipal() ?? ANON_PRINCIPAL;
 
   const { data: integrationSettings, isLoading: settingsLoading } = useGetIntegrationSettings(userId);
   const { data: salesSystemConfig, isLoading: configLoading } = useGetSalesSystemConfig(userId);
@@ -158,13 +94,9 @@ export default function AutomationPage() {
       ...currentSettings,
       automations: {
         ...currentSettings.automations,
-        [key]: {
-          ...currentSettings.automations[key],
-          enabled,
-        },
+        [key]: { ...currentSettings.automations[key], enabled },
       },
     };
-
     try {
       await saveIntegrationSettings.mutateAsync(updated);
       toast.success(`${automationRules.find((r) => r.key === key)?.label} ${enabled ? 'enabled' : 'disabled'}`);
@@ -176,11 +108,7 @@ export default function AutomationPage() {
   const handleOpenSystemConfig = (system: AISalesSystem) => {
     setSelectedSystem({
       label: system.label,
-      config: {
-        ...currentConfig,
-        systemName: system.label,
-        description: system.description,
-      },
+      config: { ...currentConfig, systemName: system.label, description: system.description },
     });
     setConfigDialogOpen(true);
   };
@@ -199,17 +127,15 @@ export default function AutomationPage() {
   const activeAutomationsCount = Object.values(currentSettings.automations).filter((a) => a.enabled).length;
 
   return (
-    <div className="p-6 space-y-8 max-w-6xl mx-auto">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-            <Zap className="h-8 w-8 text-primary" />
+          <h1 className="font-display text-2xl font-bold flex items-center gap-3">
+            <Zap className="h-7 w-7 text-primary" />
             Automation Center
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Configure AI-powered sales automation and integration settings
-          </p>
+          <p className="text-muted-foreground mt-1">Configure AI-powered sales automation and integration settings</p>
         </div>
         <div className="flex items-center gap-3">
           <Badge
@@ -222,13 +148,7 @@ export default function AutomationPage() {
                 : 'border-muted-foreground text-muted-foreground'
             }
           >
-            {integrationStatus === 'connected' ? (
-              <CheckCircle2 className="h-3 w-3 mr-1" />
-            ) : integrationStatus === 'partial' ? (
-              <AlertCircle className="h-3 w-3 mr-1" />
-            ) : (
-              <XCircle className="h-3 w-3 mr-1" />
-            )}
+            {integrationStatus === 'connected' ? <CheckCircle2 className="h-3 w-3 mr-1" /> : integrationStatus === 'partial' ? <AlertCircle className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
             {integrationStatus === 'connected' ? 'AI Connected' : integrationStatus === 'partial' ? 'Partial Config' : 'Not Configured'}
           </Badge>
           <Badge variant="outline" className="border-primary text-primary bg-primary/10">
@@ -238,9 +158,8 @@ export default function AutomationPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Sales System Config + Integration Status */}
+        {/* Left Column */}
         <div className="lg:col-span-1 space-y-6">
-          {/* Sales System Configuration Panel */}
           <Card className="border-border bg-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -274,45 +193,20 @@ export default function AutomationPage() {
                       </span>
                     </div>
                   </div>
-
                   <Separator />
-
-                  {/* Integration Status */}
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Integration Status</p>
                     <div className="flex items-center gap-2">
-                      {integrationStatus === 'connected' ? (
-                        <CheckCircle2 className="h-4 w-4 text-primary" />
-                      ) : integrationStatus === 'partial' ? (
-                        <AlertCircle className="h-4 w-4 text-yellow-500" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-muted-foreground" />
-                      )}
+                      {integrationStatus === 'connected' ? <CheckCircle2 className="h-4 w-4 text-primary" /> : integrationStatus === 'partial' ? <AlertCircle className="h-4 w-4 text-yellow-500" /> : <XCircle className="h-4 w-4 text-muted-foreground" />}
                       <span className="text-sm text-foreground">
-                        {integrationStatus === 'connected'
-                          ? 'AI system connected and ready'
-                          : integrationStatus === 'partial'
-                          ? 'Incomplete configuration'
-                          : 'No AI system configured'}
+                        {integrationStatus === 'connected' ? 'AI system connected and ready' : integrationStatus === 'partial' ? 'Incomplete configuration' : 'No AI system configured'}
                       </span>
                     </div>
-                    {integrationStatus !== 'connected' && (
-                      <p className="text-xs text-muted-foreground">
-                        Configure your API endpoint and key to enable AI-powered features
-                      </p>
-                    )}
                   </div>
-
                   <Button
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                     size="sm"
-                    onClick={() => {
-                      setSelectedSystem({
-                        label: 'AI Sales System',
-                        config: currentConfig,
-                      });
-                      setConfigDialogOpen(true);
-                    }}
+                    onClick={() => { setSelectedSystem({ label: 'AI Sales System', config: currentConfig }); setConfigDialogOpen(true); }}
                   >
                     <Settings2 className="h-4 w-4 mr-2" />
                     Configure API
@@ -322,7 +216,6 @@ export default function AutomationPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Stats */}
           <Card className="border-border bg-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -349,9 +242,8 @@ export default function AutomationPage() {
           </Card>
         </div>
 
-        {/* Right Column: Automation Rules + AI Systems */}
+        {/* Right Column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Automation Rules */}
           <Card className="border-border bg-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -381,9 +273,7 @@ export default function AutomationPage() {
                       {idx > 0 && <Separator className="my-1" />}
                       <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/30 transition-colors">
                         <div className="flex items-start gap-3 flex-1">
-                          <div className={`mt-0.5 ${isEnabled ? 'text-primary' : 'text-muted-foreground'}`}>
-                            {rule.icon}
-                          </div>
+                          <div className={`mt-0.5 ${isEnabled ? 'text-primary' : 'text-muted-foreground'}`}>{rule.icon}</div>
                           <div>
                             <p className="text-sm font-medium text-foreground">{rule.label}</p>
                             <p className="text-xs text-muted-foreground mt-0.5">{rule.description}</p>
@@ -391,9 +281,7 @@ export default function AutomationPage() {
                         </div>
                         <div className="flex items-center gap-2 ml-4">
                           {isEnabled && (
-                            <Badge variant="outline" className="text-xs border-primary text-primary bg-primary/10 hidden sm:flex">
-                              Active
-                            </Badge>
+                            <Badge variant="outline" className="text-xs border-primary text-primary bg-primary/10 hidden sm:flex">Active</Badge>
                           )}
                           <Switch
                             checked={isEnabled}
@@ -410,7 +298,6 @@ export default function AutomationPage() {
             </CardContent>
           </Card>
 
-          {/* AI Sales Systems */}
           <Card className="border-border bg-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -427,9 +314,7 @@ export default function AutomationPage() {
                     className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer group"
                     onClick={() => handleOpenSystemConfig(system)}
                   >
-                    <div className="text-primary mt-0.5 group-hover:scale-110 transition-transform">
-                      {system.icon}
-                    </div>
+                    <div className="text-primary mt-0.5 group-hover:scale-110 transition-transform">{system.icon}</div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground">{system.label}</p>
                       <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{system.description}</p>
@@ -443,16 +328,12 @@ export default function AutomationPage() {
         </div>
       </div>
 
-      {/* Config Dialog */}
       {selectedSystem && (
         <SalesSystemConfigDialog
           open={configDialogOpen}
           onOpenChange={setConfigDialogOpen}
           systemLabel={selectedSystem.label}
           config={{ apiEndpoint: selectedSystem.config.apiEndpoint, apiKey: selectedSystem.config.apiKey }}
-          onSave={() => {
-            setConfigDialogOpen(false);
-          }}
         />
       )}
     </div>

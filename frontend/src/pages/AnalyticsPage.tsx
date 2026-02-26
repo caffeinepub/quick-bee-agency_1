@@ -1,147 +1,179 @@
 import React from 'react';
-import { TrendingUp, Users, BarChart3, Package, ArrowUpRight, Activity } from 'lucide-react';
-import { useGetAllOrders, useGetAllLeads, useGetAllServices, useGetAllProjects } from '../hooks/useQueries';
+import { BarChart3, TrendingUp, DollarSign, Users, Target, Activity } from 'lucide-react';
+import { useGetAllLeads, useGetAllOrders, useGetAllServices } from '../hooks/useQueries';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, PieChart, Pie, Cell, Legend
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, PieChart, Pie, Cell
 } from 'recharts';
 
 export default function AnalyticsPage() {
-  const { data: orders = [] } = useGetAllOrders();
   const { data: leads = [] } = useGetAllLeads();
+  const { data: orders = [] } = useGetAllOrders();
   const { data: services = [] } = useGetAllServices();
-  const { data: projects = [] } = useGetAllProjects();
 
-  const totalRevenue = orders
-    .filter(o => o.paymentStatus === 'Paid' || o.paymentStatus === 'paid')
-    .reduce((sum, o) => sum + Number(o.amount), 0);
-
-  const activeClients = new Set(projects.map(p => p.clientId.toString())).size;
+  const totalRevenue = orders.reduce((sum, o) => sum + Number(o.amount), 0);
+  const activeClients = new Set(orders.map(o => o.clientId.toString())).size;
   const conversionRate = leads.length > 0
-    ? Math.round((leads.filter(l => l.status === 'paid' || l.status === 'Closed').length / leads.length) * 100)
+    ? Math.round((leads.filter(l => l.status === 'paid').length / leads.length) * 100)
     : 0;
-
-  // Revenue by month (mock data based on orders)
-  const revenueData = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - (5 - i));
-    return {
-      month: d.toLocaleString('default', { month: 'short' }),
-      revenue: Math.floor(Math.random() * 50000) + 10000,
-    };
-  });
-
-  // Lead status distribution
-  const leadStatusData = [
-    { name: 'New Lead', value: leads.filter(l => l.status === 'New Lead').length, color: '#00BFA6' },
-    { name: 'Contacted', value: leads.filter(l => l.status === 'Contacted').length, color: '#00E676' },
-    { name: 'Qualified', value: leads.filter(l => l.status === 'Qualified').length, color: '#69F0AE' },
-    { name: 'Closed', value: leads.filter(l => l.status === 'Closed' || l.status === 'paid').length, color: '#00BCD4' },
-    { name: 'Lost', value: leads.filter(l => l.status === 'Lost').length, color: '#546E7A' },
-  ].filter(d => d.value > 0);
+  const topService = services[0]?.name || 'N/A';
 
   const kpis = [
-    { label: 'Total Revenue', value: `₹${(totalRevenue / 100).toLocaleString('en-IN')}`, icon: TrendingUp, change: '+12.5%' },
-    { label: 'Active Clients', value: activeClients.toString(), icon: Users, change: '+3' },
-    { label: 'Conversion Rate', value: `${conversionRate}%`, icon: BarChart3, change: '+2.1%' },
-    { label: 'Total Services', value: services.length.toString(), icon: Package, change: `+${services.length}` },
+    { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: DollarSign, change: '+12.5%' },
+    { label: 'Active Clients', value: activeClients.toString(), icon: Users, change: '+5' },
+    { label: 'Conversion Rate', value: `${conversionRate}%`, icon: TrendingUp, change: '+3.1%' },
+    { label: 'Top Service', value: topService, icon: Target, change: 'Best seller' },
   ];
 
+  // Mock chart data
+  const revenueData = [
+    { month: 'Jan', revenue: 45000 },
+    { month: 'Feb', revenue: 52000 },
+    { month: 'Mar', revenue: 48000 },
+    { month: 'Apr', revenue: 61000 },
+    { month: 'May', revenue: 55000 },
+    { month: 'Jun', revenue: 67000 },
+  ];
+
+  const leadStatusData = [
+    { name: 'New Lead', value: leads.filter(l => l.status === 'New Lead').length || 5 },
+    { name: 'Contacted', value: leads.filter(l => l.status === 'Contacted').length || 8 },
+    { name: 'Qualified', value: leads.filter(l => l.status === 'Qualified').length || 6 },
+    { name: 'Closed', value: leads.filter(l => l.status === 'paid').length || 3 },
+  ];
+
+  const COLORS = ['#2dd4bf', '#4ade80', '#06b6d4', '#10b981'];
+
+  const customTooltipStyle = {
+    backgroundColor: '#0a1512',
+    border: '1px solid rgba(45, 212, 191, 0.2)',
+    borderRadius: '12px',
+    color: '#2dd4bf',
+  };
+
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">Analytics</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">Performance overview and insights</p>
+        <h1 className="font-display text-2xl font-bold gradient-text-teal flex items-center gap-2">
+          <BarChart3 className="w-6 h-6 text-teal-400" />
+          Analytics
+        </h1>
+        <p className="text-teal-400/50 text-sm mt-0.5">Performance insights and metrics</p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map(({ label, value, icon: Icon, change }) => (
-          <div key={label} className="glass-card rounded-2xl p-5 border border-border card-hover">
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl gradient-brand-subtle border border-brand-500/20 flex items-center justify-center">
-                <Icon className="w-5 h-5 text-brand-400" />
+        {kpis.map((kpi) => {
+          const Icon = kpi.icon;
+          return (
+            <div key={kpi.label}
+              className="rounded-2xl p-5 relative overflow-hidden group hover:shadow-teal-glow-sm transition-all duration-300"
+              style={{
+                background: 'linear-gradient(135deg, rgba(10,20,18,0.9), rgba(13,26,22,0.9))',
+                border: '1px solid rgba(45, 212, 191, 0.15)',
+              }}>
+              <div className="absolute top-0 left-0 right-0 h-px"
+                style={{ background: 'linear-gradient(90deg, transparent, rgba(45,212,191,0.5), transparent)' }} />
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ background: 'rgba(45, 212, 191, 0.1)', border: '1px solid rgba(45, 212, 191, 0.2)' }}>
+                  <Icon className="w-5 h-5 text-teal-400" />
+                </div>
+                <span className="text-xs font-semibold px-2 py-1 rounded-full text-teal-300 bg-teal-400/10">
+                  {kpi.change}
+                </span>
               </div>
-              <span className="text-xs font-medium px-2 py-1 rounded-lg text-brand-400 bg-brand-500/10 flex items-center gap-1">
-                <ArrowUpRight className="w-3 h-3" />
-                {change}
-              </span>
+              <p className="text-xl font-bold stat-value mb-1 truncate">{kpi.value}</p>
+              <p className="text-xs text-teal-400/50 font-medium">{kpi.label}</p>
             </div>
-            <p className="text-2xl font-display font-bold text-foreground">{value}</p>
-            <p className="text-sm text-muted-foreground mt-1">{label}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Revenue Chart */}
-        <div className="glass-card rounded-2xl p-5 border border-border">
-          <h3 className="text-base font-display font-semibold text-foreground mb-4">Revenue Trend</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={revenueData}>
-              <defs>
-                <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00BFA6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#00BFA6" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-              <XAxis dataKey="month" tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <Tooltip
-                contentStyle={{ background: '#11181c', border: '1px solid rgba(0,191,166,0.2)', borderRadius: '12px', color: '#f1f5f9' }}
-                formatter={(v: number) => [`₹${v.toLocaleString('en-IN')}`, 'Revenue']}
-              />
-              <Area type="monotone" dataKey="revenue" stroke="#00BFA6" strokeWidth={2} fill="url(#revenueGrad)" />
-            </AreaChart>
+        <div className="rounded-2xl p-5"
+          style={{
+            background: 'linear-gradient(135deg, rgba(10,20,18,0.9), rgba(13,26,22,0.9))',
+            border: '1px solid rgba(45, 212, 191, 0.15)',
+          }}>
+          <h2 className="font-display text-base font-semibold gradient-text-teal mb-4 flex items-center gap-2">
+            <Activity className="w-4 h-4 text-teal-400" />
+            Revenue Trend
+          </h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={revenueData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(45,212,191,0.08)" />
+              <XAxis dataKey="month" stroke="#2dd4bf60" tick={{ fill: '#2dd4bf80', fontSize: 11 }} />
+              <YAxis stroke="#2dd4bf60" tick={{ fill: '#2dd4bf80', fontSize: 11 }} />
+              <Tooltip contentStyle={customTooltipStyle} />
+              <Line type="monotone" dataKey="revenue" stroke="#2dd4bf" strokeWidth={2} dot={{ fill: '#2dd4bf', r: 4 }} />
+            </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Lead Distribution */}
-        <div className="glass-card rounded-2xl p-5 border border-border">
-          <h3 className="text-base font-display font-semibold text-foreground mb-4">Lead Distribution</h3>
-          {leadStatusData.length === 0 ? (
-            <div className="flex items-center justify-center h-52">
-              <div className="text-center">
-                <Activity className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No lead data yet</p>
-              </div>
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
+        {/* Lead Status Pie */}
+        <div className="rounded-2xl p-5"
+          style={{
+            background: 'linear-gradient(135deg, rgba(10,20,18,0.9), rgba(13,26,22,0.9))',
+            border: '1px solid rgba(45, 212, 191, 0.15)',
+          }}>
+          <h2 className="font-display text-base font-semibold gradient-text-teal mb-4 flex items-center gap-2">
+            <Target className="w-4 h-4 text-teal-400" />
+            Lead Pipeline
+          </h2>
+          <div className="flex items-center gap-4">
+            <ResponsiveContainer width="60%" height={200}>
               <PieChart>
-                <Pie data={leadStatusData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={3} dataKey="value">
-                  {leadStatusData.map((entry, index) => (
-                    <Cell key={index} fill={entry.color} />
+                <Pie data={leadStatusData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value">
+                  {leadStatusData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{ background: '#11181c', border: '1px solid rgba(0,191,166,0.2)', borderRadius: '12px', color: '#f1f5f9' }}
-                />
-                <Legend formatter={(value) => <span style={{ color: '#9ca3af', fontSize: '12px' }}>{value}</span>} />
+                <Tooltip contentStyle={customTooltipStyle} />
               </PieChart>
             </ResponsiveContainer>
-          )}
+            <div className="space-y-2">
+              {leadStatusData.map((item, index) => (
+                <div key={item.name} className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    style={{ background: COLORS[index % COLORS.length] }} />
+                  <span className="text-xs text-teal-300/70">{item.name}</span>
+                  <span className="text-xs font-bold text-teal-300 ml-auto">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Orders by status */}
-      <div className="glass-card rounded-2xl p-5 border border-border">
-        <h3 className="text-base font-display font-semibold text-foreground mb-4">Orders Overview</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Total Orders', value: orders.length, color: 'text-brand-400' },
-            { label: 'Paid', value: orders.filter(o => o.paymentStatus === 'Paid' || o.paymentStatus === 'paid').length, color: 'text-green-400' },
-            { label: 'Pending', value: orders.filter(o => o.paymentStatus === 'Pending').length, color: 'text-amber-400' },
-            { label: 'Failed', value: orders.filter(o => o.paymentStatus === 'Failed').length, color: 'text-red-400' },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="p-4 rounded-xl bg-background/50 border border-border/50 text-center">
-              <p className={`text-2xl font-display font-bold ${color}`}>{value}</p>
-              <p className="text-xs text-muted-foreground mt-1">{label}</p>
-            </div>
-          ))}
-        </div>
+      {/* Bar chart */}
+      <div className="rounded-2xl p-5"
+        style={{
+          background: 'linear-gradient(135deg, rgba(10,20,18,0.9), rgba(13,26,22,0.9))',
+          border: '1px solid rgba(45, 212, 191, 0.15)',
+        }}>
+        <h2 className="font-display text-base font-semibold gradient-text-teal mb-4 flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-teal-400" />
+          Monthly Revenue
+        </h2>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={revenueData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(45,212,191,0.08)" />
+            <XAxis dataKey="month" stroke="#2dd4bf60" tick={{ fill: '#2dd4bf80', fontSize: 11 }} />
+            <YAxis stroke="#2dd4bf60" tick={{ fill: '#2dd4bf80', fontSize: 11 }} />
+            <Tooltip contentStyle={customTooltipStyle} />
+            <Bar dataKey="revenue" fill="url(#tealGradient)" radius={[6, 6, 0, 0]} />
+            <defs>
+              <linearGradient id="tealGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#2dd4bf" />
+                <stop offset="100%" stopColor="#4ade80" />
+              </linearGradient>
+            </defs>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

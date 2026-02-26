@@ -1,74 +1,131 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Building an AI-powered sales system platform with automation features including Service Recommendation, Proposal Generator, and other Automation page tools, using a teal-green + black theme.",
+  "summary": "AI agency platform with multi-step build: Lead Management CRM (Step 1), Automation Dashboard with webhook-based Sales System Configuration (Step 2). Features include downloadable exports, invoice/GST quote generation, automation controls, API integrations (Razorpay, WhatsApp Cloud API, OpenRouter/OpenAI, Supabase, Airtable, Resend, Google Sheets, PDF generator), AI Smart Systems, and no-code configurable webhook automation engine.",
   "architectural_notes": [
-    "Teal-green + black color theme applied across the platform"
+    "All AI systems connect through external automation tools (e.g., Make.com) via webhook URLs — no direct backend API integration",
+    "Webhook triggers must use POST method with proper JSON format and Authorization headers; responses must be checked for 200 status",
+    "API credentials (Endpoint, Key, WhatsApp Token, Razorpay Key ID/Secret, Email API Key, CRM Webhook URL, Automation Webhook URL) must be persisted and included in all outbound requests"
   ],
   "known_issues": [
-    "Version 14 expired and needs to be rebuilt fresh"
+    "API settings fields not saving/sending correctly in Sales System Dashboard",
+    "Automation toggles not reliably enabling/disabling features",
+    "Webhook triggers not sending correct POST requests to Make.com/external APIs",
+    "AI responses (OpenRouter/OpenAI) not displaying in dashboard",
+    "Razorpay payment webhooks and WhatsApp auto-reply triggers not functioning correctly"
   ],
-  "isFixRequest": false,
-  "existing_features": [
-    {
-      "id": "feature-rebuild-the-automationpage-to-feature-a-dedicated-ai-sales-system-section-as-the-primary-focus-displaying-clearly-organized-panels-for-1-sales-system-configuration-api-endpoint-api-key-input-with-connection-test-2-automation-rules-toggles-e-g-whatsapp-auto-reply-proposal-auto-send-lead-follow-up-and-3-integration-status-indicators-the-page-must-use-the-teal-green-black-theme-consistently",
-      "title": "Rebuild the AutomationPage to feature a dedicated 'AI Sales System' section as the primary focus, displaying clearly organized panels for: (1) Sales System Configuration (API endpoint + API key input with connection test), (2) Automation Rules toggles (e.g., WhatsApp auto-reply, proposal auto-send, lead follow-up), and (3) Integration status indicators. The page must use the teal-green + black theme consistently.",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-rebuild-the-servicerecommendationpage-as-a-fully-functional-ai-powered-service-recommendation-tool-the-page-must-collect-business-type-budget-range-and-business-goals-from-the-user-via-a-form-then-call-the-configured-ai-api-endpoint-from-salessystemconfig-to-return-and-display-tailored-service-recommendations-with-name-description-and-a-suggested-pricing-tier-if-no-api-is-configured-show-a-fallback-rule-based-recommendation",
-      "title": "Rebuild the ServiceRecommendationPage as a fully functional AI-powered service recommendation tool. The page must collect: business type, budget range, and business goals from the user via a form, then call the configured AI/API endpoint (from SalesSystemConfig) to return and display tailored service recommendations with name, description, and a suggested pricing tier. If no API is configured, show a fallback rule-based recommendation.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-rebuild-the-proposalgeneratorpage-as-a-fully-functional-ai-powered-proposal-creation-tool-the-page-must-include-a-form-with-fields-for-client-name-client-business-type-selected-services-project-scope-notes-and-budget-on-submission-it-calls-the-configured-ai-api-endpoint-to-generate-a-professional-proposal-the-generated-proposal-must-be-displayed-in-a-formatted-preview-and-support-downloading-as-a-print-formatted-pdf",
-      "title": "Rebuild the ProposalGeneratorPage as a fully functional AI-powered proposal creation tool. The page must include a form with fields for: client name, client business type, selected services, project scope/notes, and budget. On submission, it calls the configured AI/API endpoint to generate a professional proposal. The generated proposal must be displayed in a formatted preview and support downloading as a print-formatted PDF.",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-a-useupdatesalessystemconfig-mutation-and-usegetsalessystemconfig-query-in-frontend-src-hooks-usequeries-ts-to-connect-the-frontend-sales-system-config-panel-to-the-backend-storage-functions",
-      "title": "Add a `useUpdateSalesSystemConfig` mutation and `useGetSalesSystemConfig` query in `frontend/src/hooks/useQueries.ts` to connect the frontend Sales System Config panel to the backend storage functions.",
-      "reqIds": [
-        "REQ-5"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-sidebar-navigation-entries-for-service-recommendation-and-proposal-generator-pages-under-an-ai-sales-tools-group-or-within-the-existing-automation-section-visible-to-admin-and-manager-roles-ensure-the-teal-green-black-theme-is-applied-to-nav-items-consistently",
-      "title": "Add sidebar navigation entries for 'Service Recommendation' and 'Proposal Generator' pages under an 'AI Sales Tools' group or within the existing automation section, visible to Admin and Manager roles. Ensure the teal-green + black theme is applied to nav items consistently.",
-      "reqIds": [
-        "REQ-6"
-      ],
-      "version": 1
-    }
-  ],
+  "isFixRequest": true,
+  "existing_features": [],
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "AI-powered sales system automation page with Service Recommendation and Proposal Generator features",
+      "summary": "Fix API settings fields (Endpoint, Key, WhatsApp Token, Razorpay Keys, Email API Key, CRM/Automation Webhook URLs) so values are properly saved and sent in requests",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Fix webhook triggers (form submission, lead qualification, payment success, project creation) to send POST requests with correct JSON format and headers",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Add error messages, logging, and response status checks (200 success confirmation) across all webhook and API calls",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Fix automation toggles so they truly enable/disable each feature (WhatsApp Auto-Reply, Proposal Auto-Send, Lead Follow-Up, Payment Confirmation, Project Onboarding)",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-5",
-      "summary": "Ensure the backend Motoko actor stores and retrieves the Sales System integration configuration (API endpoint URL and API key) per user/admin, and exposes query and update functions for getting and setting this configuration. This data should persist across sessions.",
+      "summary": "Ensure AI responses from OpenRouter/OpenAI display correctly in the dashboard for all AI Smart Systems modules",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Validate Razorpay payment webhooks and WhatsApp auto-reply triggers function correctly end-to-end",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Ensure PDF and CSV exports generate properly across all dashboard modules",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Fix the API settings configuration form so that all fields — API Endpoint, API Key, WhatsApp Token, Razorpay Key ID, Razorpay Secret, Email API Key, CRM Webhook URL, and Automation Webhook URL — are properly persisted to state/storage and included in all outgoing requests. Values must survive component re-renders and page navigation. Use a centralized config store (e.g., React context or persistent state via localStorage) so every module can read and use these values reliably.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-9",
+      "summary": "Fix all webhook trigger functions (form submission, lead qualification, payment success, project creation) to correctly send HTTP POST requests with proper JSON body and headers. Each trigger must include: Content-Type: application/json header, Authorization header using the saved API Key where required, and a structured JSON payload relevant to the event type. Use the saved CRM Webhook URL for CRM events and Automation Webhook URL for automation events from the API settings store.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-10",
+      "summary": "Add comprehensive error handling, logging, and response status validation to all webhook and API calls. For every outgoing request: catch network errors and show a user-visible error message specifying which webhook/API failed, log request details (URL, payload, timestamp) and response details (status, body) to a visible in-dashboard Webhook Log panel, confirm HTTP 200/2xx as success and display a success indicator, show a distinct error state for non-2xx responses including the status code and response message.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-11",
+      "summary": "Fix automation toggles on the Automation Page so each one truly enables or disables its corresponding feature. When a toggle is OFF, its automation must not fire (no webhook calls, no API calls, no UI triggers). When ON, the automation must be active. The following toggles must be fixed: WhatsApp Auto-Reply, Proposal Auto-Send (when lead is qualified), Lead Follow-Up Sequences, Payment Confirmation via Razorpay webhook, and Project Onboarding after payment success. Toggle state must persist across sessions.",
       "reqIds": [
         "REQ-4"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-12",
+      "summary": "Fix the AI Smart Systems modules (Service Recommendation, Proposal Generator, Pricing Strategy, Closing Scripts, Follow-Up Messages, Lead Qualification) so that AI responses from OpenRouter/OpenAI are correctly fetched and displayed in the dashboard. Each module must: build the correct API request using the saved API Endpoint and API Key, send the prompt with proper OpenAI-compatible JSON body format, handle the response and extract the generated text, and render the AI response in the relevant result area of the page.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-13",
+      "summary": "Fix Razorpay payment webhook handling and WhatsApp auto-reply triggers. For Razorpay: when a payment success event occurs (or is simulated), fire the Automation Webhook URL with a structured payment payload and update the lead/project status accordingly. For WhatsApp Auto-Reply: when the WhatsApp Auto-Reply toggle is ON and a lead is created or updated, send a POST request to the saved Automation Webhook URL with WhatsApp message payload (using the saved WhatsApp Token as authorization). Both flows must validate the webhook URL is configured before attempting.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-14",
+      "summary": "Ensure PDF and CSV exports work correctly across all dashboard modules including Leads, AI Smart Systems results, WhatsApp Logs, Invoices, and the Data Export Center. Fix any broken export functions: CSV exports must produce valid comma-separated files with headers and download to the user's browser; PDF exports must generate a formatted document and trigger a browser download. Each export button must show a loading state while generating and an error message if it fails.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-15",
+      "summary": "Add a real-time connection status indicator for each configured integration (API Endpoint, CRM Webhook URL, Automation Webhook URL, WhatsApp, Razorpay). Each indicator must show 'Connected' (green) when the last call to that endpoint returned a 2xx response, 'Error' (red) when the last call failed, and 'Not Configured' (grey) when the URL/key is empty. Add a 'Test Connection' button for CRM Webhook URL and Automation Webhook URL that sends a test POST payload and updates the indicator in real time.",
+      "reqIds": [
+        "REQ-8"
       ],
       "status": "pending"
     }
   ],
   "gameProjectType": "none",
-  "projectName": "Quick Bee Agency",
+  "projectName": "AI Agency Platform",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

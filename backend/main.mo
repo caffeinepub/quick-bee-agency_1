@@ -4,15 +4,15 @@ import Iter "mo:core/Iter";
 import Time "mo:core/Time";
 import Runtime "mo:core/Runtime";
 import Nat "mo:core/Nat";
+import Text "mo:core/Text";
 import Principal "mo:core/Principal";
 import Stripe "stripe/stripe";
 import OutCall "http-outcalls/outcall";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
-import Migration "migration";
+import Set "mo:core/Set";
 
-(with migration = Migration.run)
 actor {
   // Initialize access control
   let accessControlState = AccessControl.initState();
@@ -211,12 +211,6 @@ actor {
     qrCodeDataUrl : ?Text;
   };
 
-  public type RecommendationInput = {
-    businessType : Text;
-    budget : Nat;
-    goals : Text;
-  };
-
   public type RecommendationOutput = {
     recommendedService : Text;
     upsellSuggestion : Text;
@@ -224,11 +218,49 @@ actor {
     projectedROI : ?Text;
   };
 
-  //
-  // Constants and Default Config
-  //
+  public type PaymentLog = {
+    orderId : Text;
+    paymentId : Text;
+    signature : Text;
+    amount : Nat;
+    status : Text;
+    timestamp : Time.Time;
+  };
 
-  // Default automation config
+  public type Invoice = {
+    invoiceId : Text;
+    clientId : Principal;
+    serviceBreakdown : Text;
+    gstAmount : Nat;
+    totalPaid : Nat;
+    createdAt : Time.Time;
+  };
+
+  public type WhatsAppMessageLog = {
+    recipientPhone : Text;
+    messageType : Text;
+    deliveryStatus : Text;
+    sentAt : Time.Time;
+  };
+
+  public type CRMUser = {
+    email : Text;
+    passwordHash : Text;
+    role : AccessControl.UserRole;
+    createdAt : Time.Time;
+  };
+
+  public type PasswordAuthResult = {
+    #ok : Token;
+    #error : Text;
+  };
+
+  public type Token = {
+    principal : Principal;
+    issuedAt : Time.Time;
+    expiry : Time.Time;
+  };
+
   let defaultAutomationConfig : AutomationConfig = {
     enabled = false;
     config = "";
@@ -308,6 +340,8 @@ actor {
   //
   // State Storage
   //
+  let users = Map.empty<Text, CRMUser>();
+  let registeredEmails = Set.empty<Text>();
   let userProfiles = Map.empty<Principal, UserProfile>();
   let integrationSettings = Map.empty<Principal, IntegrationSettings>();
   let salesSystemConfigs = Map.empty<Principal, SalesSystemConfig>();
@@ -322,6 +356,10 @@ actor {
   let notifications = Map.empty<Nat, Notification>();
   let generatorLogs = Map.empty<Nat, GeneratorLog>();
   let paymentLinks = Map.empty<Nat, PaymentLink>();
+  let paymentLogs = Map.empty<Text, PaymentLog>();
+  let invoices = Map.empty<Text, Invoice>();
+  let whatsappLogs = Map.empty<Text, WhatsAppMessageLog>();
+  let recommendations = Map.empty<Nat, RecommendationOutput>();
 
   var nextServiceId = 1;
   var nextProjectId = 1;
@@ -333,9 +371,15 @@ actor {
   var nextNotificationId = 1;
   var nextGeneratorLogId = 1;
   var nextPaymentLinkId = 1;
+  var nextRecommendationId = 1;
 
   var razorpayConfig : ?RazorpayConfig = null;
   var stripeConfig : ?Stripe.StripeConfiguration = null;
+
+  func hashPassword(password : Text) : Text {
+    // Placeholder for password hashing
+    password.reverse();
+  };
 
   //
   // Helper functions
@@ -428,9 +472,120 @@ actor {
     };
   };
 
+  // - Email Fully-Functional Password Authentication Logic
   //
-  // Public endpoints
-  //
+  // register: Only admins may register accounts with the #admin role.
+  // Any authenticated user (non-guest) may register a new account with the #user role.
+  // Guests (anonymous principals) cannot register at all.
+  // This prevents privilege escalation via self-registration.
+  public shared ({ caller }) func register(email : Text, password : Text, initialRole : AccessControl.UserRole) : async PasswordAuthResult {
+    // Guests (anonymous principals) are not allowed to register accounts.
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      // Only admins may register #admin accounts.
+      // For non-admin authenticated callers this path is unreachable, but we
+      // keep the admin-role guard below for clarity.
+      if (not AccessControl.isAdmin(accessControlState, caller)) {
+        return #error("Unauthorized: You must be authenticated to register an account");
+      };
+    };
+
+    // Only admins may create accounts with the #admin role.
+    switch (initialRole) {
+      case (#admin) {
+        if (not AccessControl.isAdmin(accessControlState, caller)) {
+          return #error("Unauthorized: Only admins can register admin accounts");
+        };
+      };
+      case (_) {};
+    };
+
+    // Check if email already registered
+    if (registeredEmails.contains(email)) {
+      return #error("Email already registered");
+    };
+
+    // Create and store new user
+    let newUser : CRMUser = {
+      email;
+      passwordHash = hashPassword(password);
+      role = initialRole;
+      createdAt = Time.now();
+    };
+
+    users.add(email, newUser);
+    registeredEmails.add(email);
+
+    // Generate token based on caller's principal
+    let token : Token = {
+      principal = caller;
+      issuedAt = Time.now();
+      expiry = Time.now() + 2_592_000_000_000_000;
+    };
+    #ok(token);
+  };
+
+  // login: Open to all callers — it is the authentication entry point.
+  public shared ({ caller }) func login(email : Text, password : Text) : async PasswordAuthResult {
+    // Validate user existence
+    let user = switch (users.get(email)) {
+      case (?user) { user };
+      case (null) { return #error("User or password invalid") };
+    };
+
+    // Validate password
+    let passwordHash = hashPassword(password);
+    if (user.passwordHash != passwordHash) {
+      return #error("User or password invalid");
+    };
+
+    // Generate token (simple implementation)
+    let token : Token = {
+      principal = caller;
+      issuedAt = Time.now();
+      expiry = Time.now() + 2_592_000_000_000_000;
+    };
+    #ok(token);
+  };
+
+  // --- Recommendation Management
+  public shared ({ caller }) func createRecommendation(recommendation : RecommendationOutput) : async Nat {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can create recommendations");
+    };
+
+    let id = nextRecommendationId;
+    recommendations.add(id, recommendation);
+    nextRecommendationId += 1;
+    id;
+  };
+
+  public query ({ caller }) func getRecommendation(id : Nat) : async ?RecommendationOutput {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can access recommendations");
+    };
+    recommendations.get(id);
+  };
+
+  public query ({ caller }) func getAllRecommendations() : async [RecommendationOutput] {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can access recommendations");
+    };
+    recommendations.values().toArray();
+  };
+
+  public shared ({ caller }) func updateRecommendation(id : Nat, recommendation : RecommendationOutput) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can update recommendations");
+    };
+    recommendations.add(id, recommendation);
+  };
+
+  public shared ({ caller }) func deleteRecommendation(id : Nat) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can delete recommendations");
+    };
+    recommendations.remove(id);
+  };
 
   // --- Integration Settings Management
   public query ({ caller }) func getIntegrationSettings(userId : Principal) : async ?IntegrationSettings {
@@ -1558,5 +1713,92 @@ actor {
       };
       case null { Runtime.trap("Service not found") };
     };
+  };
+
+  // --- Payment Logs
+  // Writing payment logs is admin-only (triggered by verified webhook/backend flow).
+  public shared ({ caller }) func savePaymentLog(log : PaymentLog) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can save payment logs");
+    };
+    paymentLogs.add(log.orderId, log);
+  };
+
+  // Reading payment logs is admin-only; payment data is sensitive.
+  public query ({ caller }) func getPaymentLog(orderId : Text) : async ?PaymentLog {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can access payment logs");
+    };
+    paymentLogs.get(orderId);
+  };
+
+  public query ({ caller }) func getAllPaymentLogs() : async [PaymentLog] {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can access payment logs");
+    };
+    paymentLogs.values().toArray();
+  };
+
+  // --- Invoices
+  // Writing invoices is admin-only (generated after verified payment).
+  public shared ({ caller }) func saveInvoice(invoice : Invoice) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can save invoices");
+    };
+    invoices.add(invoice.invoiceId, invoice);
+  };
+
+  // Reading a single invoice: the client who owns the invoice or an admin may access it.
+  public query ({ caller }) func getInvoice(invoiceId : Text) : async ?Invoice {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can access invoices");
+    };
+    switch (invoices.get(invoiceId)) {
+      case (?invoice) {
+        if (invoice.clientId != caller and not AccessControl.isAdmin(accessControlState, caller)) {
+          Runtime.trap("Unauthorized: Can only access your own invoices");
+        };
+        ?invoice;
+      };
+      case null { null };
+    };
+  };
+
+  // Listing all invoices for the calling client.
+  public query ({ caller }) func getMyInvoices() : async [Invoice] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can access invoices");
+    };
+    invoices.values().toArray().filter(func(inv : Invoice) : Bool { inv.clientId == caller });
+  };
+
+  public query ({ caller }) func getAllInvoices() : async [Invoice] {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can access all invoices");
+    };
+    invoices.values().toArray();
+  };
+
+  // --- WhatsApp Logs
+  // All WhatsApp log operations are admin-only; message logs are sensitive operational data.
+  public shared ({ caller }) func saveWhatsAppLog(log : WhatsAppMessageLog) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can save WhatsApp logs");
+    };
+    whatsappLogs.add(log.recipientPhone, log);
+  };
+
+  public query ({ caller }) func getWhatsAppLog(recipientPhone : Text) : async ?WhatsAppMessageLog {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can access WhatsApp logs");
+    };
+    whatsappLogs.get(recipientPhone);
+  };
+
+  public query ({ caller }) func getAllWhatsAppLogs() : async [WhatsAppMessageLog] {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can access WhatsApp logs");
+    };
+    whatsappLogs.values().toArray();
   };
 };

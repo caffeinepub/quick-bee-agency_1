@@ -6,8 +6,7 @@ import { Skeleton } from '../components/ui/skeleton';
 
 export default function ProjectsPage() {
   const { identity } = useInternetIdentity();
-  // Convert Principal to string for the hook
-  const principalStr = identity?.getPrincipal().toString();
+  const principalStr = identity?.getPrincipal().toString() ?? '';
 
   const { data: projects = [], isLoading } = useGetProjectsByClient(principalStr);
   const { data: services = [] } = useGetAllServices();

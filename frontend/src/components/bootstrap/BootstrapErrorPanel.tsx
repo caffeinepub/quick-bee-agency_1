@@ -1,73 +1,76 @@
-import { AlertCircle } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import React from 'react';
+import { AlertTriangle, RefreshCw, Wifi, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface BootstrapErrorPanelProps {
-  error?: string;
   onRetry: () => void;
-  context?: 'login' | 'app';
-  isTimeout?: boolean;
+  errorType?: 'timeout' | 'connection';
 }
 
-export default function BootstrapErrorPanel({ 
-  error, 
-  onRetry, 
-  context = 'login',
-  isTimeout = false 
-}: BootstrapErrorPanelProps) {
-  const isLoginContext = context === 'login';
-
-  const getErrorMessage = () => {
-    if (isTimeout) {
-      return 'Connection timeout. The backend is taking longer than expected. Please check your network connection and try again in a moment.';
-    }
-    return error || 'Unable to connect to the backend. Please check your connection and try again.';
-  };
-
-  const getErrorTitle = () => {
-    if (isTimeout) {
-      return 'Connection Timeout';
-    }
-    return 'Initialization Error';
-  };
-
-  if (isLoginContext) {
-    return (
-      <Alert variant="destructive" className="mb-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>{getErrorTitle()}</AlertTitle>
-        <AlertDescription className="mt-2">
-          <p className="mb-3">
-            {getErrorMessage()}
-          </p>
-          <Button
-            onClick={onRetry}
-            variant="outline"
-            size="sm"
-            className="bg-background hover:bg-accent"
-          >
-            Retry Connection
-          </Button>
-        </AlertDescription>
-      </Alert>
-    );
-  }
+export default function BootstrapErrorPanel({ onRetry, errorType = 'timeout' }: BootstrapErrorPanelProps) {
+  const isTimeout = errorType === 'timeout';
 
   return (
-    <div className="flex items-center justify-center min-h-[400px] p-8">
-      <div className="glass-panel rounded-2xl p-8 max-w-md w-full text-center">
-        <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-foreground mb-2">{getErrorTitle()}</h2>
-        <p className="text-soft-gray mb-6">
-          {getErrorMessage()}
-        </p>
-        <Button
-          onClick={onRetry}
-          className="gradient-teal-glow text-black font-semibold hover:scale-105 transition-transform duration-300"
-        >
-          Retry Connection
-        </Button>
-      </div>
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 mesh-bg">
+      <Card className="w-full max-w-md shadow-card-lg">
+        <CardHeader className="text-center pb-2">
+          <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 ${
+            isTimeout ? 'bg-warning/10' : 'bg-destructive/10'
+          }`}>
+            {isTimeout ? (
+              <Clock size={24} className="text-warning" />
+            ) : (
+              <Wifi size={24} className="text-destructive" />
+            )}
+          </div>
+          <CardTitle className="font-heading text-xl">
+            {isTimeout ? 'Connection Timeout' : 'Connection Failed'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center space-y-4">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {isTimeout
+              ? 'The application is taking longer than expected to initialize. This may be due to network latency or the canister waking up.'
+              : 'Unable to connect to the backend. Please check your internet connection and try again.'}
+          </p>
+
+          <div className="bg-muted/50 rounded-lg p-3 text-left space-y-1.5">
+            <p className="text-xs font-semibold text-foreground">Troubleshooting tips:</p>
+            {isTimeout ? (
+              <>
+                <p className="text-xs text-muted-foreground">• Wait a few seconds and retry — the canister may be waking up</p>
+                <p className="text-xs text-muted-foreground">• Check your internet connection</p>
+                <p className="text-xs text-muted-foreground">• Try refreshing the page</p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">• Verify your internet connection is active</p>
+                <p className="text-xs text-muted-foreground">• Check if the ICP network is accessible</p>
+                <p className="text-xs text-muted-foreground">• Try again in a few moments</p>
+              </>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              onClick={onRetry}
+              className="flex-1 gap-2"
+            >
+              <RefreshCw size={14} />
+              Retry Connection
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => window.location.reload()}
+              className="flex-1 gap-2"
+            >
+              <AlertTriangle size={14} />
+              Reload Page
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

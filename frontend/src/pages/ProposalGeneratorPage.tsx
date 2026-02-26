@@ -1,530 +1,389 @@
-import React, { useState, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useState } from 'react';
+import { FileEdit, Download, Sparkles, Loader2, FileText, FileJson, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Wand2,
-  Loader2,
-  Download,
-  RefreshCw,
-  FileText,
-  Building2,
-  DollarSign,
-  ClipboardList,
-  CheckCircle2,
-  Calendar,
-  ArrowRight,
-} from 'lucide-react';
-import { useGenerateProposal, useGetAllServices, type ProposalFormData, type GeneratedProposal } from '../hooks/useQueries';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
-const BUSINESS_TYPES = [
-  'E-commerce',
-  'SaaS / Software',
-  'Local Business',
-  'Consulting / Agency',
-  'Healthcare',
-  'Education',
-  'Real Estate',
-  'Restaurant / Food',
-  'Fitness / Wellness',
-  'Finance / Fintech',
-  'Other',
-];
+interface ProposalData {
+  clientName: string;
+  clientEmail: string;
+  companyName: string;
+  scope: string;
+  deliverables: string[];
+  timeline: string;
+  basePrice: number;
+  addons: { name: string; price: number }[];
+  ctaText: string;
+  generatedAt: string;
+}
 
-function ProposalPreview({ proposal }: { proposal: GeneratedProposal }) {
-  return (
-    <div className="proposal-content space-y-6 text-foreground">
-      {/* Header */}
-      <div className="text-center space-y-2 pb-4 border-b border-border">
-        <h1 className="text-2xl font-bold text-primary">{proposal.title}</h1>
-        <p className="text-sm text-muted-foreground">Prepared for: {proposal.clientName}</p>
-        <p className="text-sm text-muted-foreground flex items-center justify-center gap-1.5">
-          <Calendar className="h-3.5 w-3.5" />
-          {proposal.date}
-        </p>
-      </div>
+function downloadFile(content: string, filename: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
-      {/* Executive Summary */}
-      <div className="space-y-2">
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-          <FileText className="h-4 w-4 text-primary" />
-          Executive Summary
-        </h2>
-        <p className="text-sm text-muted-foreground leading-relaxed">{proposal.executiveSummary}</p>
-      </div>
-
-      <Separator />
-
-      {/* Services Included */}
-      <div className="space-y-3">
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 text-primary" />
-          Services Included
-        </h2>
-        <div className="space-y-2">
-          {proposal.servicesIncluded.map((svc, idx) => (
-            <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-border">
-              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold shrink-0 mt-0.5">
-                {idx + 1}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{svc.name}</p>
-                  <Badge className="text-xs border border-primary/50 text-primary bg-primary/10">
-                    {svc.tier}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5">{svc.description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Scope */}
-      <div className="space-y-2">
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-          <ClipboardList className="h-4 w-4 text-primary" />
-          Project Scope
-        </h2>
-        <p className="text-sm text-muted-foreground leading-relaxed">{proposal.scope}</p>
-      </div>
-
-      <Separator />
-
-      {/* Investment */}
-      <div className="space-y-2">
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-          <DollarSign className="h-4 w-4 text-primary" />
-          Investment
-        </h2>
-        <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
-          <p className="text-sm font-medium text-foreground">{proposal.investment}</p>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Timeline */}
-      <div className="space-y-2">
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-primary" />
-          Timeline
-        </h2>
-        <p className="text-sm text-muted-foreground leading-relaxed">{proposal.timeline}</p>
-      </div>
-
-      <Separator />
-
-      {/* Next Steps */}
-      <div className="space-y-2">
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-          <ArrowRight className="h-4 w-4 text-primary" />
-          Next Steps
-        </h2>
-        <div className="space-y-1">
-          {proposal.nextSteps.split('\n').map((step, idx) => (
-            <p key={idx} className="text-sm text-muted-foreground">{step}</p>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+function getTimestamp() {
+  return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + 'Z';
 }
 
 export default function ProposalGeneratorPage() {
   const [clientName, setClientName] = useState('');
-  const [clientBusinessType, setClientBusinessType] = useState('');
-  const [customBusinessType, setCustomBusinessType] = useState('');
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [clientEmail, setClientEmail] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [scope, setScope] = useState('');
-  const [budget, setBudget] = useState('');
-  const [proposal, setProposal] = useState<GeneratedProposal | null>(null);
+  const [timeline, setTimeline] = useState('');
+  const [basePrice, setBasePrice] = useState('');
+  const [deliverables, setDeliverables] = useState<string[]>(['']);
+  const [addons, setAddons] = useState<{ name: string; price: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [proposal, setProposal] = useState<ProposalData | null>(null);
 
-  const proposalRef = useRef<HTMLDivElement>(null);
-  const generateProposal = useGenerateProposal();
-  const { data: services = [] } = useGetAllServices();
-
-  const toggleService = (serviceName: string) => {
-    setSelectedServices((prev) =>
-      prev.includes(serviceName) ? prev.filter((s) => s !== serviceName) : [...prev, serviceName]
-    );
+  const addDeliverable = () => setDeliverables([...deliverables, '']);
+  const removeDeliverable = (i: number) => setDeliverables(deliverables.filter((_, idx) => idx !== i));
+  const updateDeliverable = (i: number, val: string) => {
+    const updated = [...deliverables];
+    updated[i] = val;
+    setDeliverables(updated);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const addAddon = () => setAddons([...addons, { name: '', price: '' }]);
+  const removeAddon = (i: number) => setAddons(addons.filter((_, idx) => idx !== i));
+  const updateAddon = (i: number, field: 'name' | 'price', val: string) => {
+    const updated = [...addons];
+    updated[i] = { ...updated[i], [field]: val };
+    setAddons(updated);
+  };
 
-    if (!clientName.trim()) {
-      toast.error('Please enter the client name');
+  const handleGenerate = async () => {
+    if (!clientName || !scope || !basePrice) {
+      toast.error('Please fill in client name, scope, and base price');
       return;
     }
+    setLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    const finalBusinessType = clientBusinessType === 'Other' ? customBusinessType : clientBusinessType;
-    if (!finalBusinessType) {
-      toast.error('Please select or enter the client business type');
-      return;
-    }
-
-    if (selectedServices.length === 0) {
-      toast.error('Please select at least one service');
-      return;
-    }
-
-    const budgetNum = parseFloat(budget);
-    if (!budget || isNaN(budgetNum) || budgetNum <= 0) {
-      toast.error('Please enter a valid budget amount');
-      return;
-    }
-
-    const formData: ProposalFormData = {
-      clientName: clientName.trim(),
-      clientBusinessType: finalBusinessType,
-      selectedServices,
-      scope: scope.trim(),
-      budget: budgetNum,
+    const proposalData: ProposalData = {
+      clientName,
+      clientEmail,
+      companyName,
+      scope,
+      deliverables: deliverables.filter(d => d.trim()),
+      timeline,
+      basePrice: parseFloat(basePrice),
+      addons: addons.filter(a => a.name).map(a => ({ name: a.name, price: parseFloat(a.price) || 0 })),
+      ctaText: `Ready to transform your business? Let's get started today. Contact us at hello@quickbee.ai or reply to this proposal to proceed.`,
+      generatedAt: new Date().toISOString(),
     };
 
-    try {
-      const result = await generateProposal.mutateAsync(formData);
-      setProposal(result);
-      toast.success('Proposal generated successfully!');
-    } catch {
-      toast.error('Failed to generate proposal. Please try again.');
-    }
+    setProposal(proposalData);
+    setLoading(false);
+    toast.success('Proposal generated!');
   };
 
-  const handleDownloadPDF = () => {
+  const totalPrice = proposal
+    ? proposal.basePrice + proposal.addons.reduce((sum, a) => sum + a.price, 0)
+    : 0;
+
+  const generateHTML = (p: ProposalData) => `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Proposal for ${p.clientName}</title>
+<style>
+  body { font-family: 'Space Grotesk', sans-serif; background: #0B0F14; color: #f0f0f0; margin: 0; padding: 40px; }
+  .container { max-width: 800px; margin: 0 auto; }
+  .header { background: linear-gradient(135deg, #00F5D4, #00B3A4); padding: 40px; border-radius: 16px; margin-bottom: 32px; }
+  .header h1 { color: #0B0F14; font-size: 2rem; margin: 0 0 8px; }
+  .header p { color: #0B0F14; opacity: 0.8; margin: 0; }
+  .section { background: rgba(255,255,255,0.05); border: 1px solid rgba(0,245,212,0.2); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+  .section h2 { color: #00F5D4; font-size: 1.1rem; margin: 0 0 12px; }
+  .deliverable { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .price-row { display: flex; justify-content: space-between; padding: 8px 0; }
+  .total { font-size: 1.5rem; font-weight: bold; color: #00F5D4; }
+  .cta { background: linear-gradient(135deg, #00F5D4, #00B3A4); padding: 32px; border-radius: 16px; text-align: center; margin-top: 32px; }
+  .cta h2 { color: #0B0F14; margin: 0 0 8px; }
+  .cta p { color: #0B0F14; opacity: 0.8; margin: 0; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Business Proposal</h1>
+    <p>Prepared for ${p.clientName}${p.companyName ? ` — ${p.companyName}` : ''}</p>
+    <p>Generated: ${new Date(p.generatedAt).toLocaleDateString()}</p>
+  </div>
+  <div class="section">
+    <h2>Project Scope</h2>
+    <p>${p.scope}</p>
+  </div>
+  ${p.deliverables.length > 0 ? `<div class="section">
+    <h2>Deliverables</h2>
+    ${p.deliverables.map(d => `<div class="deliverable">✓ ${d}</div>`).join('')}
+  </div>` : ''}
+  ${p.timeline ? `<div class="section">
+    <h2>Timeline</h2>
+    <p>${p.timeline}</p>
+  </div>` : ''}
+  <div class="section">
+    <h2>Pricing Breakdown</h2>
+    <div class="price-row"><span>Base Service</span><span>$${p.basePrice.toLocaleString()}</span></div>
+    ${p.addons.map(a => `<div class="price-row"><span>${a.name}</span><span>$${a.price.toLocaleString()}</span></div>`).join('')}
+    <div class="price-row" style="border-top: 1px solid rgba(0,245,212,0.3); margin-top: 8px; padding-top: 8px;">
+      <span>Total Investment</span>
+      <span class="total">$${(p.basePrice + p.addons.reduce((s, a) => s + a.price, 0)).toLocaleString()}</span>
+    </div>
+  </div>
+  <div class="cta">
+    <h2>Ready to Get Started?</h2>
+    <p>${p.ctaText}</p>
+  </div>
+</div>
+</body>
+</html>`;
+
+  const downloadPDF = () => {
     if (!proposal) return;
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast.error('Please allow popups to download the PDF');
-      return;
-    }
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${proposal.title}</title>
-          <style>
-            body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #111; }
-            h1 { color: #14b8a6; font-size: 24px; text-align: center; }
-            h2 { color: #14b8a6; font-size: 16px; margin-top: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
-            p { color: #374151; line-height: 1.6; font-size: 14px; }
-            .service-item { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin: 8px 0; }
-            .investment-box { background: #f0fdfa; border: 1px solid #14b8a6; border-radius: 8px; padding: 12px; }
-            .badge { display: inline-block; background: #ccfbf1; color: #0f766e; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
-            hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
-            .text-center { text-align: center; }
-            .text-muted { color: #6b7280; }
-            @media print { body { padding: 20px; } }
-          </style>
-        </head>
-        <body>
-          <h1>${proposal.title}</h1>
-          <p class="text-center text-muted">Prepared for: ${proposal.clientName}</p>
-          <p class="text-center text-muted">${proposal.date}</p>
-          <hr/>
-          <h2>Executive Summary</h2>
-          <p>${proposal.executiveSummary}</p>
-          <hr/>
-          <h2>Services Included</h2>
-          ${proposal.servicesIncluded.map((s, i) => `
-            <div class="service-item">
-              <strong>${i + 1}. ${s.name}</strong> <span class="badge">${s.tier}</span>
-              <p>${s.description}</p>
-            </div>
-          `).join('')}
-          <hr/>
-          <h2>Project Scope</h2>
-          <p>${proposal.scope}</p>
-          <hr/>
-          <h2>Investment</h2>
-          <div class="investment-box"><p>${proposal.investment}</p></div>
-          <hr/>
-          <h2>Timeline</h2>
-          <p>${proposal.timeline}</p>
-          <hr/>
-          <h2>Next Steps</h2>
-          ${proposal.nextSteps.split('\n').map((s) => `<p>${s}</p>`).join('')}
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
+    const html = generateHTML(proposal);
+    downloadFile(html, `proposal_${getTimestamp()}.html`, 'text/html');
+    toast.success('Proposal downloaded as HTML (open in browser to print as PDF)');
   };
 
-  const handleReset = () => {
-    setProposal(null);
-    setClientName('');
-    setClientBusinessType('');
-    setCustomBusinessType('');
-    setSelectedServices([]);
-    setScope('');
-    setBudget('');
+  const downloadHTML = () => {
+    if (!proposal) return;
+    downloadFile(generateHTML(proposal), `proposal_${getTimestamp()}.html`, 'text/html');
+    toast.success('HTML downloaded');
+  };
+
+  const downloadDOC = () => {
+    if (!proposal) return;
+    const html = generateHTML(proposal);
+    downloadFile(html, `proposal_${getTimestamp()}.doc`, 'application/msword');
+    toast.success('DOC downloaded');
+  };
+
+  const downloadJSON = () => {
+    if (!proposal) return;
+    downloadFile(JSON.stringify({ ...proposal, totalPrice }, null, 2), `proposal_${getTimestamp()}.json`, 'application/json');
+    toast.success('JSON downloaded');
   };
 
   return (
-    <div className="p-6 space-y-8 max-w-6xl mx-auto">
+    <div className="space-y-8 animate-fade-in">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-          <Wand2 className="h-8 w-8 text-primary" />
-          Proposal Generator
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Generate professional, AI-powered proposals for your clients in seconds
-        </p>
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-2xl gradient-teal flex items-center justify-center neon-glow-sm">
+          <FileEdit className="w-6 h-6 text-[#0B0F14]" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold gradient-teal-text">AI Proposal Generator</h1>
+          <p className="text-sm text-[oklch(0.60_0.02_200)]">Generate branded proposals with one click</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {/* Form */}
-        <div className="lg:col-span-2">
-          <Card className="border-border bg-card sticky top-6">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" />
-                Proposal Details
-              </CardTitle>
-              <CardDescription>Fill in the client and project information</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Client Name */}
-                <div className="space-y-2">
-                  <Label className="text-foreground">Client Name</Label>
-                  <Input
-                    placeholder="e.g. Acme Corporation"
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                    className="bg-background border-border text-foreground placeholder:text-muted-foreground"
-                  />
-                </div>
+        <div className="glass rounded-2xl p-6 border border-[oklch(0.82_0.18_175/0.15)] space-y-5">
+          <h2 className="text-lg font-semibold text-[oklch(0.90_0.01_200)]">Proposal Details</h2>
 
-                {/* Client Business Type */}
-                <div className="space-y-2">
-                  <Label className="text-foreground">Client Business Type</Label>
-                  <Select value={clientBusinessType} onValueChange={setClientBusinessType}>
-                    <SelectTrigger className="bg-background border-border text-foreground">
-                      <SelectValue placeholder="Select business type" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border">
-                      {BUSINESS_TYPES.map((type) => (
-                        <SelectItem key={type} value={type} className="text-foreground hover:bg-muted">
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {clientBusinessType === 'Other' && (
-                    <Input
-                      placeholder="Describe the business type"
-                      value={customBusinessType}
-                      onChange={(e) => setCustomBusinessType(e.target.value)}
-                      className="bg-background border-border text-foreground placeholder:text-muted-foreground"
-                    />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Client Name *</Label>
+              <Input value={clientName} onChange={e => setClientName(e.target.value)} placeholder="John Smith"
+                className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]" />
+            </div>
+            <div>
+              <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Client Email</Label>
+              <Input value={clientEmail} onChange={e => setClientEmail(e.target.value)} placeholder="john@company.com" type="email"
+                className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]" />
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Company Name</Label>
+            <Input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Acme Corp"
+              className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]" />
+          </div>
+
+          <div>
+            <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Project Scope *</Label>
+            <Textarea value={scope} onChange={e => setScope(e.target.value)} placeholder="Describe the project scope..."
+              rows={3} className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)] resize-none" />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-[oklch(0.75_0.01_200)]">Deliverables</Label>
+              <Button onClick={addDeliverable} variant="ghost" size="sm" className="text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] h-7 px-2 rounded-lg">
+                <Plus className="w-3 h-3 mr-1" /> Add
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {deliverables.map((d, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input value={d} onChange={e => updateDeliverable(i, e.target.value)} placeholder={`Deliverable ${i + 1}`}
+                    className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]" />
+                  {deliverables.length > 1 && (
+                    <Button onClick={() => removeDeliverable(i)} variant="ghost" size="icon" className="text-[oklch(0.55_0.22_25)] hover:bg-[oklch(0.55_0.22_25/0.1)] rounded-xl shrink-0">
+                      <X className="w-4 h-4" />
+                    </Button>
                   )}
                 </div>
+              ))}
+            </div>
+          </div>
 
-                {/* Service Selection */}
-                <div className="space-y-2">
-                  <Label className="text-foreground">
-                    Select Services
-                    {selectedServices.length > 0 && (
-                      <Badge className="ml-2 text-xs bg-primary/20 text-primary border-primary/30">
-                        {selectedServices.length} selected
-                      </Badge>
-                    )}
-                  </Label>
-                  <ScrollArea className="h-36 rounded-md border border-border bg-background p-2">
-                    {services.length === 0 ? (
-                      <div className="space-y-2 p-1">
-                        {['Social Media Management', 'SEO Optimization', 'Content Marketing', 'Email Campaigns', 'PPC Advertising'].map((svc) => (
-                          <div key={svc} className="flex items-center gap-2">
-                            <Checkbox
-                              id={svc}
-                              checked={selectedServices.includes(svc)}
-                              onCheckedChange={() => toggleService(svc)}
-                              className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                            />
-                            <label htmlFor={svc} className="text-sm text-foreground cursor-pointer">
-                              {svc}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="space-y-2 p-1">
-                        {services.map((svc) => (
-                          <div key={String(svc.id)} className="flex items-center gap-2">
-                            <Checkbox
-                              id={String(svc.id)}
-                              checked={selectedServices.includes(svc.name)}
-                              onCheckedChange={() => toggleService(svc.name)}
-                              className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                            />
-                            <label htmlFor={String(svc.id)} className="text-sm text-foreground cursor-pointer">
-                              {svc.name}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </ScrollArea>
+          <div>
+            <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Timeline</Label>
+            <Input value={timeline} onChange={e => setTimeline(e.target.value)} placeholder="e.g. 4-6 weeks"
+              className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]" />
+          </div>
+
+          <div>
+            <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Base Price (USD) *</Label>
+            <Input type="number" value={basePrice} onChange={e => setBasePrice(e.target.value)} placeholder="5000"
+              className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]" />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-[oklch(0.75_0.01_200)]">Add-ons</Label>
+              <Button onClick={addAddon} variant="ghost" size="sm" className="text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] h-7 px-2 rounded-lg">
+                <Plus className="w-3 h-3 mr-1" /> Add
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {addons.map((a, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input value={a.name} onChange={e => updateAddon(i, 'name', e.target.value)} placeholder="Add-on name"
+                    className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]" />
+                  <Input type="number" value={a.price} onChange={e => updateAddon(i, 'price', e.target.value)} placeholder="Price"
+                    className="w-28 bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]" />
+                  <Button onClick={() => removeAddon(i)} variant="ghost" size="icon" className="text-[oklch(0.55_0.22_25)] hover:bg-[oklch(0.55_0.22_25/0.1)] rounded-xl shrink-0">
+                    <X className="w-4 h-4" />
+                  </Button>
                 </div>
+              ))}
+            </div>
+          </div>
 
-                {/* Project Scope */}
-                <div className="space-y-2">
-                  <Label className="text-foreground">Project Scope / Notes</Label>
-                  <Textarea
-                    placeholder="Describe the project scope, specific requirements, or any notes..."
-                    value={scope}
-                    onChange={(e) => setScope(e.target.value)}
-                    rows={3}
-                    className="bg-background border-border text-foreground placeholder:text-muted-foreground resize-none"
-                  />
-                </div>
-
-                {/* Budget */}
-                <div className="space-y-2">
-                  <Label className="text-foreground">Budget (USD)</Label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="number"
-                      placeholder="5000"
-                      value={budget}
-                      onChange={(e) => setBudget(e.target.value)}
-                      min="0"
-                      className="bg-background border-border text-foreground placeholder:text-muted-foreground pl-9"
-                    />
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                  disabled={generateProposal.isPending}
-                >
-                  {generateProposal.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Wand2 className="h-4 w-4 mr-2" />
-                      Generate Proposal
-                    </>
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+          <Button onClick={handleGenerate} disabled={loading}
+            className="w-full gradient-teal text-[#0B0F14] font-bold rounded-xl py-3 hover:opacity-90 transition-all neon-glow-sm disabled:opacity-50">
+            {loading ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating Proposal...</>
+            ) : (
+              <><Sparkles className="w-4 h-4 mr-2" />Generate Proposal</>
+            )}
+          </Button>
         </div>
 
-        {/* Proposal Preview */}
-        <div className="lg:col-span-3">
-          {generateProposal.isPending && (
-            <Card className="border-border bg-card">
-              <CardHeader>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  <span className="text-sm">Generating your proposal...</span>
+        {/* Preview */}
+        <div className="space-y-4">
+          {proposal ? (
+            <div className="space-y-4 animate-fade-in">
+              <div className="glass rounded-2xl overflow-hidden border border-[oklch(0.82_0.18_175/0.3)] neon-glow-sm">
+                {/* Proposal Header */}
+                <div className="gradient-teal p-6">
+                  <h2 className="text-2xl font-bold text-[#0B0F14]">Business Proposal</h2>
+                  <p className="text-[#0B0F14]/80 mt-1">Prepared for {proposal.clientName}{proposal.companyName ? ` — ${proposal.companyName}` : ''}</p>
+                  <p className="text-[#0B0F14]/60 text-sm mt-1">{new Date(proposal.generatedAt).toLocaleDateString()}</p>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Skeleton className="h-8 w-3/4 mx-auto" />
-                <Skeleton className="h-4 w-1/2 mx-auto" />
-                <Separator />
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Separator />
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-20 w-full rounded-lg" />
-                <Skeleton className="h-20 w-full rounded-lg" />
-              </CardContent>
-            </Card>
-          )}
 
-          {proposal && !generateProposal.isPending && (
-            <Card className="border-border bg-card">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                    Generated Proposal
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleReset}
-                      className="border-border hover:border-primary hover:text-primary"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                      New
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={handleDownloadPDF}
-                      className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                    >
-                      <Download className="h-3.5 w-3.5 mr-1.5" />
-                      Download PDF
-                    </Button>
+                <div className="p-6 space-y-4">
+                  {/* Scope */}
+                  <div className="glass rounded-xl p-4 border border-[oklch(0.82_0.18_175/0.15)]">
+                    <h3 className="text-sm font-semibold text-[oklch(0.82_0.18_175)] mb-2">Project Scope</h3>
+                    <p className="text-sm text-[oklch(0.80_0.01_200)]">{proposal.scope}</p>
+                  </div>
+
+                  {/* Deliverables */}
+                  {proposal.deliverables.length > 0 && (
+                    <div className="glass rounded-xl p-4 border border-[oklch(0.82_0.18_175/0.15)]">
+                      <h3 className="text-sm font-semibold text-[oklch(0.82_0.18_175)] mb-2">Deliverables</h3>
+                      <ul className="space-y-1">
+                        {proposal.deliverables.map((d, i) => (
+                          <li key={i} className="text-sm text-[oklch(0.80_0.01_200)] flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full gradient-teal shrink-0" />
+                            {d}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Timeline */}
+                  {proposal.timeline && (
+                    <div className="glass rounded-xl p-4 border border-[oklch(0.82_0.18_175/0.15)]">
+                      <h3 className="text-sm font-semibold text-[oklch(0.82_0.18_175)] mb-2">Timeline</h3>
+                      <p className="text-sm text-[oklch(0.80_0.01_200)]">{proposal.timeline}</p>
+                    </div>
+                  )}
+
+                  {/* Pricing */}
+                  <div className="glass rounded-xl p-4 border border-[oklch(0.82_0.18_175/0.15)]">
+                    <h3 className="text-sm font-semibold text-[oklch(0.82_0.18_175)] mb-3">Pricing Breakdown</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-[oklch(0.70_0.01_200)]">Base Service</span>
+                        <span className="text-[oklch(0.90_0.01_200)]">${proposal.basePrice.toLocaleString()}</span>
+                      </div>
+                      {proposal.addons.map((a, i) => (
+                        <div key={i} className="flex justify-between text-sm">
+                          <span className="text-[oklch(0.70_0.01_200)]">{a.name}</span>
+                          <span className="text-[oklch(0.90_0.01_200)]">${a.price.toLocaleString()}</span>
+                        </div>
+                      ))}
+                      <div className="border-t border-[oklch(0.82_0.18_175/0.2)] pt-2 flex justify-between">
+                        <span className="font-semibold text-[oklch(0.90_0.01_200)]">Total Investment</span>
+                        <span className="font-bold text-xl gradient-teal-text">${totalPrice.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CTA */}
+                  <div className="gradient-teal rounded-xl p-4 text-center">
+                    <h3 className="font-bold text-[#0B0F14] mb-1">Ready to Get Started?</h3>
+                    <p className="text-xs text-[#0B0F14]/80">{proposal.ctaText}</p>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[600px] pr-4">
-                  <div ref={proposalRef}>
-                    <ProposalPreview proposal={proposal} />
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          )}
+              </div>
 
-          {!proposal && !generateProposal.isPending && (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <Wand2 className="h-8 w-8 text-primary" />
+              {/* Download Buttons */}
+              <div className="glass rounded-2xl p-4 border border-[oklch(0.82_0.18_175/0.15)]">
+                <h3 className="font-semibold text-[oklch(0.75_0.01_200)] mb-3 flex items-center gap-2">
+                  <Download className="w-4 h-4 text-[oklch(0.82_0.18_175)]" />
+                  Export Proposal
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button onClick={downloadPDF} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
+                    <FileText className="w-3 h-3 mr-1" /> PDF
+                  </Button>
+                  <Button onClick={downloadHTML} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
+                    <FileText className="w-3 h-3 mr-1" /> HTML
+                  </Button>
+                  <Button onClick={downloadDOC} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
+                    <FileText className="w-3 h-3 mr-1" /> DOC
+                  </Button>
+                  <Button onClick={downloadJSON} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
+                    <FileJson className="w-3 h-3 mr-1" /> JSON
+                  </Button>
+                </div>
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">AI Proposal Generator</h3>
-              <p className="text-muted-foreground max-w-sm text-sm">
-                Fill in the client details on the left and click "Generate Proposal" to create a professional, customized proposal.
-              </p>
-              <div className="mt-6 grid grid-cols-3 gap-4 text-center">
-                {[
-                  { icon: <Building2 className="h-5 w-5 text-primary" />, label: 'Client Details' },
-                  { icon: <ClipboardList className="h-5 w-5 text-primary" />, label: 'Service Selection' },
-                  { icon: <FileText className="h-5 w-5 text-primary" />, label: 'PDF Export' },
-                ].map((item, idx) => (
-                  <div key={idx} className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 border border-border">
-                    {item.icon}
-                    <span className="text-xs text-muted-foreground">{item.label}</span>
-                  </div>
-                ))}
+            </div>
+          ) : (
+            <div className="glass rounded-2xl p-8 border border-[oklch(0.82_0.18_175/0.1)] flex flex-col items-center justify-center gap-3 text-center min-h-64">
+              <div className="w-16 h-16 rounded-2xl bg-[oklch(0.82_0.18_175/0.1)] flex items-center justify-center">
+                <FileEdit className="w-8 h-8 text-[oklch(0.82_0.18_175/0.5)]" />
               </div>
+              <p className="text-[oklch(0.60_0.02_200)] text-sm">Fill in the proposal details and click Generate to create a branded proposal</p>
             </div>
           )}
         </div>

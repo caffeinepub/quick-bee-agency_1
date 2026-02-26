@@ -1,107 +1,131 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T07:59:02.179Z",
+  "generatedAt": "2026-02-26T14:54:09.872Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 6,
-    "implemented": 5,
+    "total": 8,
+    "implemented": 0,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Rebuild the AutomationPage to feature a dedicated 'AI Sales System' section as the primary focus, displaying clearly organized panels for: (1) Sales System Configuration (API endpoint + API key input with connection test), (2) Automation Rules toggles (e.g., WhatsApp auto-reply, proposal auto-send, lead follow-up), and (3) Integration status indicators. The page must use the teal-green + black theme consistently.",
-        "status": "implemented",
+        "summary": "Fix the API settings configuration form so that all fields — API Endpoint, API Key, WhatsApp Token, Razorpay Key ID, Razorpay Secret, Email API Key, CRM Webhook URL, and Automation Webhook URL — are properly persisted to state/storage and included in all outgoing requests. Values must survive component re-renders and page navigation. Use a centralized config store (e.g., React context or persistent state via localStorage) so every module can read and use these values reliably.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/pages/AutomationPage.tsx",
-          "frontend/src/components/automation/SalesSystemConfigDialog.tsx"
+          "frontend/src/contexts/ApiConfigContext.tsx",
+          "frontend/src/main.tsx",
+          "frontend/src/components/settings/ApiSettingsPanel.tsx",
+          "frontend/src/pages/SettingsPage.tsx"
         ],
-        "matchedFiles": [
-          "frontend/src/pages/AutomationPage.tsx",
-          "frontend/src/components/automation/SalesSystemConfigDialog.tsx"
-        ]
+        "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Rebuild the ServiceRecommendationPage as a fully functional AI-powered service recommendation tool. The page must collect: business type, budget range, and business goals from the user via a form, then call the configured AI/API endpoint (from SalesSystemConfig) to return and display tailored service recommendations with name, description, and a suggested pricing tier. If no API is configured, show a fallback rule-based recommendation.",
-        "status": "implemented",
+        "summary": "Fix all webhook trigger functions (form submission, lead qualification, payment success, project creation) to correctly send HTTP POST requests with proper JSON body and headers. Each trigger must include: Content-Type: application/json header, Authorization header using the saved API Key where required, and a structured JSON payload relevant to the event type. Use the saved CRM Webhook URL for CRM events and Automation Webhook URL for automation events from the API settings store.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/pages/ServiceRecommendationPage.tsx",
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/utils/webhookTriggers.ts",
+          "frontend/src/pages/LeadsPage.tsx",
+          "frontend/src/pages/CheckoutPage.tsx",
+          "frontend/src/pages/ProjectsPage.tsx"
         ],
-        "matchedFiles": [
-          "frontend/src/pages/ServiceRecommendationPage.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ]
+        "matchedFiles": []
       },
       {
         "id": "REQ-3",
-        "summary": "Rebuild the ProposalGeneratorPage as a fully functional AI-powered proposal creation tool. The page must include a form with fields for: client name, client business type, selected services, project scope/notes, and budget. On submission, it calls the configured AI/API endpoint to generate a professional proposal. The generated proposal must be displayed in a formatted preview and support downloading as a print-formatted PDF.",
-        "status": "implemented",
+        "summary": "Add comprehensive error handling, logging, and response status validation to all webhook and API calls. For every outgoing request: catch network errors and show a user-visible error message specifying which webhook/API failed, log request details (URL, payload, timestamp) and response details (status, body) to a visible in-dashboard Webhook Log panel, confirm HTTP 200/2xx as success and display a success indicator, show a distinct error state for non-2xx responses including the status code and response message.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/pages/ProposalGeneratorPage.tsx",
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/contexts/WebhookLogContext.tsx",
+          "frontend/src/main.tsx",
+          "frontend/src/utils/webhookTriggers.ts",
+          "frontend/src/components/automation/WebhookLogPanel.tsx",
+          "frontend/src/pages/AutomationPage.tsx"
         ],
-        "matchedFiles": [
-          "frontend/src/pages/ProposalGeneratorPage.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ]
+        "matchedFiles": []
       },
       {
         "id": "REQ-4",
-        "summary": "Ensure the backend Motoko actor stores and retrieves the Sales System integration configuration (API endpoint URL and API key) per user/admin, and exposes query and update functions for getting and setting this configuration. This data should persist across sessions.",
-        "status": "unknown",
-        "plannedFiles": [],
+        "summary": "Fix automation toggles on the Automation Page so each one truly enables or disables its corresponding feature. When a toggle is OFF, its automation must not fire (no webhook calls, no API calls, no UI triggers). When ON, the automation must be active. The following toggles must be fixed: WhatsApp Auto-Reply, Proposal Auto-Send (when lead is qualified), Lead Follow-Up Sequences, Payment Confirmation via Razorpay webhook, and Project Onboarding after payment success. Toggle state must persist across sessions.",
+        "status": "missing",
+        "plannedFiles": [
+          "frontend/src/contexts/AutomationConfigContext.tsx",
+          "frontend/src/main.tsx",
+          "frontend/src/pages/AutomationPage.tsx",
+          "frontend/src/utils/webhookTriggers.ts",
+          "frontend/src/pages/LeadsPage.tsx"
+        ],
         "matchedFiles": []
       },
       {
         "id": "REQ-5",
-        "summary": "Add a `useUpdateSalesSystemConfig` mutation and `useGetSalesSystemConfig` query in `frontend/src/hooks/useQueries.ts` to connect the frontend Sales System Config panel to the backend storage functions.",
-        "status": "implemented",
+        "summary": "Fix the AI Smart Systems modules (Service Recommendation, Proposal Generator, Pricing Strategy, Closing Scripts, Follow-Up Messages, Lead Qualification) so that AI responses from OpenRouter/OpenAI are correctly fetched and displayed in the dashboard. Each module must: build the correct API request using the saved API Endpoint and API Key, send the prompt with proper OpenAI-compatible JSON body format, handle the response and extract the generated text, and render the AI response in the relevant result area of the page.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts"
+          "frontend/src/utils/aiClient.ts",
+          "frontend/src/pages/ServiceRecommendationPage.tsx",
+          "frontend/src/pages/ProposalGeneratorPage.tsx",
+          "frontend/src/pages/PricingStrategyPage.tsx",
+          "frontend/src/pages/generators/ClosingScriptsPage.tsx",
+          "frontend/src/pages/generators/FollowUpMessagesPage.tsx",
+          "frontend/src/pages/generators/LeadQualificationPage.tsx",
+          "frontend/src/App.tsx"
         ],
-        "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts"
-        ]
+        "matchedFiles": []
       },
       {
         "id": "REQ-6",
-        "summary": "Add sidebar navigation entries for 'Service Recommendation' and 'Proposal Generator' pages under an 'AI Sales Tools' group or within the existing automation section, visible to Admin and Manager roles. Ensure the teal-green + black theme is applied to nav items consistently.",
-        "status": "implemented",
+        "summary": "Fix Razorpay payment webhook handling and WhatsApp auto-reply triggers. For Razorpay: when a payment success event occurs (or is simulated), fire the Automation Webhook URL with a structured payment payload and update the lead/project status accordingly. For WhatsApp Auto-Reply: when the WhatsApp Auto-Reply toggle is ON and a lead is created or updated, send a POST request to the saved Automation Webhook URL with WhatsApp message payload (using the saved WhatsApp Token as authorization). Both flows must validate the webhook URL is configured before attempting.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/components/layout/SidebarNav.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/utils/razorpayWebhookHandler.ts",
+          "frontend/src/pages/PaymentSuccessPage.tsx",
+          "frontend/src/utils/whatsAppAutoReply.ts",
+          "frontend/src/pages/LeadsPage.tsx"
         ],
-        "matchedFiles": [
-          "frontend/src/components/layout/SidebarNav.tsx",
-          "frontend/src/App.tsx"
-        ]
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-7",
+        "summary": "Ensure PDF and CSV exports work correctly across all dashboard modules including Leads, AI Smart Systems results, WhatsApp Logs, Invoices, and the Data Export Center. Fix any broken export functions: CSV exports must produce valid comma-separated files with headers and download to the user's browser; PDF exports must generate a formatted document and trigger a browser download. Each export button must show a loading state while generating and an error message if it fails.",
+        "status": "missing",
+        "plannedFiles": [
+          "frontend/src/utils/exportUtils.ts",
+          "frontend/src/pages/LeadsPage.tsx",
+          "frontend/src/pages/ServiceRecommendationPage.tsx",
+          "frontend/src/pages/ProposalGeneratorPage.tsx",
+          "frontend/src/pages/PricingStrategyPage.tsx",
+          "frontend/src/pages/WhatsAppLogsPage.tsx",
+          "frontend/src/pages/InvoiceHistoryPage.tsx",
+          "frontend/src/pages/DataExportCenterPage.tsx"
+        ],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-8",
+        "summary": "Add a real-time connection status indicator for each configured integration (API Endpoint, CRM Webhook URL, Automation Webhook URL, WhatsApp, Razorpay). Each indicator must show 'Connected' (green) when the last call to that endpoint returned a 2xx response, 'Error' (red) when the last call failed, and 'Not Configured' (grey) when the URL/key is empty. Add a 'Test Connection' button for CRM Webhook URL and Automation Webhook URL that sends a test POST payload and updates the indicator in real time.",
+        "status": "missing",
+        "plannedFiles": [
+          "frontend/src/contexts/ConnectionStatusContext.tsx",
+          "frontend/src/main.tsx",
+          "frontend/src/components/settings/ConnectionStatusIndicator.tsx",
+          "frontend/src/components/settings/TestConnectionButton.tsx",
+          "frontend/src/components/settings/ApiSettingsPanel.tsx",
+          "frontend/src/utils/webhookTriggers.ts",
+          "frontend/src/utils/aiClient.ts",
+          "frontend/src/pages/AutomationPage.tsx"
+        ],
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
-    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
-    "frontend/src/components/automation/SalesSystemConfigDialog.tsx",
-    "frontend/src/components/layout/SidebarNav.tsx",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/AutomationPage.tsx",
-    "frontend/src/pages/ProjectDetailPage.tsx",
-    "frontend/src/pages/ProposalGeneratorPage.tsx",
-    "frontend/src/pages/ServiceDetailPage.tsx",
-    "frontend/src/pages/ServiceRecommendationPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

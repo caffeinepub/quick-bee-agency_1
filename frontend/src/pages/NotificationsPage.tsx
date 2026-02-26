@@ -34,9 +34,9 @@ export default function NotificationsPage() {
       notification.notificationType === 'lead_qualified' ||
       notification.notificationType === 'payment_confirmed'
     ) {
-      navigate({ to: '/leads' });
+      navigate({ to: '/authenticated/leads' });
     } else if (notification.notificationType === 'onboarding_started') {
-      navigate({ to: '/projects' });
+      navigate({ to: '/authenticated/projects' });
     }
   };
 
@@ -115,7 +115,7 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold font-heading text-foreground">Notifications</h1>
+        <h1 className="text-3xl font-bold font-display text-foreground">Notifications</h1>
         <p className="text-muted-foreground mt-1">Stay updated with your lead activities</p>
       </div>
 

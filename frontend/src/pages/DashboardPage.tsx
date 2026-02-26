@@ -1,204 +1,258 @@
 import React from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { TrendingUp, Package, FolderOpen, Users, ArrowUpRight, Zap, BarChart3, Activity } from 'lucide-react';
-import { useGetAllOrders, useGetAllServices, useGetAllLeads, useGetAllProjects, useIsCallerAdmin } from '../hooks/useQueries';
+import {
+  TrendingUp,
+  Users,
+  FolderOpen,
+  CreditCard,
+  ArrowRight,
+  Plus,
+  BarChart3,
+  Zap,
+  UserCheck,
+  ShoppingCart,
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useGetCallerUserProfile, useGetAllLeads, useGetAllOrders, useGetAllProjects } from '../hooks/useQueries';
+import { useIsCallerAdmin } from '../hooks/useQueries';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { data: userProfile } = useGetCallerUserProfile();
   const { data: isAdmin } = useIsCallerAdmin();
-  const { data: orders = [] } = useGetAllOrders();
-  const { data: services = [] } = useGetAllServices();
-  const { data: leads = [] } = useGetAllLeads();
-  const { data: projects = [] } = useGetAllProjects();
+  const { data: leads } = useGetAllLeads();
+  const { data: orders } = useGetAllOrders();
+  const { data: projects } = useGetAllProjects();
 
-  const totalRevenue = orders
-    .filter(o => o.paymentStatus === 'Paid' || o.paymentStatus === 'paid')
-    .reduce((sum, o) => sum + Number(o.amount), 0);
+  const totalRevenue = orders?.reduce((sum, o) => sum + Number(o.amount), 0) ?? 0;
+  const activeLeads = leads?.filter(l => l.status !== 'Closed' && l.status !== 'Lost').length ?? 0;
+  const activeProjects = projects?.filter(p => p.status === 'Active').length ?? 0;
+  const paidOrders = orders?.filter(o => o.paymentStatus === 'paid').length ?? 0;
 
-  const activeProjects = projects.filter(p => p.status === 'Active').length;
-  const conversionRate = leads.length > 0
-    ? Math.round((leads.filter(l => l.status === 'paid' || l.status === 'Closed').length / leads.length) * 100)
-    : 0;
-
-  const kpis = [
+  const kpiCards = [
     {
-      label: 'Total Revenue',
-      value: `₹${(totalRevenue / 100).toLocaleString('en-IN')}`,
-      icon: TrendingUp,
-      change: '+12.5%',
-      positive: true,
+      title: 'Total Revenue',
+      value: `₹${totalRevenue.toLocaleString()}`,
+      icon: <TrendingUp size={20} />,
+      gradient: 'stat-card-gradient',
+      change: '+12%',
     },
     {
-      label: 'Active Projects',
+      title: 'Active Leads',
+      value: activeLeads.toString(),
+      icon: <UserCheck size={20} />,
+      gradient: 'stat-card-gradient-cyan',
+      change: '+5',
+    },
+    {
+      title: 'Active Projects',
       value: activeProjects.toString(),
-      icon: FolderOpen,
-      change: '+3',
-      positive: true,
+      icon: <FolderOpen size={20} />,
+      gradient: 'stat-card-gradient-green',
+      change: '+2',
     },
     {
-      label: 'Total Orders',
-      value: orders.length.toString(),
-      icon: Package,
+      title: 'Paid Orders',
+      value: paidOrders.toString(),
+      icon: <CreditCard size={20} />,
+      gradient: 'stat-card-gradient-amber',
       change: '+8',
-      positive: true,
-    },
-    {
-      label: 'Conversion Rate',
-      value: `${conversionRate}%`,
-      icon: BarChart3,
-      change: '+2.1%',
-      positive: true,
     },
   ];
 
   const quickActions = [
-    { label: 'Add Lead', path: '/leads', icon: Users, desc: 'Capture new prospect' },
-    { label: 'New Service', path: '/services', icon: Package, desc: 'Create service listing' },
-    { label: 'View Analytics', path: '/analytics', icon: BarChart3, desc: 'Check performance' },
-    { label: 'Automation', path: '/automation', icon: Zap, desc: 'Configure AI tools' },
+    { label: 'Add Lead', icon: <Plus size={16} />, path: '/authenticated/leads', color: 'default' as const },
+    { label: 'View CRM', icon: <Users size={16} />, path: '/authenticated/crm', color: 'secondary' as const },
+    { label: 'Analytics', icon: <BarChart3 size={16} />, path: '/authenticated/analytics', color: 'secondary' as const },
+    { label: 'Automation', icon: <Zap size={16} />, path: '/authenticated/automation', color: 'secondary' as const },
   ];
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
+    <div className="space-y-6">
+      {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Welcome back! Here's what's happening.</p>
+          <h1 className="text-2xl font-heading font-bold text-foreground">
+            Welcome back, {userProfile?.name?.split(' ')[0] || 'there'} 👋
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            Here's what's happening with your sales today.
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-brand-400 animate-pulse" />
-          <span className="text-xs text-muted-foreground">Live</span>
+          <Badge variant="outline" className="text-xs">
+            {isAdmin ? 'Admin' : 'Member'}
+          </Badge>
+          <Button size="sm" onClick={() => navigate({ to: '/authenticated/leads' })}>
+            <Plus size={14} className="mr-1.5" />
+            New Lead
+          </Button>
         </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map(({ label, value, icon: Icon, change, positive }) => (
-          <div key={label} className="glass-card rounded-2xl p-5 card-hover border border-border">
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl gradient-brand-subtle border border-brand-500/20 flex items-center justify-center">
-                <Icon className="w-5 h-5 text-brand-400" />
+        {kpiCards.map((card) => (
+          <div
+            key={card.title}
+            className={`${card.gradient} rounded-xl p-5 text-white shadow-card`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                {card.icon}
               </div>
-              <span className={`text-xs font-medium px-2 py-1 rounded-lg ${
-                positive ? 'text-brand-400 bg-brand-500/10' : 'text-destructive bg-destructive/10'
-              }`}>
-                {change}
+              <span className="text-xs font-medium bg-white/20 px-2 py-0.5 rounded-full">
+                {card.change}
               </span>
             </div>
-            <p className="text-2xl font-display font-bold text-foreground">{value}</p>
-            <p className="text-sm text-muted-foreground mt-1">{label}</p>
+            <p className="text-2xl font-heading font-bold">{card.value}</p>
+            <p className="text-sm text-white/80 mt-0.5">{card.title}</p>
           </div>
         ))}
       </div>
 
       {/* Quick Actions */}
-      <div>
-        <h2 className="text-lg font-display font-semibold text-foreground mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map(({ label, path, icon: Icon, desc }) => (
-            <button
-              key={label}
-              onClick={() => navigate({ to: path })}
-              className="glass-card rounded-2xl p-5 text-left card-hover border border-border hover:border-brand-500/30 group transition-all"
-            >
-              <div className="w-10 h-10 rounded-xl gradient-brand-subtle border border-brand-500/20 flex items-center justify-center mb-3 group-hover:glow-brand-sm transition-all">
-                <Icon className="w-5 h-5 text-brand-400" />
-              </div>
-              <p className="text-sm font-semibold text-foreground group-hover:text-brand-400 transition-colors">{label}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
-              <ArrowUpRight className="w-3 h-3 text-brand-400/0 group-hover:text-brand-400/60 transition-all mt-2" />
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Leads */}
-        <div className="glass-card rounded-2xl p-5 border border-border">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-display font-semibold text-foreground">Recent Leads</h3>
-            <button
-              onClick={() => navigate({ to: '/leads' })}
-              className="text-xs text-brand-400 hover:text-brand-300 transition-colors"
-            >
-              View all →
-            </button>
+      <Card className="shadow-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-heading">Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {quickActions.map((action) => (
+              <Button
+                key={action.label}
+                variant={action.color}
+                size="sm"
+                onClick={() => navigate({ to: action.path })}
+                className="gap-1.5"
+              >
+                {action.icon}
+                {action.label}
+              </Button>
+            ))}
           </div>
-          {leads.length === 0 ? (
-            <div className="text-center py-8">
-              <Users className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No leads yet</p>
+        </CardContent>
+      </Card>
+
+      {/* Recent Activity Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Recent Leads */}
+        <Card className="shadow-card">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-heading">Recent Leads</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate({ to: '/authenticated/leads' })}
+                className="text-xs gap-1 h-7"
+              >
+                View all <ArrowRight size={12} />
+              </Button>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {leads.slice(0, 4).map(lead => (
-                <div key={lead.id.toString()} className="flex items-center gap-3 p-3 rounded-xl bg-background/50 border border-border/50">
-                  <div className="w-8 h-8 rounded-lg gradient-brand-subtle border border-brand-500/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-bold text-brand-400">{lead.name.charAt(0)}</span>
+          </CardHeader>
+          <CardContent>
+            {leads && leads.length > 0 ? (
+              <div className="space-y-2">
+                {leads.slice(0, 5).map((lead) => (
+                  <div
+                    key={String(lead.id)}
+                    className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{lead.name}</p>
+                      <p className="text-xs text-muted-foreground">{lead.channel} · {lead.microNiche}</p>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`text-xs ${
+                        lead.status === 'Closed' ? 'badge-success' :
+                        lead.status === 'Lost' ? 'badge-destructive' :
+                        lead.status === 'New Lead' ? 'badge-primary' :
+                        'badge-warning'
+                      }`}
+                    >
+                      {lead.status}
+                    </Badge>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{lead.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{lead.microNiche}</p>
-                  </div>
-                  <span className={`text-xs px-2 py-1 rounded-lg font-medium flex-shrink-0 ${
-                    lead.status === 'New Lead' ? 'text-brand-400 bg-brand-500/10' :
-                    lead.status === 'paid' ? 'text-green-400 bg-green-500/10' :
-                    'text-muted-foreground bg-muted/30'
-                  }`}>
-                    {lead.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <UserCheck size={32} className="mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No leads yet</p>
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => navigate({ to: '/authenticated/leads' })}
+                  className="mt-1 text-xs"
+                >
+                  Add your first lead
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Recent Orders */}
-        <div className="glass-card rounded-2xl p-5 border border-border">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-display font-semibold text-foreground">Recent Orders</h3>
-            <button
-              onClick={() => navigate({ to: '/payments' })}
-              className="text-xs text-brand-400 hover:text-brand-300 transition-colors"
-            >
-              View all →
-            </button>
-          </div>
-          {orders.length === 0 ? (
-            <div className="text-center py-8">
-              <Activity className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No orders yet</p>
+        <Card className="shadow-card">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-heading">Recent Orders</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate({ to: '/authenticated/payments' })}
+                className="text-xs gap-1 h-7"
+              >
+                View all <ArrowRight size={12} />
+              </Button>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {orders.slice(0, 4).map(order => (
-                <div key={order.id.toString()} className="flex items-center gap-3 p-3 rounded-xl bg-background/50 border border-border/50">
-                  <div className="w-8 h-8 rounded-lg gradient-brand-subtle border border-brand-500/20 flex items-center justify-center flex-shrink-0">
-                    <Package className="w-4 h-4 text-brand-400" />
+          </CardHeader>
+          <CardContent>
+            {orders && orders.length > 0 ? (
+              <div className="space-y-2">
+                {orders.slice(0, 5).map((order) => (
+                  <div
+                    key={String(order.id)}
+                    className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Order #{String(order.id)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(Number(order.createdAt) / 1_000_000).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-foreground">₹{Number(order.amount).toLocaleString()}</p>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${order.paymentStatus === 'paid' ? 'badge-success' : 'badge-warning'}`}
+                      >
+                        {order.paymentStatus}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">Order #{order.id.toString()}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(Number(order.createdAt) / 1_000_000).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-semibold text-brand-400">₹{(Number(order.amount) / 100).toLocaleString('en-IN')}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-lg ${
-                      order.paymentStatus === 'Paid' || order.paymentStatus === 'paid'
-                        ? 'text-green-400 bg-green-500/10'
-                        : 'text-amber-400 bg-amber-500/10'
-                    }`}>
-                      {order.paymentStatus}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <ShoppingCart size={32} className="mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No orders yet</p>
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => navigate({ to: '/authenticated/services' })}
+                  className="mt-1 text-xs"
+                >
+                  Browse services
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -1,91 +1,79 @@
-import { ReactNode } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useActor } from '../../hooks/useActor';
+import { useInternetIdentity } from '../../hooks/useInternetIdentity';
+import BootstrapErrorPanel from './BootstrapErrorPanel';
 import { useBootstrapWatchdog } from '../../hooks/useBootstrapWatchdog';
+import { Loader2 } from 'lucide-react';
 
 interface BootstrapGateProps {
-  isLoading: boolean;
-  hasError: boolean;
-  errorMessage?: string;
-  onRetry: () => void;
-  children: ReactNode;
-  fallback?: ReactNode;
-  loadingPhase?: 'connecting' | 'authenticating' | 'loading-profile' | 'initializing';
+  children: React.ReactNode;
 }
 
-export default function BootstrapGate({
-  isLoading,
-  hasError,
-  errorMessage,
-  onRetry,
-  children,
-  fallback,
-  loadingPhase = 'connecting'
-}: BootstrapGateProps) {
+type Phase = 'connecting' | 'authenticating' | 'loading-profile' | 'initializing' | 'ready';
+
+export default function BootstrapGate({ children }: BootstrapGateProps) {
+  const { isFetching: actorFetching, actor } = useActor();
+  const { isInitializing, identity } = useInternetIdentity();
+  const [phase, setPhase] = useState<Phase>('connecting');
   const { hasTimedOut, reset } = useBootstrapWatchdog();
 
-  const handleRetry = () => {
-    reset();
-    onRetry();
-  };
+  const isLoading = actorFetching || isInitializing || !actor;
 
-  const getLoadingMessage = () => {
-    switch (loadingPhase) {
-      case 'connecting':
-        return 'Connecting to backend...';
-      case 'authenticating':
-        return 'Authenticating...';
-      case 'loading-profile':
-        return 'Loading your profile...';
-      case 'initializing':
-        return 'Initializing services...';
-      default:
-        return 'Loading...';
+  useEffect(() => {
+    if (isInitializing) {
+      setPhase('authenticating');
+    } else if (actorFetching) {
+      setPhase('initializing');
+    } else if (actor) {
+      setPhase('ready');
+    } else {
+      setPhase('connecting');
     }
-  };
+  }, [isInitializing, actorFetching, actor]);
 
-  // Show error state if explicit error or timeout
-  if (hasError || hasTimedOut) {
-    if (fallback) {
-      return <>{fallback}</>;
-    }
-    
-    const displayError = hasTimedOut 
-      ? 'Connection timeout. The backend is taking longer than expected to respond. Please check your network connection and try again.'
-      : errorMessage || 'Unable to connect to the backend. Please check your connection and try again.';
-    
-    return (
-      <div className="min-h-screen bg-[#0F0F0F] flex items-center justify-center p-4">
-        <div className="glass-panel rounded-2xl p-8 max-w-md w-full text-center">
-          <div className="text-destructive text-5xl mb-4">⚠️</div>
-          <h2 className="text-xl font-semibold text-foreground mb-2">
-            {hasTimedOut ? 'Connection Timeout' : 'Initialization Error'}
-          </h2>
-          <p className="text-soft-gray mb-6">
-            {displayError}
-          </p>
-          <button
-            onClick={handleRetry}
-            className="px-6 py-2 gradient-teal-glow text-black font-semibold rounded-lg hover:scale-105 transition-transform duration-300"
-          >
-            Retry Connection
-          </button>
-        </div>
-      </div>
-    );
+  if (hasTimedOut && isLoading) {
+    return <BootstrapErrorPanel onRetry={reset} errorType="timeout" />;
   }
 
-  // Show loading state with progressive indicators
   if (isLoading) {
+    const phaseLabels: Record<Phase, string> = {
+      connecting: 'Connecting to network...',
+      authenticating: 'Authenticating...',
+      'loading-profile': 'Loading profile...',
+      initializing: 'Initializing...',
+      ready: 'Ready',
+    };
+
     return (
-      <div className="min-h-screen bg-[#0F0F0F] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#00C2A8] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <div className="text-[#00C2A8] text-xl mb-2">{getLoadingMessage()}</div>
-          <div className="text-soft-gray text-sm">Please wait...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center mesh-bg">
+        <div className="text-center space-y-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl overflow-hidden mb-2 logo-glow">
+            <img
+              src="/assets/generated/quickbee-logo.dim_256x256.png"
+              alt="QuickBee"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 size={16} className="animate-spin text-primary" />
+            <span className="text-sm font-medium">{phaseLabels[phase]}</span>
+          </div>
+          <div className="flex gap-1 justify-center">
+            {(['connecting', 'authenticating', 'initializing', 'ready'] as Phase[]).map((p, i) => (
+              <div
+                key={p}
+                className={`h-1 rounded-full transition-all duration-300 ${
+                  (['connecting', 'authenticating', 'initializing', 'ready'] as Phase[]).indexOf(phase) >= i
+                    ? 'w-6 bg-primary'
+                    : 'w-2 bg-muted'
+                }`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
-  // Render children when ready
   return <>{children}</>;
 }

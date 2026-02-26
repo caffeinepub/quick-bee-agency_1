@@ -1,421 +1,380 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, Calculator, TrendingUp, DollarSign, Zap, Clock, Layers } from 'lucide-react';
+import { useState } from 'react';
+import { DollarSign, Download, Sparkles, TrendingUp, FileText, FileJson, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Slider } from '@/components/ui/slider';
+import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
-type UrgencyLevel = 'low' | 'medium' | 'high' | 'critical';
-type ComplexityLevel = 'simple' | 'moderate' | 'complex' | 'enterprise';
+interface PricingResult {
+  basePrice: number;
+  urgencyMultiplier: number;
+  complexityMultiplier: number;
+  addonsTotal: number;
+  finalPrice: number;
+  psychologicalPrice: number;
+  profitMargin: number;
+  pricingSuggestion: string;
+  timestamp: string;
+}
 
-const URGENCY_OPTIONS: { value: UrgencyLevel; label: string; multiplier: number; description: string }[] = [
-  { value: 'low', label: 'Low', multiplier: 1.0, description: 'Standard timeline, no rush' },
-  { value: 'medium', label: 'Medium', multiplier: 1.25, description: 'Moderate urgency, 2-4 weeks' },
-  { value: 'high', label: 'High', multiplier: 1.5, description: 'Urgent, within 1-2 weeks' },
-  { value: 'critical', label: 'Critical', multiplier: 2.0, description: 'Immediate, within days' },
+const ADDONS = [
+  { id: 'rush', label: 'Rush Delivery', price: 500 },
+  { id: 'support', label: '3-Month Support', price: 300 },
+  { id: 'revisions', label: 'Unlimited Revisions', price: 200 },
+  { id: 'analytics', label: 'Analytics Dashboard', price: 400 },
+  { id: 'training', label: 'Team Training', price: 350 },
+  { id: 'seo', label: 'SEO Optimization', price: 250 },
 ];
 
-const COMPLEXITY_OPTIONS: { value: ComplexityLevel; label: string; multiplier: number; description: string }[] = [
-  { value: 'simple', label: 'Simple', multiplier: 1.0, description: 'Straightforward, well-defined scope' },
-  { value: 'moderate', label: 'Moderate', multiplier: 1.3, description: 'Some complexity, standard integrations' },
-  { value: 'complex', label: 'Complex', multiplier: 1.6, description: 'High complexity, custom solutions' },
-  { value: 'enterprise', label: 'Enterprise', multiplier: 2.2, description: 'Enterprise-grade, full customization' },
-];
+function downloadFile(content: string, filename: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function getTimestamp() {
+  return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + 'Z';
+}
+
+function getPsychologicalPrice(price: number): number {
+  if (price < 100) return Math.floor(price) - 0.01;
+  if (price < 1000) return Math.floor(price / 10) * 10 - 5;
+  if (price < 10000) return Math.floor(price / 100) * 100 - 1;
+  return Math.floor(price / 1000) * 1000 - 1;
+}
 
 export default function PricingStrategyPage() {
-  const navigate = useNavigate();
-
   const [basePrice, setBasePrice] = useState('');
-  const [urgency, setUrgency] = useState<UrgencyLevel>('low');
-  const [complexity, setComplexity] = useState<ComplexityLevel>('simple');
-  const [finalPrice, setFinalPrice] = useState(0);
-  const [breakdown, setBreakdown] = useState({
-    base: 0,
-    afterUrgency: 0,
-    afterComplexity: 0,
-    urgencyAmount: 0,
-    complexityAmount: 0,
-    urgencyMultiplier: 1.0,
-    complexityMultiplier: 1.0,
-  });
+  const [urgency, setUrgency] = useState([1.0]);
+  const [complexity, setComplexity] = useState([1.0]);
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
+  const [result, setResult] = useState<PricingResult | null>(null);
+  const [animating, setAnimating] = useState(false);
 
-  const selectedUrgency = URGENCY_OPTIONS.find((o) => o.value === urgency)!;
-  const selectedComplexity = COMPLEXITY_OPTIONS.find((o) => o.value === complexity)!;
-
-  useEffect(() => {
-    const base = parseFloat(basePrice) || 0;
-    const urgencyMult = selectedUrgency.multiplier;
-    const complexityMult = selectedComplexity.multiplier;
-
-    const afterUrgency = base * urgencyMult;
-    const afterComplexity = afterUrgency * complexityMult;
-    const urgencyAmount = afterUrgency - base;
-    const complexityAmount = afterComplexity - afterUrgency;
-
-    setFinalPrice(afterComplexity);
-    setBreakdown({
-      base,
-      afterUrgency,
-      afterComplexity,
-      urgencyAmount,
-      complexityAmount,
-      urgencyMultiplier: urgencyMult,
-      complexityMultiplier: complexityMult,
-    });
-  }, [basePrice, urgency, complexity, selectedUrgency, selectedComplexity]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+  const toggleAddon = (id: string) => {
+    setSelectedAddons(prev =>
+      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
+    );
   };
 
-  const formatPercent = (multiplier: number) => {
-    const percent = (multiplier - 1) * 100;
-    return percent === 0 ? 'No markup' : `+${percent.toFixed(0)}%`;
-  };
-
-  const getUrgencyColor = (value: UrgencyLevel) => {
-    switch (value) {
-      case 'low': return 'text-success';
-      case 'medium': return 'text-warning';
-      case 'high': return 'text-orange-500';
-      case 'critical': return 'text-destructive';
+  const handleCalculate = async () => {
+    const base = parseFloat(basePrice);
+    if (!base || base <= 0) {
+      toast.error('Please enter a valid base price');
+      return;
     }
+
+    setAnimating(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    const addonsTotal = ADDONS.filter(a => selectedAddons.includes(a.id)).reduce((sum, a) => sum + a.price, 0);
+    const finalPrice = base * urgency[0] * complexity[0] + addonsTotal;
+    const psychologicalPrice = getPsychologicalPrice(finalPrice);
+    const costEstimate = base * 0.4;
+    const profitMargin = ((finalPrice - costEstimate) / finalPrice) * 100;
+
+    let pricingSuggestion = '';
+    if (urgency[0] >= 1.5 && complexity[0] >= 1.5) {
+      pricingSuggestion = `Premium positioning recommended. Use $${psychologicalPrice.toLocaleString()} as your anchor price. Offer a "Standard" tier at $${(psychologicalPrice * 0.7).toFixed(0)} to make the premium feel justified.`;
+    } else if (urgency[0] >= 1.3) {
+      pricingSuggestion = `Urgency-based pricing is effective here. Present as "Limited availability" at $${psychologicalPrice.toLocaleString()}. Add a countdown timer to increase conversion by up to 30%.`;
+    } else if (complexity[0] >= 1.3) {
+      pricingSuggestion = `Complexity justifies premium pricing. Position at $${psychologicalPrice.toLocaleString()} and emphasize the expertise required. Bundle with a guarantee to reduce buyer hesitation.`;
+    } else {
+      pricingSuggestion = `Standard market pricing at $${psychologicalPrice.toLocaleString()}. Consider offering a payment plan (3x monthly) to increase accessibility and close rate.`;
+    }
+
+    const newResult: PricingResult = {
+      basePrice: base,
+      urgencyMultiplier: urgency[0],
+      complexityMultiplier: complexity[0],
+      addonsTotal,
+      finalPrice,
+      psychologicalPrice,
+      profitMargin,
+      pricingSuggestion,
+      timestamp: new Date().toISOString(),
+    };
+
+    setResult(newResult);
+    setAnimating(false);
+    toast.success('Pricing strategy calculated!');
   };
 
-  const getComplexityColor = (value: ComplexityLevel) => {
-    switch (value) {
-      case 'simple': return 'text-success';
-      case 'moderate': return 'text-warning';
-      case 'complex': return 'text-orange-500';
-      case 'enterprise': return 'text-destructive';
-    }
+  const downloadPDF = () => {
+    if (!result) return;
+    const content = `PRICING STRATEGY REPORT
+Generated: ${new Date(result.timestamp).toLocaleString()}
+${'='.repeat(60)}
+
+INPUTS
+Base Price: $${result.basePrice.toLocaleString()}
+Urgency Multiplier: ${result.urgencyMultiplier}x
+Complexity Multiplier: ${result.complexityMultiplier}x
+Add-ons Total: $${result.addonsTotal.toLocaleString()}
+
+${'='.repeat(60)}
+RESULTS
+Final Recommended Price: $${result.finalPrice.toFixed(2)}
+Psychological Price: $${result.psychologicalPrice.toLocaleString()}
+Profit Margin: ${result.profitMargin.toFixed(1)}%
+
+PRICING SUGGESTION
+${result.pricingSuggestion}
+${'='.repeat(60)}
+Generated by QuickBee AI Platform`;
+    downloadFile(content, `pricing_${getTimestamp()}.txt`, 'text/plain');
+    toast.success('PDF downloaded');
   };
+
+  const downloadExcel = () => {
+    if (!result) return;
+    const rows = [
+      'Field\tValue',
+      `Base Price\t$${result.basePrice}`,
+      `Urgency Multiplier\t${result.urgencyMultiplier}x`,
+      `Complexity Multiplier\t${result.complexityMultiplier}x`,
+      `Add-ons Total\t$${result.addonsTotal}`,
+      `Final Price\t$${result.finalPrice.toFixed(2)}`,
+      `Psychological Price\t$${result.psychologicalPrice}`,
+      `Profit Margin\t${result.profitMargin.toFixed(1)}%`,
+      `Pricing Suggestion\t${result.pricingSuggestion}`,
+    ];
+    downloadFile(rows.join('\n'), `pricing_${getTimestamp()}.csv`, 'text/csv');
+    toast.success('Excel downloaded');
+  };
+
+  const downloadCSV = () => {
+    if (!result) return;
+    const csv = `Field,Value\nBase Price,$${result.basePrice}\nUrgency Multiplier,${result.urgencyMultiplier}x\nComplexity Multiplier,${result.complexityMultiplier}x\nAdd-ons Total,$${result.addonsTotal}\nFinal Price,$${result.finalPrice.toFixed(2)}\nPsychological Price,$${result.psychologicalPrice}\nProfit Margin,${result.profitMargin.toFixed(1)}%\nTimestamp,${result.timestamp}`;
+    downloadFile(csv, `pricing_${getTimestamp()}.csv`, 'text/csv');
+    toast.success('CSV downloaded');
+  };
+
+  const downloadJSON = () => {
+    if (!result) return;
+    downloadFile(JSON.stringify(result, null, 2), `pricing_${getTimestamp()}.json`, 'application/json');
+    toast.success('JSON downloaded');
+  };
+
+  const addonsTotal = ADDONS.filter(a => selectedAddons.includes(a.id)).reduce((sum, a) => sum + a.price, 0);
+  const previewPrice = basePrice ? parseFloat(basePrice) * urgency[0] * complexity[0] + addonsTotal : 0;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate({ to: '/generators' })}
-            className="mb-4 text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Generators
-          </Button>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <Calculator className="w-5 h-5 text-primary" />
+    <div className="space-y-8 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-2xl gradient-teal flex items-center justify-center neon-glow-sm">
+          <DollarSign className="w-6 h-6 text-[#0B0F14]" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold gradient-teal-text">Dynamic Pricing Strategy</h1>
+          <p className="text-sm text-[oklch(0.60_0.02_200)]">Calculate optimal pricing with AI-powered suggestions</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Input Form */}
+        <div className="glass rounded-2xl p-6 border border-[oklch(0.82_0.18_175/0.15)] space-y-6">
+          <h2 className="text-lg font-semibold text-[oklch(0.90_0.01_200)]">Pricing Inputs</h2>
+
+          {/* Base Price */}
+          <div>
+            <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Base Price (USD)</Label>
+            <Input
+              type="number"
+              placeholder="e.g. 2000"
+              value={basePrice}
+              onChange={e => setBasePrice(e.target.value)}
+              className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]"
+            />
+          </div>
+
+          {/* Urgency Multiplier */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-[oklch(0.75_0.01_200)]">Urgency Multiplier</Label>
+              <span className="text-sm font-bold gradient-teal-text">{urgency[0].toFixed(1)}x</span>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold font-heading text-foreground">Pricing Strategy Engine</h1>
-              <p className="text-muted-foreground text-sm">Dynamic pricing calculator with urgency & complexity multipliers</p>
+            <Slider
+              value={urgency}
+              onValueChange={setUrgency}
+              min={1.0}
+              max={2.5}
+              step={0.1}
+              className="[&_[role=slider]]:bg-[oklch(0.82_0.18_175)] [&_[role=slider]]:border-[oklch(0.82_0.18_175)] [&_.relative]:bg-[oklch(0.20_0.02_200)]"
+            />
+            <div className="flex justify-between text-xs text-[oklch(0.50_0.02_200)] mt-1">
+              <span>Normal (1x)</span>
+              <span>Urgent (1.5x)</span>
+              <span>Critical (2.5x)</span>
             </div>
           </div>
+
+          {/* Complexity Multiplier */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-[oklch(0.75_0.01_200)]">Complexity Multiplier</Label>
+              <span className="text-sm font-bold gradient-teal-text">{complexity[0].toFixed(1)}x</span>
+            </div>
+            <Slider
+              value={complexity}
+              onValueChange={setComplexity}
+              min={1.0}
+              max={3.0}
+              step={0.1}
+              className="[&_[role=slider]]:bg-[oklch(0.82_0.18_175)] [&_[role=slider]]:border-[oklch(0.82_0.18_175)] [&_.relative]:bg-[oklch(0.20_0.02_200)]"
+            />
+            <div className="flex justify-between text-xs text-[oklch(0.50_0.02_200)] mt-1">
+              <span>Simple (1x)</span>
+              <span>Medium (2x)</span>
+              <span>Complex (3x)</span>
+            </div>
+          </div>
+
+          {/* Add-ons */}
+          <div>
+            <Label className="text-[oklch(0.75_0.01_200)] mb-3 block">Add-ons</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {ADDONS.map(addon => (
+                <label
+                  key={addon.id}
+                  className={cn(
+                    "flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all",
+                    selectedAddons.includes(addon.id)
+                      ? "border-[oklch(0.82_0.18_175/0.5)] bg-[oklch(0.82_0.18_175/0.1)]"
+                      : "border-[oklch(0.20_0.02_200)] hover:border-[oklch(0.82_0.18_175/0.3)]"
+                  )}
+                >
+                  <Checkbox
+                    checked={selectedAddons.includes(addon.id)}
+                    onCheckedChange={() => toggleAddon(addon.id)}
+                    className="border-[oklch(0.82_0.18_175/0.5)] data-[state=checked]:bg-[oklch(0.82_0.18_175)] data-[state=checked]:border-[oklch(0.82_0.18_175)]"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-[oklch(0.85_0.01_200)] truncate">{addon.label}</p>
+                    <p className="text-xs text-[oklch(0.82_0.18_175)]">+${addon.price}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Live Preview */}
+          {previewPrice > 0 && (
+            <div className="glass rounded-xl p-3 border border-[oklch(0.82_0.18_175/0.2)] flex items-center justify-between">
+              <span className="text-sm text-[oklch(0.65_0.02_200)]">Live Preview</span>
+              <span className="text-lg font-bold gradient-teal-text">${previewPrice.toFixed(2)}</span>
+            </div>
+          )}
+
+          <Button
+            onClick={handleCalculate}
+            disabled={animating}
+            className="w-full gradient-teal text-[#0B0F14] font-bold rounded-xl py-3 hover:opacity-90 transition-all neon-glow-sm disabled:opacity-50"
+          >
+            {animating ? (
+              <><span className="animate-spin mr-2">⚡</span>Calculating...</>
+            ) : (
+              <><Sparkles className="w-4 h-4 mr-2" />Calculate Optimal Price</>
+            )}
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Calculator Inputs */}
-          <div className="space-y-5">
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="text-foreground font-heading text-lg">Pricing Inputs</CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Set your base price and adjust multipliers
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {/* Base Price */}
+        {/* Results */}
+        <div className="space-y-4">
+          {result && !animating ? (
+            <div className="space-y-4 animate-price-reveal">
+              {/* Main Price Card */}
+              <div className="glass rounded-2xl p-6 border border-[oklch(0.82_0.18_175/0.4)] neon-glow text-center">
+                <p className="text-sm text-[oklch(0.60_0.02_200)] mb-2">Recommended Price</p>
+                <div className="text-5xl font-bold gradient-teal-text mb-1">
+                  ${result.psychologicalPrice.toLocaleString()}
+                </div>
+                <p className="text-xs text-[oklch(0.55_0.02_200)]">
+                  Calculated: ${result.finalPrice.toFixed(2)} → Psychological: ${result.psychologicalPrice.toLocaleString()}
+                </p>
+              </div>
+
+              {/* Breakdown */}
+              <div className="glass rounded-2xl p-5 border border-[oklch(0.82_0.18_175/0.15)] space-y-3">
+                <h3 className="font-semibold text-[oklch(0.82_0.18_175)] text-sm">Price Breakdown</h3>
                 <div className="space-y-2">
-                  <Label htmlFor="basePrice" className="text-foreground font-medium flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-primary" />
-                    Base Service Price (USD)
-                  </Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">$</span>
-                    <Input
-                      id="basePrice"
-                      type="number"
-                      value={basePrice}
-                      onChange={(e) => setBasePrice(e.target.value)}
-                      placeholder="e.g. 5000"
-                      min="0"
-                      className="pl-7 bg-input border-border text-foreground placeholder:text-muted-foreground text-lg font-semibold"
-                    />
-                  </div>
-                </div>
-
-                {/* Urgency Level */}
-                <div className="space-y-2">
-                  <Label className="text-foreground font-medium flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-primary" />
-                    Urgency Level
-                  </Label>
-                  <Select value={urgency} onValueChange={(v) => setUrgency(v as UrgencyLevel)}>
-                    <SelectTrigger className="bg-input border-border text-foreground">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover border-border">
-                      {URGENCY_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value} className="text-foreground">
-                          <div className="flex items-center justify-between gap-4 w-full">
-                            <span>{opt.label}</span>
-                            <span className="text-xs text-muted-foreground">{formatPercent(opt.multiplier)}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">{selectedUrgency.description}</p>
-                </div>
-
-                {/* Complexity Level */}
-                <div className="space-y-2">
-                  <Label className="text-foreground font-medium flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-primary" />
-                    Complexity Level
-                  </Label>
-                  <Select value={complexity} onValueChange={(v) => setComplexity(v as ComplexityLevel)}>
-                    <SelectTrigger className="bg-input border-border text-foreground">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover border-border">
-                      {COMPLEXITY_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value} className="text-foreground">
-                          <div className="flex items-center justify-between gap-4 w-full">
-                            <span>{opt.label}</span>
-                            <span className="text-xs text-muted-foreground">{formatPercent(opt.multiplier)}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">{selectedComplexity.description}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Multiplier Reference */}
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-foreground font-heading text-sm">Multiplier Reference</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">Urgency</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {URGENCY_OPTIONS.map((opt) => (
-                      <div
-                        key={opt.value}
-                        className={`p-2 rounded-md border text-xs ${
-                          urgency === opt.value
-                            ? 'border-primary/50 bg-primary/5'
-                            : 'border-border bg-muted/30'
-                        }`}
-                      >
-                        <span className="font-medium text-foreground">{opt.label}</span>
-                        <span className={`ml-2 ${getUrgencyColor(opt.value)}`}>×{opt.multiplier}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">Complexity</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {COMPLEXITY_OPTIONS.map((opt) => (
-                      <div
-                        key={opt.value}
-                        className={`p-2 rounded-md border text-xs ${
-                          complexity === opt.value
-                            ? 'border-primary/50 bg-primary/5'
-                            : 'border-border bg-muted/30'
-                        }`}
-                      >
-                        <span className="font-medium text-foreground">{opt.label}</span>
-                        <span className={`ml-2 ${getComplexityColor(opt.value)}`}>×{opt.multiplier}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Price Breakdown */}
-          <div className="space-y-5">
-            {/* Final Price Display */}
-            <Card className={`bg-card border-2 ${breakdown.base > 0 ? 'border-primary/50 shadow-yellow-sm' : 'border-border'}`}>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-muted-foreground text-sm font-medium uppercase tracking-wide mb-2">Final Price</p>
-                  <div className="text-5xl font-bold font-heading text-primary mb-2">
-                    {breakdown.base > 0 ? formatCurrency(finalPrice) : '$—'}
-                  </div>
-                  {breakdown.base > 0 && (
-                    <div className="flex items-center justify-center gap-2 mt-3">
-                      <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
-                        <TrendingUp className="w-3 h-3 mr-1" />
-                        {((finalPrice / breakdown.base - 1) * 100).toFixed(0)}% above base
-                      </Badge>
+                  {[
+                    { label: 'Base Price', value: `$${result.basePrice.toLocaleString()}` },
+                    { label: `Urgency (${result.urgencyMultiplier}x)`, value: `+$${(result.basePrice * (result.urgencyMultiplier - 1)).toFixed(2)}` },
+                    { label: `Complexity (${result.complexityMultiplier}x)`, value: `+$${(result.basePrice * result.urgencyMultiplier * (result.complexityMultiplier - 1)).toFixed(2)}` },
+                    { label: 'Add-ons', value: `+$${result.addonsTotal.toLocaleString()}` },
+                  ].map(row => (
+                    <div key={row.label} className="flex justify-between text-sm">
+                      <span className="text-[oklch(0.65_0.02_200)]">{row.label}</span>
+                      <span className="text-[oklch(0.85_0.01_200)]">{row.value}</span>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Price Breakdown */}
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-foreground font-heading text-lg">Price Breakdown</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {/* Base Price Row */}
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-muted-foreground" />
-                    <span className="text-foreground text-sm">Base Price</span>
-                  </div>
-                  <span className="text-foreground font-semibold">
-                    {breakdown.base > 0 ? formatCurrency(breakdown.base) : '$—'}
-                  </span>
-                </div>
-
-                <Separator className="bg-border" />
-
-                {/* Urgency Row */}
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${urgency === 'low' ? 'bg-success' : 'bg-warning'}`} />
-                    <div>
-                      <span className="text-foreground text-sm">Urgency: </span>
-                      <span className={`text-sm font-medium ${getUrgencyColor(urgency)}`}>{selectedUrgency.label}</span>
-                    </div>
-                    <Badge variant="outline" className="text-xs border-border text-muted-foreground">
-                      ×{selectedUrgency.multiplier}
-                    </Badge>
-                  </div>
-                  <div className="text-right">
-                    <span className={`font-semibold text-sm ${breakdown.urgencyAmount > 0 ? 'text-warning' : 'text-muted-foreground'}`}>
-                      {breakdown.base > 0
-                        ? breakdown.urgencyAmount > 0
-                          ? `+${formatCurrency(breakdown.urgencyAmount)}`
-                          : 'No markup'
-                        : '$—'}
-                    </span>
+                  ))}
+                  <div className="border-t border-[oklch(0.82_0.18_175/0.2)] pt-2 flex justify-between">
+                    <span className="font-semibold text-[oklch(0.85_0.01_200)]">Profit Margin</span>
+                    <span className="font-bold gradient-teal-text">{result.profitMargin.toFixed(1)}%</span>
                   </div>
                 </div>
+              </div>
 
-                {/* Complexity Row */}
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${complexity === 'simple' ? 'bg-success' : 'bg-orange-500'}`} />
-                    <div>
-                      <span className="text-foreground text-sm">Complexity: </span>
-                      <span className={`text-sm font-medium ${getComplexityColor(complexity)}`}>{selectedComplexity.label}</span>
-                    </div>
-                    <Badge variant="outline" className="text-xs border-border text-muted-foreground">
-                      ×{selectedComplexity.multiplier}
-                    </Badge>
+              {/* Strategy */}
+              <div className="glass rounded-2xl p-5 border border-[oklch(0.78_0.18_75/0.3)]">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 rounded-lg bg-[oklch(0.78_0.18_75/0.2)] flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 text-[oklch(0.85_0.18_75)]" />
                   </div>
-                  <div className="text-right">
-                    <span className={`font-semibold text-sm ${breakdown.complexityAmount > 0 ? 'text-orange-500' : 'text-muted-foreground'}`}>
-                      {breakdown.base > 0
-                        ? breakdown.complexityAmount > 0
-                          ? `+${formatCurrency(breakdown.complexityAmount)}`
-                          : 'No markup'
-                        : '$—'}
-                    </span>
-                  </div>
+                  <h3 className="font-semibold text-[oklch(0.85_0.18_75)] text-sm">Psychological Pricing Strategy</h3>
                 </div>
+                <p className="text-sm text-[oklch(0.80_0.01_200)] leading-relaxed">{result.pricingSuggestion}</p>
+              </div>
 
-                <Separator className="bg-border" />
-
-                {/* Total Row */}
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-primary" />
-                    <span className="text-foreground font-semibold">Total Price</span>
-                  </div>
-                  <span className="text-primary font-bold text-lg">
-                    {breakdown.base > 0 ? formatCurrency(finalPrice) : '$—'}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Client Presentation Card */}
-            {breakdown.base > 0 && (
-              <Card className="bg-card border-border">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-foreground font-heading text-sm">Client Presentation Summary</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Service Investment</span>
-                      <span className="text-foreground font-medium">{formatCurrency(finalPrice)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Urgency Premium</span>
-                      <span className="text-foreground font-medium">{formatPercent(breakdown.urgencyMultiplier)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Complexity Premium</span>
-                      <span className="text-foreground font-medium">{formatPercent(breakdown.complexityMultiplier)}</span>
-                    </div>
-                    <Separator className="bg-border my-2" />
-                    <div className="flex justify-between font-semibold">
-                      <span className="text-foreground">Total Investment</span>
-                      <span className="text-primary">{formatCurrency(finalPrice)}</span>
-                    </div>
-                  </div>
-                  <Button
-                    className="w-full mt-4 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
-                    onClick={() => navigate({ to: '/proposal-generator' })}
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    Generate Proposal with This Price
+              {/* Download Buttons */}
+              <div className="glass rounded-2xl p-4 border border-[oklch(0.82_0.18_175/0.15)]">
+                <h3 className="font-semibold text-[oklch(0.75_0.01_200)] mb-3 flex items-center gap-2">
+                  <Download className="w-4 h-4 text-[oklch(0.82_0.18_175)]" />
+                  Export Pricing Report
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button onClick={downloadPDF} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
+                    <FileText className="w-3 h-3 mr-1" /> PDF
                   </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                  <Button onClick={downloadExcel} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
+                    <FileSpreadsheet className="w-3 h-3 mr-1" /> Excel
+                  </Button>
+                  <Button onClick={downloadCSV} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
+                    <FileSpreadsheet className="w-3 h-3 mr-1" /> CSV
+                  </Button>
+                  <Button onClick={downloadJSON} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
+                    <FileJson className="w-3 h-3 mr-1" /> JSON
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : animating ? (
+            <div className="glass rounded-2xl p-8 border border-[oklch(0.82_0.18_175/0.3)] flex flex-col items-center justify-center gap-4 animate-glow-pulse min-h-64">
+              <div className="text-5xl animate-bounce">⚡</div>
+              <p className="text-[oklch(0.82_0.18_175)] font-semibold">Calculating optimal price...</p>
+            </div>
+          ) : (
+            <div className="glass rounded-2xl p-8 border border-[oklch(0.82_0.18_175/0.1)] flex flex-col items-center justify-center gap-3 text-center min-h-64">
+              <div className="w-16 h-16 rounded-2xl bg-[oklch(0.82_0.18_175/0.1)] flex items-center justify-center">
+                <DollarSign className="w-8 h-8 text-[oklch(0.82_0.18_175/0.5)]" />
+              </div>
+              <p className="text-[oklch(0.60_0.02_200)] text-sm">Enter your pricing inputs and click Calculate to get AI-powered pricing recommendations</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
-  );
-}
-
-// Need to import FileText for the button
-function FileText(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-      <path d="M10 9H8" />
-      <path d="M16 13H8" />
-      <path d="M16 17H8" />
-    </svg>
   );
 }

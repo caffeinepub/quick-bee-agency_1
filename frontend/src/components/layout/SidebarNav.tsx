@@ -1,179 +1,228 @@
-import React from 'react';
-import { useNavigate, useLocation } from '@tanstack/react-router';
+import React, { useState } from 'react';
+import { useNavigate, useRouterState } from '@tanstack/react-router';
+import { useInternetIdentity } from '../../hooks/useInternetIdentity';
+import { useQueryClient } from '@tanstack/react-query';
+import { useGetCallerUserProfile, useGetCallerUserRole, useIsCallerAdmin } from '../../hooks/useQueries';
 import {
   LayoutDashboard,
   Users,
-  ShoppingBag,
+  Briefcase,
+  FolderOpen,
   CreditCard,
   BarChart3,
+  Zap,
+  Wand2,
+  Bell,
+  MessageSquare,
+  FileText,
   Settings,
   LogOut,
-  Zap,
-  FolderOpen,
-  Bell,
-  Scale,
-  GitBranch,
-  Sparkles,
-  Wand2,
+  ShoppingCart,
+  Download,
+  ChevronDown,
+  ChevronRight,
+  Bot,
+  UserCheck,
 } from 'lucide-react';
-import { useInternetIdentity } from '../../hooks/useInternetIdentity';
-import { useGetCallerUserRole } from '../../hooks/useQueries';
-import { useQueryClient } from '@tanstack/react-query';
 
 interface NavItem {
   label: string;
   path: string;
   icon: React.ReactNode;
   roles?: string[];
-  group?: string;
+  badge?: string;
 }
 
-const navItems: NavItem[] = [
-  { label: 'Dashboard', path: '/', icon: <LayoutDashboard className="h-4 w-4" /> },
-  { label: 'Services', path: '/services', icon: <ShoppingBag className="h-4 w-4" /> },
-  { label: 'Leads', path: '/leads', icon: <Users className="h-4 w-4" />, roles: ['admin', 'user'] },
-  { label: 'CRM', path: '/crm', icon: <GitBranch className="h-4 w-4" />, roles: ['admin', 'user'] },
-  { label: 'Projects', path: '/projects', icon: <FolderOpen className="h-4 w-4" />, roles: ['admin', 'user'] },
-  { label: 'Payments', path: '/payments', icon: <CreditCard className="h-4 w-4" />, roles: ['admin'] },
-  { label: 'Analytics', path: '/analytics', icon: <BarChart3 className="h-4 w-4" />, roles: ['admin'] },
-  { label: 'Automation', path: '/automation', icon: <Zap className="h-4 w-4" />, roles: ['admin', 'user'] },
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
   {
-    label: 'Service Recommendation',
-    path: '/service-recommendation',
-    icon: <Sparkles className="h-4 w-4" />,
-    roles: ['admin', 'user'],
-    group: 'AI Sales Tools',
+    label: 'Overview',
+    items: [
+      { label: 'Dashboard', path: '/authenticated', icon: <LayoutDashboard size={16} /> },
+    ],
   },
   {
-    label: 'Proposal Generator',
-    path: '/proposal-generator',
-    icon: <Wand2 className="h-4 w-4" />,
-    roles: ['admin', 'user'],
-    group: 'AI Sales Tools',
+    label: 'Sales',
+    items: [
+      { label: 'Leads', path: '/authenticated/leads', icon: <UserCheck size={16} /> },
+      { label: 'CRM Pipeline', path: '/authenticated/crm', icon: <Users size={16} /> },
+      { label: 'Services', path: '/authenticated/services', icon: <Briefcase size={16} /> },
+    ],
   },
-  { label: 'Notifications', path: '/notifications', icon: <Bell className="h-4 w-4" />, roles: ['admin', 'user'] },
-  { label: 'Legal', path: '/legal', icon: <Scale className="h-4 w-4" /> },
-  { label: 'Settings', path: '/settings', icon: <Settings className="h-4 w-4" />, roles: ['admin'] },
+  {
+    label: 'Operations',
+    items: [
+      { label: 'Projects', path: '/authenticated/projects', icon: <FolderOpen size={16} /> },
+      { label: 'Payments', path: '/authenticated/payments', icon: <CreditCard size={16} /> },
+      { label: 'Invoices', path: '/authenticated/invoices', icon: <FileText size={16} /> },
+      { label: 'Cart', path: '/authenticated/cart', icon: <ShoppingCart size={16} /> },
+    ],
+  },
+  {
+    label: 'Intelligence',
+    items: [
+      { label: 'Analytics', path: '/authenticated/analytics', icon: <BarChart3 size={16} /> },
+      { label: 'AI Generators', path: '/authenticated/generators', icon: <Wand2 size={16} /> },
+      { label: 'Automation', path: '/authenticated/automation', icon: <Zap size={16} /> },
+    ],
+  },
+  {
+    label: 'Communication',
+    items: [
+      { label: 'Notifications', path: '/authenticated/notifications', icon: <Bell size={16} /> },
+      { label: 'WhatsApp Logs', path: '/authenticated/whatsapp-logs', icon: <MessageSquare size={16} /> },
+    ],
+  },
+  {
+    label: 'Admin',
+    items: [
+      { label: 'Data Export', path: '/authenticated/data-export', icon: <Download size={16} />, roles: ['admin'] },
+      { label: 'Legal', path: '/authenticated/legal', icon: <FileText size={16} />, roles: ['admin'] },
+      { label: 'Settings', path: '/authenticated/settings', icon: <Settings size={16} />, roles: ['admin'] },
+    ],
+  },
 ];
 
 export default function SidebarNav() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { clear, identity } = useInternetIdentity();
+  const routerState = useRouterState();
+  const currentPath = routerState.location.pathname;
+  const { clear } = useInternetIdentity();
   const queryClient = useQueryClient();
+  const { data: userProfile } = useGetCallerUserProfile();
   const { data: userRole } = useGetCallerUserRole();
-
-  const currentPath = location.pathname;
-
-  const isVisible = (item: NavItem): boolean => {
-    if (!item.roles) return true;
-    if (!identity) return false;
-    const role = userRole ?? 'user';
-    return item.roles.includes(role);
-  };
+  const { data: isAdmin } = useIsCallerAdmin();
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   const handleLogout = async () => {
     await clear();
     queryClient.clear();
-    navigate({ to: '/login' });
+    navigate({ to: '/' });
   };
 
-  // Group items
-  const mainItems = navItems.filter((item) => !item.group && isVisible(item));
-  const aiToolItems = navItems.filter((item) => item.group === 'AI Sales Tools' && isVisible(item));
+  const toggleGroup = (label: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  };
+
+  const isActive = (path: string) => {
+    if (path === '/authenticated') {
+      return currentPath === '/authenticated' || currentPath === '/authenticated/';
+    }
+    return currentPath.startsWith(path);
+  };
+
+  const canSeeItem = (item: NavItem) => {
+    if (!item.roles) return true;
+    if (item.roles.includes('admin') && isAdmin) return true;
+    return false;
+  };
+
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
 
   return (
-    <nav className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
+    <aside className="w-60 flex flex-col h-full sidebar-gradient border-r border-sidebar-border shrink-0">
       {/* Logo */}
-      <div className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <Zap className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <div>
-            <p className="text-sm font-bold text-sidebar-foreground">QuickBee</p>
-            <p className="text-xs text-sidebar-foreground/60">Sales Platform</p>
-          </div>
+      <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border">
+        <div className="w-9 h-9 rounded-xl overflow-hidden logo-glow shrink-0">
+          <img
+            src="/assets/generated/quickbee-logo.dim_256x256.png"
+            alt="QuickBee"
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div>
+          <span className="text-sidebar-foreground font-heading font-bold text-base leading-tight">QuickBee</span>
+          <p className="text-xs text-sidebar-foreground/50 leading-tight">Sales CRM</p>
         </div>
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
-        {/* Main nav items */}
-        {mainItems.map((item) => {
-          const isActive = currentPath === item.path || (item.path !== '/' && currentPath.startsWith(item.path));
+      <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-1">
+        {navGroups.map((group) => {
+          const visibleItems = group.items.filter(canSeeItem);
+          if (visibleItems.length === 0) return null;
+
+          const isCollapsed = collapsedGroups.has(group.label);
+
           return (
-            <button
-              key={item.path}
-              onClick={() => navigate({ to: item.path })}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 text-left ${
-                isActive
-                  ? 'bg-primary text-primary-foreground font-medium shadow-sm'
-                  : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-              }`}
-            >
-              <span className={isActive ? 'text-primary-foreground' : 'text-sidebar-foreground/60'}>
-                {item.icon}
-              </span>
-              {item.label}
-            </button>
+            <div key={group.label} className="mb-1">
+              <button
+                onClick={() => toggleGroup(group.label)}
+                className="w-full flex items-center justify-between px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/40 hover:text-sidebar-foreground/60 transition-colors"
+              >
+                <span>{group.label}</span>
+                {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+              </button>
+
+              {!isCollapsed && (
+                <div className="space-y-0.5 mt-0.5">
+                  {visibleItems.map((item) => (
+                    <button
+                      key={item.path}
+                      onClick={() => navigate({ to: item.path })}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                        isActive(item.path)
+                          ? 'bg-sidebar-accent text-sidebar-primary border-l-2 border-sidebar-primary pl-[10px]'
+                          : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                      }`}
+                    >
+                      <span className={isActive(item.path) ? 'text-sidebar-primary' : 'text-sidebar-foreground/50'}>
+                        {item.icon}
+                      </span>
+                      <span>{item.label}</span>
+                      {item.badge && (
+                        <span className="ml-auto text-xs bg-sidebar-primary/20 text-sidebar-primary px-1.5 py-0.5 rounded-full">
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           );
         })}
+      </nav>
 
-        {/* AI Sales Tools Group */}
-        {aiToolItems.length > 0 && (
-          <div className="pt-2">
-            <p className="px-3 py-1 text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider">
-              AI Sales Tools
-            </p>
-            {aiToolItems.map((item) => {
-              const isActive = currentPath === item.path;
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => navigate({ to: item.path })}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 text-left ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground font-medium shadow-sm'
-                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-                  }`}
-                >
-                  <span className={isActive ? 'text-primary-foreground' : 'text-primary/70'}>
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </button>
-              );
-            })}
+      {/* User profile footer */}
+      <div className="border-t border-sidebar-border p-3">
+        <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-sidebar-accent/50 transition-colors">
+          <div className="w-8 h-8 rounded-full bg-sidebar-primary/20 flex items-center justify-center shrink-0">
+            <span className="text-xs font-bold text-sidebar-primary">
+              {userProfile?.name ? getInitials(userProfile.name) : <Bot size={14} />}
+            </span>
           </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="p-3 border-t border-sidebar-border space-y-1">
-        {identity && (
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-sidebar-foreground truncate">
+              {userProfile?.name || 'User'}
+            </p>
+            <p className="text-xs text-sidebar-foreground/40 truncate capitalize">
+              {isAdmin ? 'Admin' : userRole || 'Member'}
+            </p>
+          </div>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-150"
+            className="text-sidebar-foreground/40 hover:text-destructive transition-colors p-1 rounded"
+            title="Logout"
           >
-            <LogOut className="h-4 w-4 text-sidebar-foreground/60" />
-            Logout
+            <LogOut size={14} />
           </button>
-        )}
-        <div className="px-3 py-2">
-          <p className="text-xs text-sidebar-foreground/30 text-center">
-            Built with ❤️ using{' '}
-            <a
-              href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary/60 hover:text-primary transition-colors"
-            >
-              caffeine.ai
-            </a>
-          </p>
         </div>
       </div>
-    </nav>
+    </aside>
   );
 }

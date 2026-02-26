@@ -7,7 +7,7 @@ import { useUpdateLead } from '../../hooks/useQueries';
 import { toast } from 'sonner';
 import type { Lead } from '../../backend';
 
-const STATUSES = ['new', 'contacted', 'qualified', 'paid', 'onboarding', 'completed', 'lost'];
+const STATUSES = ['New Lead', 'Contacted', 'Qualified', 'Proposal Sent', 'Closed', 'Lost', 'paid'];
 
 interface BulkStatusChangeDialogProps {
   open: boolean;
@@ -24,7 +24,7 @@ export default function BulkStatusChangeDialog({
   leads,
   onSuccess,
 }: BulkStatusChangeDialogProps) {
-  const [newStatus, setNewStatus] = useState('contacted');
+  const [newStatus, setNewStatus] = useState('Contacted');
   const [isUpdating, setIsUpdating] = useState(false);
   const updateLead = useUpdateLead();
 
@@ -47,6 +47,10 @@ export default function BulkStatusChangeDialog({
           channel: lead.channel,
           microNiche: lead.microNiche,
           status: newStatus,
+          budgetRange: lead.budgetRange !== undefined ? lead.budgetRange ?? null : null,
+          urgencyLevel: lead.urgencyLevel !== undefined ? lead.urgencyLevel ?? null : null,
+          companySize: lead.companySize ?? null,
+          decisionMakerStatus: lead.decisionMakerStatus ?? null,
         });
         successCount++;
       } catch {
