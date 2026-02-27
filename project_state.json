@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 27,
+  "projectStateVersion": 31,
   "summary": "AI agency platform (Quick Bee AI Growth Engine) with multi-step build: Lead Management CRM (Step 1), Automation Dashboard with webhook-based Sales System Configuration (Step 2). Features include downloadable exports, invoice/GST quote generation, automation controls, API integrations (Razorpay, WhatsApp Cloud API, OpenRouter/OpenAI, Supabase, Airtable, Resend, Google Sheets, PDF generator, HubSpot CRM, Mailchimp, Calendly, Stripe/PayPal, Tidio, Google Analytics 4, Typeform, Notion API), AI Smart Systems, and no-code configurable webhook automation engine. Five core automation workflows: New Lead Submission (Typeform → HubSpot → Sheets → Notion → Mailchimp), Meeting Scheduling (Calendly + Google Calendar + reminders), Payment Processing (Stripe/PayPal with invoice generation), Analytics Engine (GA4 reports), and AI Content Creation (SEO blog + social media captions).",
   "architectural_notes": [
     "All AI systems connect through external automation tools (e.g., Make.com) via webhook URLs — no direct backend API integration",
@@ -476,6 +476,54 @@
         "REQ-77"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-add-react-query-mutation-and-query-hooks-for-the-new-managed-service-backend-functions-to-frontend-src-hooks-usequeries-ts-expose-usegetmanagedservices-query-usecreatemanagedservice-mutation-invalidates-managed-services-cache-on-success-useupdatemanagedservice-mutation-invalidates-on-success-usedeletemanagedservice-mutation-invalidates-on-success-useduplicatemanagedservice-mutation-invalidates-on-success-and-usereordermanagedservices-mutation-invalidates-on-success-each-hook-must-follow-the-existing-pattern-in-usequeries-ts-check-actor-availability-wrap-the-actor-call-and-handle-errors-with-toast-notifications",
+      "title": "Add React Query mutation and query hooks for the new managed-service backend functions to frontend/src/hooks/useQueries.ts. Expose: `useGetManagedServices` (query), `useCreateManagedService` (mutation, invalidates managed-services cache on success), `useUpdateManagedService` (mutation, invalidates on success), `useDeleteManagedService` (mutation, invalidates on success), `useDuplicateManagedService` (mutation, invalidates on success), and `useReorderManagedServices` (mutation, invalidates on success). Each hook must follow the existing pattern in useQueries.ts — check actor availability, wrap the actor call, and handle errors with toast notifications.",
+      "reqIds": [
+        "REQ-84"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-new-page-at-route-service-management-frontend-src-pages-servicemanagementpage-tsx-accessible-from-the-sidebar-navigation-under-a-services-group-this-page-is-the-agency-services-management-hub-and-must-1-display-a-prominent-add-new-service-button-at-the-top-that-opens-a-create-service-dialog-2-fetch-and-render-all-user-created-managed-services-using-usegetmanagedservices-3-render-each-managed-service-as-a-card-showing-the-service-name-category-pricing-type-base-price-inr-formatted-delivery-time-visibility-badge-active-hidden-and-action-buttons-edit-duplicate-delete-preview-drag-handle-4-support-drag-and-drop-reordering-of-service-cards-using-a-library-agnostic-approach-mouse-touch-event-handlers-or-a-lightweight-dnd-utility-on-drop-call-usereordermanagedservices-with-the-new-ordered-id-list-5-include-a-visibility-toggle-on-each-card-that-calls-useupdatemanagedservice-to-flip-isvisible-6-show-a-loading-skeleton-while-data-is-fetching-and-an-empty-state-illustration-with-a-call-to-action-when-no-services-exist-7-be-fully-responsive-and-mobile-friendly-using-the-existing-dark-gold-tailwind-theme-charcoal-backgrounds-gold-accents-rounded-xl-cards-register-the-route-service-management-in-app-tsx-nested-under-the-authenticated-shell-route",
+      "title": "Create a new page at route /service-management (frontend/src/pages/ServiceManagementPage.tsx), accessible from the sidebar navigation under a 'Services' group. This page is the Agency Services Management hub and must: (1) display a prominent 'Add New Service' button at the top that opens a create-service dialog; (2) fetch and render all user-created managed services using `useGetManagedServices`; (3) render each managed service as a card showing the service name, category, pricing type, base price (INR formatted), delivery time, visibility badge (Active/Hidden), and action buttons (Edit, Duplicate, Delete, Preview, drag handle); (4) support drag-and-drop reordering of service cards using a library-agnostic approach (mouse/touch event handlers or a lightweight DnD utility) — on drop, call `useReorderManagedServices` with the new ordered id list; (5) include a visibility toggle on each card that calls `useUpdateManagedService` to flip `isVisible`; (6) show a loading skeleton while data is fetching and an empty-state illustration with a call-to-action when no services exist; (7) be fully responsive and mobile-friendly using the existing dark-gold Tailwind theme (charcoal backgrounds, gold accents, rounded-xl cards). Register the route /service-management in App.tsx nested under the authenticated shell route.",
+      "reqIds": [
+        "REQ-85"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-multi-step-create-edit-service-dialog-frontend-src-components-services-managedserviceformdialog-tsx-used-by-both-the-add-new-service-button-and-the-edit-action-on-servicemanagementpage-the-dialog-must-have-the-following-tabs-steps-1-basic-info-service-name-required-short-description-detailed-description-category-dropdown-seo-web-design-ads-branding-ai-automation-app-development-digital-marketing-custom-pricing-type-radio-fixed-hourly-custom-quote-base-price-inr-number-input-shown-only-for-fixed-hourly-delivery-time-text-image-url-or-icon-picker-2-features-a-dynamic-bullet-point-list-where-users-can-add-edit-and-remove-feature-items-3-packages-three-expandable-sections-for-basic-standard-and-premium-packages-each-with-its-own-name-price-inr-delivery-time-and-features-list-optional-add-ons-section-below-with-add-remove-rows-name-price-description-4-settings-custom-requirement-label-text-e-g-describe-your-project-quantity-selector-toggle-on-off-visibility-toggle-on-off-on-submit-call-usecreatemanagedservice-for-new-or-useupdatemanagedservice-for-edit-with-the-form-data-show-inline-validation-errors-for-required-fields-show-a-loading-spinner-on-the-submit-button-while-the-mutation-is-in-flight-close-the-dialog-and-show-a-success-toast-on-completion",
+      "title": "Create a multi-step Create/Edit Service dialog (frontend/src/components/services/ManagedServiceFormDialog.tsx) used by both the 'Add New Service' button and the 'Edit' action on ServiceManagementPage. The dialog must have the following tabs/steps: (1) Basic Info — service name (required), short description, detailed description, category (dropdown: SEO, Web Design, Ads, Branding, AI Automation, App Development, Digital Marketing, Custom), pricing type (radio: Fixed / Hourly / Custom Quote), base price (INR number input, shown only for Fixed/Hourly), delivery time (text), image URL or icon picker; (2) Features — a dynamic bullet-point list where users can add, edit, and remove feature items; (3) Packages — three expandable sections for Basic, Standard, and Premium packages, each with its own name, price (INR), delivery time, and features list; optional add-ons section below with add/remove rows (name, price, description); (4) Settings — custom requirement label (text, e.g. 'Describe your project'), quantity selector toggle (on/off), visibility toggle (on/off). On submit, call `useCreateManagedService` (for new) or `useUpdateManagedService` (for edit) with the form data. Show inline validation errors for required fields. Show a loading spinner on the submit button while the mutation is in-flight. Close the dialog and show a success toast on completion.",
+      "reqIds": [
+        "REQ-86"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-duplicate-and-delete-actions-for-managed-services-on-servicemanagementpage-for-duplicate-clicking-the-duplicate-button-on-a-service-card-calls-useduplicatemanagedservice-with-the-service-id-appends-copy-to-the-duplicated-service-s-name-and-adds-it-to-the-list-immediately-via-cache-invalidation-for-delete-clicking-the-delete-button-opens-a-confirmation-dialog-reuse-or-extend-the-existing-servicedeletedialog-pattern-that-warns-the-user-the-action-is-permanent-on-confirmation-calls-usedeletemanagedservice-if-the-backend-returns-an-error-because-isusercreated-is-false-display-a-toast-error-this-service-is-part-of-the-original-catalog-and-cannot-be-deleted-on-successful-deletion-remove-the-card-from-the-list-via-cache-invalidation",
+      "title": "Implement the Duplicate and Delete actions for managed services on ServiceManagementPage. For Duplicate: clicking the Duplicate button on a service card calls `useDuplicateManagedService` with the service id, appends ' (Copy)' to the duplicated service's name, and adds it to the list immediately via cache invalidation. For Delete: clicking the Delete button opens a confirmation dialog (reuse or extend the existing ServiceDeleteDialog pattern) that warns the user the action is permanent; on confirmation, calls `useDeleteManagedService`; if the backend returns an error because `isUserCreated` is false, display a toast error: 'This service is part of the original catalog and cannot be deleted.' On successful deletion, remove the card from the list via cache invalidation.",
+      "reqIds": [
+        "REQ-87"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-service-preview-modal-frontend-src-components-services-managedservicepreviewmodal-tsx-that-renders-a-read-only-client-facing-view-of-a-managed-service-before-publishing-the-preview-must-display-service-name-short-and-detailed-description-category-badge-pricing-type-and-base-price-inr-formatted-delivery-time-features-bullet-list-all-package-cards-basic-standard-premium-with-their-prices-and-features-and-available-add-ons-include-a-dynamic-price-calculator-section-that-shows-the-base-price-and-recalculates-the-total-in-real-time-as-the-user-selects-add-ons-checkboxes-and-adjusts-quantity-if-quantityenabled-is-true-display-the-custom-requirement-label-as-a-disabled-text-area-placeholder-the-modal-must-use-the-existing-dark-gold-tailwind-theme-and-be-fully-responsive-a-close-button-must-dismiss-the-modal",
+      "title": "Implement a Service Preview modal (frontend/src/components/services/ManagedServicePreviewModal.tsx) that renders a read-only, client-facing view of a managed service before publishing. The preview must display: service name, short and detailed description, category badge, pricing type and base price (INR formatted), delivery time, features bullet list, all package cards (Basic/Standard/Premium) with their prices and features, and available add-ons. Include a dynamic price calculator section that shows the base price and recalculates the total in real time as the user selects add-ons (checkboxes) and adjusts quantity (if `quantityEnabled` is true). Display the custom requirement label as a disabled text area placeholder. The modal must use the existing dark-gold Tailwind theme and be fully responsive. A 'Close' button must dismiss the modal.",
+      "reqIds": [
+        "REQ-88"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-service-management-link-to-the-sidebar-navigation-frontend-src-components-layout-sidebarnav-tsx-under-a-services-group-or-adjacent-to-the-existing-services-link-the-link-must-point-to-service-management-and-be-visible-to-all-users-no-role-gate-also-add-a-simple-analytics-sub-section-at-the-bottom-of-servicemanagementpage-that-displays-for-each-managed-service-a-views-count-and-a-purchases-count-read-from-localstorage-counters-that-are-incremented-a-when-the-preview-modal-is-opened-views-and-b-when-a-managed-service-s-buy-now-action-is-triggered-purchases-display-these-counts-as-small-stat-badges-on-each-service-card",
+      "title": "Add a 'Service Management' link to the sidebar navigation (frontend/src/components/layout/SidebarNav.tsx) under a 'Services' group or adjacent to the existing Services link. The link must point to /service-management and be visible to all users (no role gate). Also add a simple analytics sub-section at the bottom of ServiceManagementPage that displays, for each managed service: a 'Views' count and a 'Purchases' count, read from localStorage counters that are incremented (a) when the preview modal is opened (views) and (b) when a managed service's 'Buy Now' action is triggered (purchases). Display these counts as small stat badges on each service card.",
+      "reqIds": [
+        "REQ-89"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -782,6 +830,50 @@
       "summary": "Audit frontend/src/hooks/useAutomationTriggers.ts to confirm that each of the five trigger functions — triggerWhatsAppAutoReply, triggerProposalAutoSend, triggerLeadFollowUp, triggerPaymentConfirmation, and triggerProjectOnboarding — reads the corresponding toggle field from AIConfigContext at call time and returns early (without making any network request) when the toggle is OFF. Each trigger must also read the correct webhook URL and API Key from AIConfigContext and include the correct headers (Content-Type: application/json, Authorization: Bearer <apiKey>) when the toggle is ON.",
       "reqIds": [
         "REQ-79"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-56",
+      "summary": "Add editable options to the Services section so users can add, edit, and remove services/packages directly from the UI without hardcoding data",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-57",
+      "summary": "Add a fully functional service management UI to the Services page that allows users to create new services, edit existing services, and delete services directly from the UI. Each service card must display an 'Edit' button (pencil icon) and a 'Delete' button (trash icon) that open the existing ServiceEditDialog and ServiceDeleteDialog components respectively. Add a prominent 'Add New Service' button at the top of the Services page that opens the existing ServiceCreateDialog. The dialog must support all fields: name, description, category, three pricing tiers (Basic/Pro/Premium with INR prices), feature list, visibility toggle, and availability toggle. On save, call the appropriate backend mutation hooks (useCreateService, useUpdateService, useDeleteService from useQueries.ts) to persist changes. After a successful create/edit/delete, invalidate and refetch the services list so the UI updates immediately without a page reload.",
+      "reqIds": [
+        "REQ-80"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-58",
+      "summary": "Fix all six AI Generator tool pages — ServiceRecommendationPage, ProposalGeneratorPage, PricingStrategyPage, ClosingScriptsPage, FollowUpMessagesPage, and LeadQualificationPage — so that on form submission each page: (1) reads apiEndpoint and apiKey from AIConfigContext; (2) if either is missing, displays the AICredentialBanner and does not attempt any API call; (3) builds a valid OpenAI-compatible POST request body with the correct 'model' field (defaulting to 'gpt-3.5-turbo' if no model is stored), a 'messages' array with a system role message and a user role message containing the structured prompt, and sets Content-Type: application/json and Authorization: Bearer <apiKey> headers; (4) awaits the fetch response, parses the JSON, extracts choices[0].message.content, and renders that text in the result area of the page; (5) also POSTs the form payload to the Automation Webhook URL (if it is configured and its toggle is ON in AIConfigContext) as a secondary fire-and-forget call with Content-Type: application/json and Authorization: Bearer <apiKey> headers and a JSON body containing the tool name, all form field values, and a timestamp; (6) shows a loading spinner while either request is in-flight; (7) shows a clearly labelled user-visible error message naming which endpoint (AI API or Webhook URL) failed if either call throws or returns a non-2xx status. The rendered result area must not be blank after a successful call.",
+      "reqIds": [
+        "REQ-81"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-59",
+      "summary": "Audit and fix AIConfigContext (frontend/src/contexts/AIConfigContext.tsx) to ensure all configuration fields — apiEndpoint, apiKey, whatsappToken, razorpayKeyId, razorpaySecret, emailApiKey, crmWebhookUrl, automationWebhookUrl, and calendlyUrl — along with their corresponding ON/OFF toggle states and the five automation toggle flags (whatsappAutoReplyEnabled, proposalAutoSendEnabled, leadFollowUpEnabled, paymentConfirmationEnabled, projectOnboardingEnabled) are: (a) correctly read from localStorage on provider mount using a consistent key prefix; (b) written back to localStorage atomically whenever saveConfig is called; (c) exposed via context with correct TypeScript types so all consuming components can read them without type errors. Ensure the AIConfigProvider wraps the entire app in App.tsx. Expose a dedicated updateToggle(key, value) or equivalent API so AutomationPage and other consumers can update a single toggle field without overwriting unrelated config values.",
+      "reqIds": [
+        "REQ-82"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-60",
+      "summary": "Create a fully editable Agency Services Management section in the dashboard that allows adding unlimited new services without modifying existing data. Each service has editable fields (name, short/detailed description, category, pricing type, price, delivery time, image/icon, features list). Supports edit, delete (new services only), duplicate, preview, drag-and-drop reorder, and visibility toggle. Includes service packages (Basic/Standard/Premium) with separate pricing/features, optional add-ons, custom requirement fields, quantity selection, and automatic dynamic price updates. Must be mobile-friendly, database-backed, and fully integrated without breaking existing services.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-61",
+      "summary": "Extend the Motoko backend actor in backend/main.mo to support a user-managed service data model separate from the existing static catalog. Add a new `ManagedService` record type with fields: id (Text), name (Text), shortDescription (Text), detailedDescription (Text), category (Text), pricingType (variant { Fixed; Hourly; Custom }), basePrice (Nat), deliveryTime (Text), imageUrl (Text), features ([Text]), packages ([ServicePackage]), addOns ([ServiceAddOn]), customRequirementLabel (Text), quantityEnabled (Bool), isVisible (Bool), sortOrder (Nat), createdAt (Int), updatedAt (Int), isUserCreated (Bool). Add a `ServicePackage` record type with: name (Text), price (Nat), deliveryTime (Text), features ([Text]). Add a `ServiceAddOn` record type with: name (Text), price (Nat), description (Text). Implement CRUD update functions: `createManagedService`, `updateManagedService`, `deleteManagedService` (only allow deletion when `isUserCreated` is true), `duplicateManagedService`, `reorderManagedServices` (accepts an ordered list of ids), and `getManagedServices`. All operations must validate required fields (name non-empty, basePrice >= 0) and return a Result type. Existing service data and backend functions must remain unchanged.",
+      "reqIds": [
+        "REQ-83"
       ],
       "status": "pending"
     }

@@ -1,187 +1,136 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from '@tanstack/react-router';
+import { useIsStripeConfigured } from '../hooks/useQueries';
 import { useCart } from '../cart/useCart';
 import { useCreateCheckoutSession } from '../payments/useCreateCheckoutSession';
-import { useIsStripeConfigured, useIsRazorpayConfigured } from '../hooks/useQueries';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Alert, AlertDescription } from '../components/ui/alert';
-import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
-import { Label } from '../components/ui/label';
+import { Button } from '@/components/ui/button';
+import { ShoppingCart, CreditCard, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import type { ShoppingItem } from '../backend';
-import { Loader2, CreditCard, AlertCircle } from 'lucide-react';
-import formatINR from '../utils/formatCurrency';
+
+function formatINR(amount: number): string {
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
+}
 
 export default function CheckoutPage() {
+  const navigate = useNavigate();
   const { items, total, clearCart } = useCart();
-  const createCheckoutSession = useCreateCheckoutSession();
-  const { data: isStripeConfigured = false } = useIsStripeConfigured();
-  const { data: isRazorpayConfigured = false } = useIsRazorpayConfigured();
-  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'razorpay'>('stripe');
+  const { data: stripeConfigured, isLoading: stripeLoading } = useIsStripeConfigured();
+  const createSession = useCreateCheckoutSession();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
-  const showRazorpayOption = isRazorpayConfigured;
-
-  useEffect(() => {
-    if (!isStripeConfigured && showRazorpayOption) {
-      setPaymentMethod('razorpay');
-    } else if (isStripeConfigured) {
-      setPaymentMethod('stripe');
+  const handleStripeCheckout = async () => {
+    if (!stripeConfigured) {
+      toast.error('Stripe is not configured. Please contact support.');
+      return;
     }
-  }, [isStripeConfigured, showRazorpayOption]);
-
-  const handleCheckout = async () => {
-    if (paymentMethod === 'stripe') {
-      if (!isStripeConfigured) {
-        toast.error('Stripe is not configured. Please contact support.');
-        return;
-      }
-
-      const shoppingItems: ShoppingItem[] = items.map((item) => ({
+    setIsRedirecting(true);
+    try {
+      const shoppingItems = items.map(item => ({
         productName: item.name,
-        productDescription: item.tierLabel ? `${item.tierLabel} tier service` : 'Service',
+        productDescription: item.tierLabel ?? item.name,
         priceInCents: BigInt(Math.round(item.price * 100)),
         quantity: BigInt(item.quantity),
-        currency: 'INR',
+        currency: 'inr',
       }));
-
-      try {
-        const session = await createCheckoutSession.mutateAsync(shoppingItems);
-        if (!session?.url) {
-          throw new Error('Stripe session missing url');
-        }
-        window.location.href = session.url;
-      } catch (error) {
-        console.error('Checkout error:', error);
-        toast.error('Failed to create checkout session');
-      }
-    } else if (paymentMethod === 'razorpay') {
-      toast.info('Razorpay checkout coming soon. Please use Stripe or contact support.');
+      const session = await createSession.mutateAsync(shoppingItems);
+      if (!session?.url) throw new Error('Stripe session missing url');
+      window.location.href = session.url;
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create checkout session');
+      setIsRedirecting(false);
     }
   };
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">Your cart is empty</p>
+      <div className="min-h-screen bg-background mesh-bg flex items-center justify-center">
+        <div className="text-center">
+          <ShoppingCart className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-foreground mb-2">Your cart is empty</h2>
+          <p className="text-muted-foreground mb-6">Add some services to get started</p>
+          <Button onClick={() => navigate({ to: '/authenticated/services' })} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            Browse Services
+          </Button>
+        </div>
       </div>
     );
   }
 
-  const gst = total * 0.18;
-  const finalTotal = total + gst;
-
-  const canCheckout =
-    (paymentMethod === 'stripe' && isStripeConfigured) ||
-    (paymentMethod === 'razorpay' && showRazorpayOption);
-
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <h1 className="text-3xl font-bold text-foreground">Checkout</h1>
+    <div className="min-h-screen bg-background mesh-bg">
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <Button
+          variant="ghost"
+          onClick={() => navigate({ to: '/authenticated/cart' })}
+          className="mb-6 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Cart
+        </Button>
 
-      <Card className="border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground">Order Summary</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {items.map((item) => (
-            <div key={item.id} className="flex justify-between items-center">
-              <div>
-                <p className="text-foreground font-medium">{item.name}</p>
-                {item.tierLabel && (
-                  <p className="text-sm text-muted-foreground">{item.tierLabel} × {item.quantity}</p>
-                )}
+        <h1 className="text-2xl font-bold font-heading text-foreground mb-6">Checkout</h1>
+
+        {/* Order Summary */}
+        <div className="card-glass rounded-xl p-5 mb-6">
+          <h2 className="text-sm font-semibold text-foreground mb-4">Order Summary</h2>
+          <div className="space-y-3">
+            {items.map(item => (
+              <div key={item.id} className="flex justify-between items-start gap-2">
+                <div>
+                  <p className="text-sm text-foreground">{item.name}</p>
+                  {item.tierLabel && <p className="text-xs text-muted-foreground">{item.tierLabel}</p>}
+                  {item.quantity > 1 && <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>}
+                </div>
+                <span className="text-sm font-medium text-foreground flex-shrink-0">
+                  {formatINR(item.price * item.quantity)}
+                </span>
               </div>
-              <p className="text-foreground font-semibold">
-                {formatINR(item.price * item.quantity)}
-              </p>
-            </div>
-          ))}
-
-          <div className="border-t border-border pt-4 space-y-2">
-            <div className="flex justify-between text-muted-foreground">
-              <span>Subtotal</span>
-              <span>{formatINR(total)}</span>
-            </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>GST (18%)</span>
-              <span>{formatINR(gst)}</span>
-            </div>
-            <div className="flex justify-between text-xl font-bold text-foreground pt-2 border-t border-border">
-              <span>Total</span>
-              <span>{formatINR(finalTotal)}</span>
-            </div>
+            ))}
           </div>
-        </CardContent>
-      </Card>
+          <div className="border-t border-border mt-4 pt-4 flex justify-between font-bold text-foreground">
+            <span>Total</span>
+            <span className="text-primary text-lg">{formatINR(total)}</span>
+          </div>
+        </div>
 
-      {/* Payment Method Selection */}
-      {showRazorpayOption && (
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle className="text-foreground">Payment Method</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RadioGroup
-              value={paymentMethod}
-              onValueChange={(value) => setPaymentMethod(value as 'stripe' | 'razorpay')}
+        {/* Payment Options */}
+        <div className="space-y-3">
+          {stripeLoading ? (
+            <div className="card-glass rounded-xl p-4 flex items-center gap-3">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Loading payment options...</span>
+            </div>
+          ) : stripeConfigured ? (
+            <Button
+              onClick={handleStripeCheckout}
+              disabled={isRedirecting || createSession.isPending}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 rounded-xl"
             >
-              {isStripeConfigured && (
-                <div className="flex items-center space-x-2 p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors">
-                  <RadioGroupItem value="stripe" id="stripe" />
-                  <Label htmlFor="stripe" className="flex-1 cursor-pointer">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="w-5 h-5 text-primary" />
-                      <div>
-                        <p className="font-medium text-foreground">Stripe</p>
-                        <p className="text-sm text-muted-foreground">Pay with credit/debit card via Stripe</p>
-                      </div>
-                    </div>
-                  </Label>
-                </div>
+              {isRedirecting || createSession.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Redirecting to payment...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Pay with Card ({formatINR(total)})
+                </>
               )}
-
-              {showRazorpayOption && (
-                <div className="flex items-center space-x-2 p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors">
-                  <RadioGroupItem value="razorpay" id="razorpay" />
-                  <Label htmlFor="razorpay" className="flex-1 cursor-pointer">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="w-5 h-5 text-green-600" />
-                      <div>
-                        <p className="font-medium text-foreground">Razorpay</p>
-                        <p className="text-sm text-muted-foreground">Pay with UPI, cards, wallets via Razorpay</p>
-                      </div>
-                    </div>
-                  </Label>
-                </div>
-              )}
-            </RadioGroup>
-          </CardContent>
-        </Card>
-      )}
-
-      {!canCheckout && (
-        <Alert className="border-destructive/50 bg-destructive/10">
-          <AlertCircle className="h-4 w-4 text-destructive" />
-          <AlertDescription className="text-destructive">
-            Payment processing is not configured. Please contact support to complete your purchase.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <Button
-        onClick={handleCheckout}
-        disabled={createCheckoutSession.isPending || !canCheckout}
-        className="w-full font-semibold text-lg py-6"
-      >
-        {createCheckoutSession.isPending ? (
-          <>
-            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          `Proceed to Payment — ${formatINR(finalTotal)}`
-        )}
-      </Button>
+            </Button>
+          ) : (
+            <div className="card-glass rounded-xl p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Payment not configured</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Please contact support to complete your purchase.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

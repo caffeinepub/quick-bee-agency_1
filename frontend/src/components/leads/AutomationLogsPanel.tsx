@@ -101,8 +101,8 @@ export default function AutomationLogsPanel({ open, onOpenChange, leadId, logs }
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map(log => (
-                  <TableRow key={log.id}>
+                {filtered.map((log, idx) => (
+                  <TableRow key={`${log.eventName}-${log.timestamp}-${idx}`}>
                     <TableCell className="font-medium text-sm max-w-[160px] truncate">{log.eventName}</TableCell>
                     <TableCell>
                       {log.isError ? (

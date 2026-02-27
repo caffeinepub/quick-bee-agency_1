@@ -24,7 +24,6 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
-export const Time = IDL.Int;
 export const ShoppingItem = IDL.Record({
   'productName' : IDL.Text,
   'currency' : IDL.Text,
@@ -32,12 +31,46 @@ export const ShoppingItem = IDL.Record({
   'priceInCents' : IDL.Nat,
   'productDescription' : IDL.Text,
 });
-export const OnboardingData = IDL.Record({
-  'businessName' : IDL.Text,
-  'goals' : IDL.Text,
-  'niche' : IDL.Text,
-  'budget' : IDL.Nat,
-  'timeline' : IDL.Text,
+export const PricingType = IDL.Variant({
+  'Hourly' : IDL.Null,
+  'Custom' : IDL.Null,
+  'Fixed' : IDL.Null,
+});
+export const ServicePackage = IDL.Record({
+  'features' : IDL.Vec(IDL.Text),
+  'name' : IDL.Text,
+  'deliveryTime' : IDL.Text,
+  'price' : IDL.Nat,
+});
+export const ServiceAddOn = IDL.Record({
+  'name' : IDL.Text,
+  'description' : IDL.Text,
+  'price' : IDL.Nat,
+});
+export const ManagedService = IDL.Record({
+  'id' : IDL.Text,
+  'features' : IDL.Vec(IDL.Text),
+  'pricingType' : PricingType,
+  'packages' : IDL.Vec(ServicePackage),
+  'sortOrder' : IDL.Nat,
+  'name' : IDL.Text,
+  'createdAt' : IDL.Int,
+  'customRequirementLabel' : IDL.Text,
+  'deliveryTime' : IDL.Text,
+  'updatedAt' : IDL.Int,
+  'imageUrl' : IDL.Text,
+  'shortDescription' : IDL.Text,
+  'quantityEnabled' : IDL.Bool,
+  'addOns' : IDL.Vec(ServiceAddOn),
+  'isVisible' : IDL.Bool,
+  'category' : IDL.Text,
+  'detailedDescription' : IDL.Text,
+  'basePrice' : IDL.Nat,
+  'isUserCreated' : IDL.Bool,
+});
+export const ServiceCatalogResult = IDL.Variant({
+  'error' : IDL.Text,
+  'success' : ManagedService,
 });
 export const RecommendationOutput = IDL.Record({
   'projectedROI' : IDL.Opt(IDL.Text),
@@ -54,89 +87,6 @@ export const ServiceSettings = IDL.Record({
   'availability' : IDL.Text,
   'isFeatured' : IDL.Bool,
   'isVisible' : IDL.Bool,
-});
-export const CRMActivity = IDL.Record({
-  'id' : IDL.Nat,
-  'activityType' : IDL.Text,
-  'assignedTo' : IDL.Opt(IDL.Principal),
-  'createdAt' : Time,
-  'createdBy' : IDL.Principal,
-  'dueDate' : IDL.Opt(Time),
-  'stage' : IDL.Text,
-  'projectId' : IDL.Opt(IDL.Nat),
-  'leadId' : IDL.Opt(IDL.Nat),
-  'notes' : IDL.Text,
-});
-export const GeneratorLog = IDL.Record({
-  'id' : IDL.Nat,
-  'inputData' : IDL.Text,
-  'userId' : IDL.Principal,
-  'createdAt' : Time,
-  'outputData' : IDL.Text,
-  'generatorType' : IDL.Text,
-});
-export const Invoice = IDL.Record({
-  'clientId' : IDL.Principal,
-  'createdAt' : Time,
-  'invoiceId' : IDL.Text,
-  'totalPaid' : IDL.Nat,
-  'gstAmount' : IDL.Nat,
-  'serviceBreakdown' : IDL.Text,
-});
-export const Lead = IDL.Record({
-  'id' : IDL.Nat,
-  'status' : IDL.Text,
-  'urgencyLevel' : IDL.Opt(IDL.Nat),
-  'assignedTo' : IDL.Opt(IDL.Principal),
-  'name' : IDL.Text,
-  'createdAt' : Time,
-  'createdBy' : IDL.Principal,
-  'email' : IDL.Text,
-  'microNiche' : IDL.Text,
-  'companySize' : IDL.Opt(IDL.Text),
-  'qualificationScore' : IDL.Nat,
-  'phone' : IDL.Opt(IDL.Text),
-  'channel' : IDL.Text,
-  'budgetRange' : IDL.Opt(IDL.Nat),
-  'decisionMakerStatus' : IDL.Opt(IDL.Bool),
-});
-export const LegalPage = IDL.Record({
-  'id' : IDL.Nat,
-  'title' : IDL.Text,
-  'content' : IDL.Text,
-  'lastUpdatedAt' : Time,
-  'lastUpdatedBy' : IDL.Principal,
-});
-export const Offer = IDL.Record({
-  'id' : IDL.Nat,
-  'offerType' : IDL.Text,
-  'name' : IDL.Text,
-  'discountPercent' : IDL.Nat,
-  'isActive' : IDL.Bool,
-});
-export const Order = IDL.Record({
-  'id' : IDL.Nat,
-  'clientId' : IDL.Principal,
-  'paymentStatus' : IDL.Text,
-  'createdAt' : Time,
-  'projectId' : IDL.Nat,
-  'amount' : IDL.Nat,
-});
-export const PaymentLog = IDL.Record({
-  'status' : IDL.Text,
-  'signature' : IDL.Text,
-  'orderId' : IDL.Text,
-  'paymentId' : IDL.Text,
-  'timestamp' : Time,
-  'amount' : IDL.Nat,
-});
-export const Project = IDL.Record({
-  'id' : IDL.Nat,
-  'startTime' : Time,
-  'status' : IDL.Text,
-  'clientId' : IDL.Principal,
-  'onboardingData' : IDL.Opt(OnboardingData),
-  'serviceId' : IDL.Nat,
 });
 export const Service = IDL.Record({
   'id' : IDL.Nat,
@@ -155,22 +105,10 @@ export const Service = IDL.Record({
   'category' : IDL.Text,
   'paymentLinkUrl' : IDL.Opt(IDL.Text),
 });
-export const WhatsAppMessageLog = IDL.Record({
-  'recipientPhone' : IDL.Text,
-  'deliveryStatus' : IDL.Text,
-  'sentAt' : Time,
-  'messageType' : IDL.Text,
-});
 export const UserProfile = IDL.Record({
   'name' : IDL.Text,
   'businessName' : IDL.Opt(IDL.Text),
   'email' : IDL.Text,
-});
-export const Coupon = IDL.Record({
-  'expiresAt' : IDL.Opt(Time),
-  'code' : IDL.Text,
-  'discountPercent' : IDL.Nat,
-  'isActive' : IDL.Bool,
 });
 export const AutomationConfig = IDL.Record({
   'enabled' : IDL.Bool,
@@ -189,24 +127,6 @@ export const IntegrationSettings = IDL.Record({
   'automations' : AutomationSettings,
   'webhookUrl' : IDL.Opt(IDL.Text),
 });
-export const Notification = IDL.Record({
-  'id' : IDL.Nat,
-  'userId' : IDL.Principal,
-  'notificationType' : IDL.Text,
-  'createdAt' : Time,
-  'isRead' : IDL.Bool,
-  'message' : IDL.Text,
-});
-export const PaymentLink = IDL.Record({
-  'id' : IDL.Nat,
-  'qrCodeDataUrl' : IDL.Opt(IDL.Text),
-  'status' : IDL.Text,
-  'createdAt' : Time,
-  'createdBy' : IDL.Principal,
-  'leadId' : IDL.Nat,
-  'amount' : IDL.Nat,
-  'paymentLinkUrl' : IDL.Opt(IDL.Text),
-});
 export const SalesSystemConfig = IDL.Record({
   'description' : IDL.Text,
   'systemSettings' : IDL.Text,
@@ -222,6 +142,7 @@ export const StripeSessionStatus = IDL.Variant({
   }),
   'failed' : IDL.Record({ 'error' : IDL.Text }),
 });
+export const Time = IDL.Int;
 export const Token = IDL.Record({
   'principal' : IDL.Principal,
   'issuedAt' : Time,
@@ -230,6 +151,10 @@ export const Token = IDL.Record({
 export const PasswordAuthResult = IDL.Variant({
   'ok' : Token,
   'error' : IDL.Text,
+});
+export const ServicesResult = IDL.Variant({
+  'error' : IDL.Text,
+  'success' : IDL.Vec(ManagedService),
 });
 export const StripeConfiguration = IDL.Record({
   'allowedCountries' : IDL.Vec(IDL.Text),
@@ -252,6 +177,10 @@ export const TransformationOutput = IDL.Record({
   'status' : IDL.Nat,
   'body' : IDL.Vec(IDL.Nat8),
   'headers' : IDL.Vec(http_header),
+});
+export const UpdateServiceResult = IDL.Variant({
+  'error' : IDL.Text,
+  'success' : ManagedService,
 });
 
 export const idlService = IDL.Service({
@@ -283,134 +212,38 @@ export const idlService = IDL.Service({
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'assignLead' : IDL.Func([IDL.Nat, IDL.Principal], [], []),
-  'createCRMActivity' : IDL.Func(
-      [
-        IDL.Opt(IDL.Nat),
-        IDL.Opt(IDL.Nat),
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        IDL.Opt(IDL.Principal),
-        IDL.Opt(Time),
-      ],
-      [IDL.Nat],
-      [],
-    ),
   'createCheckoutSession' : IDL.Func(
       [IDL.Vec(ShoppingItem), IDL.Text, IDL.Text],
       [IDL.Text],
       [],
     ),
-  'createCoupon' : IDL.Func([IDL.Text, IDL.Nat, IDL.Opt(Time)], [], []),
-  'createGeneratorLog' : IDL.Func(
-      [IDL.Text, IDL.Text, IDL.Text],
-      [IDL.Nat],
-      [],
-    ),
-  'createLead' : IDL.Func(
-      [
-        IDL.Text,
-        IDL.Text,
-        IDL.Opt(IDL.Text),
-        IDL.Text,
-        IDL.Text,
-        IDL.Opt(IDL.Nat),
-        IDL.Opt(IDL.Nat),
-        IDL.Opt(IDL.Text),
-        IDL.Opt(IDL.Bool),
-      ],
-      [IDL.Nat],
-      [],
-    ),
-  'createLegalPage' : IDL.Func([IDL.Text, IDL.Text], [IDL.Nat], []),
-  'createNotification' : IDL.Func(
-      [IDL.Principal, IDL.Text, IDL.Text],
-      [IDL.Nat],
-      [],
-    ),
-  'createOffer' : IDL.Func([IDL.Text, IDL.Nat, IDL.Text], [IDL.Nat], []),
-  'createOrder' : IDL.Func([IDL.Nat, IDL.Nat], [IDL.Nat], []),
-  'createPaymentLink' : IDL.Func([IDL.Nat, IDL.Nat], [IDL.Nat], []),
-  'createProject' : IDL.Func(
-      [IDL.Principal, IDL.Nat, IDL.Opt(OnboardingData)],
-      [IDL.Nat],
+  'createManagedService' : IDL.Func(
+      [ManagedService],
+      [ServiceCatalogResult],
       [],
     ),
   'createRecommendation' : IDL.Func([RecommendationOutput], [IDL.Nat], []),
-  'createService' : IDL.Func(
-      [
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        PricingTier,
-        PricingTier,
-        PricingTier,
-        IDL.Vec(IDL.Text),
-        ServiceSettings,
-        IDL.Opt(IDL.Text),
-        IDL.Opt(IDL.Text),
-        IDL.Bool,
-        IDL.Opt(IDL.Text),
-        IDL.Opt(IDL.Text),
-      ],
-      [IDL.Nat],
-      [],
-    ),
-  'deleteLead' : IDL.Func([IDL.Nat], [], []),
+  'deleteManagedService' : IDL.Func([IDL.Text], [ServiceCatalogResult], []),
   'deleteRecommendation' : IDL.Func([IDL.Nat], [], []),
-  'deleteService' : IDL.Func([IDL.Nat], [], []),
-  'getAllCRMActivities' : IDL.Func([], [IDL.Vec(CRMActivity)], ['query']),
-  'getAllGeneratorLogs' : IDL.Func([], [IDL.Vec(GeneratorLog)], ['query']),
-  'getAllInvoices' : IDL.Func([], [IDL.Vec(Invoice)], ['query']),
-  'getAllLeads' : IDL.Func([], [IDL.Vec(Lead)], ['query']),
-  'getAllLegalPages' : IDL.Func([], [IDL.Vec(LegalPage)], ['query']),
-  'getAllOffers' : IDL.Func([], [IDL.Vec(Offer)], ['query']),
-  'getAllOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
-  'getAllPaymentLogs' : IDL.Func([], [IDL.Vec(PaymentLog)], ['query']),
-  'getAllProjects' : IDL.Func([], [IDL.Vec(Project)], ['query']),
+  'duplicateManagedService' : IDL.Func([IDL.Text], [ServiceCatalogResult], []),
   'getAllRecommendations' : IDL.Func(
       [],
       [IDL.Vec(RecommendationOutput)],
       ['query'],
     ),
   'getAllServices' : IDL.Func([], [IDL.Vec(Service)], ['query']),
-  'getAllWhatsAppLogs' : IDL.Func([], [IDL.Vec(WhatsAppMessageLog)], ['query']),
-  'getCRMActivitiesByLead' : IDL.Func(
-      [IDL.Nat],
-      [IDL.Vec(CRMActivity)],
-      ['query'],
-    ),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-  'getCoupon' : IDL.Func([IDL.Text], [IDL.Opt(Coupon)], ['query']),
   'getIntegrationSettings' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(IntegrationSettings)],
       ['query'],
     ),
-  'getInvoice' : IDL.Func([IDL.Text], [IDL.Opt(Invoice)], ['query']),
-  'getLeadsByScoreRange' : IDL.Func(
-      [IDL.Nat, IDL.Nat],
-      [IDL.Vec(Lead)],
-      ['query'],
-    ),
-  'getLegalPage' : IDL.Func([IDL.Nat], [IDL.Opt(LegalPage)], ['query']),
-  'getMyCRMActivities' : IDL.Func([], [IDL.Vec(CRMActivity)], ['query']),
-  'getMyGeneratorLogs' : IDL.Func([], [IDL.Vec(GeneratorLog)], ['query']),
-  'getMyInvoices' : IDL.Func([], [IDL.Vec(Invoice)], ['query']),
-  'getMyLeads' : IDL.Func([], [IDL.Vec(Lead)], ['query']),
-  'getMyNotifications' : IDL.Func([], [IDL.Vec(Notification)], ['query']),
-  'getMyPaymentLinks' : IDL.Func([], [IDL.Vec(PaymentLink)], ['query']),
-  'getOrdersByClient' : IDL.Func([IDL.Principal], [IDL.Vec(Order)], ['query']),
-  'getOrdersByProject' : IDL.Func([IDL.Nat], [IDL.Vec(Order)], ['query']),
-  'getPaymentLinks' : IDL.Func([], [IDL.Vec(PaymentLink)], ['query']),
-  'getPaymentLog' : IDL.Func([IDL.Text], [IDL.Opt(PaymentLog)], ['query']),
-  'getProject' : IDL.Func([IDL.Nat], [IDL.Opt(Project)], ['query']),
-  'getProjectsByClient' : IDL.Func(
-      [IDL.Principal],
-      [IDL.Vec(Project)],
+  'getManagedService' : IDL.Func([IDL.Text], [ServiceCatalogResult], ['query']),
+  'getManagedServices' : IDL.Func([], [IDL.Vec(ManagedService)], ['query']),
+  'getManagedServicesByCategory' : IDL.Func(
+      [IDL.Text],
+      [IDL.Vec(ManagedService)],
       ['query'],
     ),
   'getRecommendation' : IDL.Func(
@@ -424,107 +257,40 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getService' : IDL.Func([IDL.Nat], [IDL.Opt(Service)], ['query']),
-  'getServiceRazorpayConfig' : IDL.Func(
-      [IDL.Nat],
-      [IDL.Bool, IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
-      [],
-    ),
   'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
-  'getWhatsAppLog' : IDL.Func(
-      [IDL.Text],
-      [IDL.Opt(WhatsAppMessageLog)],
-      ['query'],
-    ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-  'isRazorpayConfigured' : IDL.Func([], [IDL.Bool], ['query']),
   'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
   'login' : IDL.Func([IDL.Text, IDL.Text], [PasswordAuthResult], []),
-  'markNotificationAsRead' : IDL.Func([IDL.Nat], [], []),
   'register' : IDL.Func(
       [IDL.Text, IDL.Text, UserRole],
       [PasswordAuthResult],
       [],
     ),
+  'reorderManagedServices' : IDL.Func(
+      [IDL.Vec(IDL.Text)],
+      [ServicesResult],
+      [],
+    ),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'saveIntegrationSettings' : IDL.Func([IntegrationSettings], [], []),
-  'saveInvoice' : IDL.Func([Invoice], [], []),
-  'savePaymentLog' : IDL.Func([PaymentLog], [], []),
   'saveSalesSystemConfig' : IDL.Func([SalesSystemConfig], [], []),
-  'saveWhatsAppLog' : IDL.Func([WhatsAppMessageLog], [], []),
-  'setPaymentLinkQrCode' : IDL.Func([IDL.Nat, IDL.Text], [], []),
-  'setPaymentLinkUrl' : IDL.Func([IDL.Nat, IDL.Text], [], []),
-  'setRazorpayConfiguration' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
   'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
-  'toggleCoupon' : IDL.Func([IDL.Text, IDL.Bool], [], []),
-  'toggleOffer' : IDL.Func([IDL.Nat, IDL.Bool], [], []),
   'transform' : IDL.Func(
       [TransformationInput],
       [TransformationOutput],
       ['query'],
     ),
-  'updateCRMActivity' : IDL.Func(
-      [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Opt(Time)],
-      [],
-      [],
-    ),
-  'updateLead' : IDL.Func(
-      [
-        IDL.Nat,
-        IDL.Text,
-        IDL.Text,
-        IDL.Opt(IDL.Text),
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        IDL.Opt(IDL.Nat),
-        IDL.Opt(IDL.Nat),
-        IDL.Opt(IDL.Text),
-        IDL.Opt(IDL.Bool),
-      ],
-      [],
+  'updateManagedService' : IDL.Func(
+      [IDL.Text, ManagedService],
+      [UpdateServiceResult],
       [],
     ),
-  'updateLegalPage' : IDL.Func([IDL.Nat, IDL.Text, IDL.Text], [], []),
-  'updateOrderStatus' : IDL.Func([IDL.Nat, IDL.Text], [], []),
-  'updatePaymentLinkStatus' : IDL.Func([IDL.Nat, IDL.Text], [], []),
-  'updateProjectStatus' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'updateRecommendation' : IDL.Func([IDL.Nat, RecommendationOutput], [], []),
-  'updateService' : IDL.Func(
-      [
-        IDL.Nat,
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        IDL.Text,
-        PricingTier,
-        PricingTier,
-        PricingTier,
-        IDL.Vec(IDL.Text),
-        ServiceSettings,
-        IDL.Opt(IDL.Text),
-        IDL.Opt(IDL.Text),
-        IDL.Bool,
-        IDL.Opt(IDL.Text),
-        IDL.Opt(IDL.Text),
-      ],
-      [],
-      [],
-    ),
-  'updateServicePaymentInfo' : IDL.Func(
-      [IDL.Nat, IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
-      [],
-      [],
-    ),
-  'updateServiceRazorpay' : IDL.Func(
-      [IDL.Nat, IDL.Bool, IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
-      [],
-      [],
-    ),
 });
 
 export const idlInitArgs = [];
@@ -546,7 +312,6 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
-  const Time = IDL.Int;
   const ShoppingItem = IDL.Record({
     'productName' : IDL.Text,
     'currency' : IDL.Text,
@@ -554,12 +319,46 @@ export const idlFactory = ({ IDL }) => {
     'priceInCents' : IDL.Nat,
     'productDescription' : IDL.Text,
   });
-  const OnboardingData = IDL.Record({
-    'businessName' : IDL.Text,
-    'goals' : IDL.Text,
-    'niche' : IDL.Text,
-    'budget' : IDL.Nat,
-    'timeline' : IDL.Text,
+  const PricingType = IDL.Variant({
+    'Hourly' : IDL.Null,
+    'Custom' : IDL.Null,
+    'Fixed' : IDL.Null,
+  });
+  const ServicePackage = IDL.Record({
+    'features' : IDL.Vec(IDL.Text),
+    'name' : IDL.Text,
+    'deliveryTime' : IDL.Text,
+    'price' : IDL.Nat,
+  });
+  const ServiceAddOn = IDL.Record({
+    'name' : IDL.Text,
+    'description' : IDL.Text,
+    'price' : IDL.Nat,
+  });
+  const ManagedService = IDL.Record({
+    'id' : IDL.Text,
+    'features' : IDL.Vec(IDL.Text),
+    'pricingType' : PricingType,
+    'packages' : IDL.Vec(ServicePackage),
+    'sortOrder' : IDL.Nat,
+    'name' : IDL.Text,
+    'createdAt' : IDL.Int,
+    'customRequirementLabel' : IDL.Text,
+    'deliveryTime' : IDL.Text,
+    'updatedAt' : IDL.Int,
+    'imageUrl' : IDL.Text,
+    'shortDescription' : IDL.Text,
+    'quantityEnabled' : IDL.Bool,
+    'addOns' : IDL.Vec(ServiceAddOn),
+    'isVisible' : IDL.Bool,
+    'category' : IDL.Text,
+    'detailedDescription' : IDL.Text,
+    'basePrice' : IDL.Nat,
+    'isUserCreated' : IDL.Bool,
+  });
+  const ServiceCatalogResult = IDL.Variant({
+    'error' : IDL.Text,
+    'success' : ManagedService,
   });
   const RecommendationOutput = IDL.Record({
     'projectedROI' : IDL.Opt(IDL.Text),
@@ -576,89 +375,6 @@ export const idlFactory = ({ IDL }) => {
     'availability' : IDL.Text,
     'isFeatured' : IDL.Bool,
     'isVisible' : IDL.Bool,
-  });
-  const CRMActivity = IDL.Record({
-    'id' : IDL.Nat,
-    'activityType' : IDL.Text,
-    'assignedTo' : IDL.Opt(IDL.Principal),
-    'createdAt' : Time,
-    'createdBy' : IDL.Principal,
-    'dueDate' : IDL.Opt(Time),
-    'stage' : IDL.Text,
-    'projectId' : IDL.Opt(IDL.Nat),
-    'leadId' : IDL.Opt(IDL.Nat),
-    'notes' : IDL.Text,
-  });
-  const GeneratorLog = IDL.Record({
-    'id' : IDL.Nat,
-    'inputData' : IDL.Text,
-    'userId' : IDL.Principal,
-    'createdAt' : Time,
-    'outputData' : IDL.Text,
-    'generatorType' : IDL.Text,
-  });
-  const Invoice = IDL.Record({
-    'clientId' : IDL.Principal,
-    'createdAt' : Time,
-    'invoiceId' : IDL.Text,
-    'totalPaid' : IDL.Nat,
-    'gstAmount' : IDL.Nat,
-    'serviceBreakdown' : IDL.Text,
-  });
-  const Lead = IDL.Record({
-    'id' : IDL.Nat,
-    'status' : IDL.Text,
-    'urgencyLevel' : IDL.Opt(IDL.Nat),
-    'assignedTo' : IDL.Opt(IDL.Principal),
-    'name' : IDL.Text,
-    'createdAt' : Time,
-    'createdBy' : IDL.Principal,
-    'email' : IDL.Text,
-    'microNiche' : IDL.Text,
-    'companySize' : IDL.Opt(IDL.Text),
-    'qualificationScore' : IDL.Nat,
-    'phone' : IDL.Opt(IDL.Text),
-    'channel' : IDL.Text,
-    'budgetRange' : IDL.Opt(IDL.Nat),
-    'decisionMakerStatus' : IDL.Opt(IDL.Bool),
-  });
-  const LegalPage = IDL.Record({
-    'id' : IDL.Nat,
-    'title' : IDL.Text,
-    'content' : IDL.Text,
-    'lastUpdatedAt' : Time,
-    'lastUpdatedBy' : IDL.Principal,
-  });
-  const Offer = IDL.Record({
-    'id' : IDL.Nat,
-    'offerType' : IDL.Text,
-    'name' : IDL.Text,
-    'discountPercent' : IDL.Nat,
-    'isActive' : IDL.Bool,
-  });
-  const Order = IDL.Record({
-    'id' : IDL.Nat,
-    'clientId' : IDL.Principal,
-    'paymentStatus' : IDL.Text,
-    'createdAt' : Time,
-    'projectId' : IDL.Nat,
-    'amount' : IDL.Nat,
-  });
-  const PaymentLog = IDL.Record({
-    'status' : IDL.Text,
-    'signature' : IDL.Text,
-    'orderId' : IDL.Text,
-    'paymentId' : IDL.Text,
-    'timestamp' : Time,
-    'amount' : IDL.Nat,
-  });
-  const Project = IDL.Record({
-    'id' : IDL.Nat,
-    'startTime' : Time,
-    'status' : IDL.Text,
-    'clientId' : IDL.Principal,
-    'onboardingData' : IDL.Opt(OnboardingData),
-    'serviceId' : IDL.Nat,
   });
   const Service = IDL.Record({
     'id' : IDL.Nat,
@@ -677,22 +393,10 @@ export const idlFactory = ({ IDL }) => {
     'category' : IDL.Text,
     'paymentLinkUrl' : IDL.Opt(IDL.Text),
   });
-  const WhatsAppMessageLog = IDL.Record({
-    'recipientPhone' : IDL.Text,
-    'deliveryStatus' : IDL.Text,
-    'sentAt' : Time,
-    'messageType' : IDL.Text,
-  });
   const UserProfile = IDL.Record({
     'name' : IDL.Text,
     'businessName' : IDL.Opt(IDL.Text),
     'email' : IDL.Text,
-  });
-  const Coupon = IDL.Record({
-    'expiresAt' : IDL.Opt(Time),
-    'code' : IDL.Text,
-    'discountPercent' : IDL.Nat,
-    'isActive' : IDL.Bool,
   });
   const AutomationConfig = IDL.Record({
     'enabled' : IDL.Bool,
@@ -711,24 +415,6 @@ export const idlFactory = ({ IDL }) => {
     'automations' : AutomationSettings,
     'webhookUrl' : IDL.Opt(IDL.Text),
   });
-  const Notification = IDL.Record({
-    'id' : IDL.Nat,
-    'userId' : IDL.Principal,
-    'notificationType' : IDL.Text,
-    'createdAt' : Time,
-    'isRead' : IDL.Bool,
-    'message' : IDL.Text,
-  });
-  const PaymentLink = IDL.Record({
-    'id' : IDL.Nat,
-    'qrCodeDataUrl' : IDL.Opt(IDL.Text),
-    'status' : IDL.Text,
-    'createdAt' : Time,
-    'createdBy' : IDL.Principal,
-    'leadId' : IDL.Nat,
-    'amount' : IDL.Nat,
-    'paymentLinkUrl' : IDL.Opt(IDL.Text),
-  });
   const SalesSystemConfig = IDL.Record({
     'description' : IDL.Text,
     'systemSettings' : IDL.Text,
@@ -744,12 +430,17 @@ export const idlFactory = ({ IDL }) => {
     }),
     'failed' : IDL.Record({ 'error' : IDL.Text }),
   });
+  const Time = IDL.Int;
   const Token = IDL.Record({
     'principal' : IDL.Principal,
     'issuedAt' : Time,
     'expiry' : Time,
   });
   const PasswordAuthResult = IDL.Variant({ 'ok' : Token, 'error' : IDL.Text });
+  const ServicesResult = IDL.Variant({
+    'error' : IDL.Text,
+    'success' : IDL.Vec(ManagedService),
+  });
   const StripeConfiguration = IDL.Record({
     'allowedCountries' : IDL.Vec(IDL.Text),
     'secretKey' : IDL.Text,
@@ -768,6 +459,10 @@ export const idlFactory = ({ IDL }) => {
     'status' : IDL.Nat,
     'body' : IDL.Vec(IDL.Nat8),
     'headers' : IDL.Vec(http_header),
+  });
+  const UpdateServiceResult = IDL.Variant({
+    'error' : IDL.Text,
+    'success' : ManagedService,
   });
   
   return IDL.Service({
@@ -799,142 +494,46 @@ export const idlFactory = ({ IDL }) => {
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'assignLead' : IDL.Func([IDL.Nat, IDL.Principal], [], []),
-    'createCRMActivity' : IDL.Func(
-        [
-          IDL.Opt(IDL.Nat),
-          IDL.Opt(IDL.Nat),
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          IDL.Opt(IDL.Principal),
-          IDL.Opt(Time),
-        ],
-        [IDL.Nat],
-        [],
-      ),
     'createCheckoutSession' : IDL.Func(
         [IDL.Vec(ShoppingItem), IDL.Text, IDL.Text],
         [IDL.Text],
         [],
       ),
-    'createCoupon' : IDL.Func([IDL.Text, IDL.Nat, IDL.Opt(Time)], [], []),
-    'createGeneratorLog' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Text],
-        [IDL.Nat],
-        [],
-      ),
-    'createLead' : IDL.Func(
-        [
-          IDL.Text,
-          IDL.Text,
-          IDL.Opt(IDL.Text),
-          IDL.Text,
-          IDL.Text,
-          IDL.Opt(IDL.Nat),
-          IDL.Opt(IDL.Nat),
-          IDL.Opt(IDL.Text),
-          IDL.Opt(IDL.Bool),
-        ],
-        [IDL.Nat],
-        [],
-      ),
-    'createLegalPage' : IDL.Func([IDL.Text, IDL.Text], [IDL.Nat], []),
-    'createNotification' : IDL.Func(
-        [IDL.Principal, IDL.Text, IDL.Text],
-        [IDL.Nat],
-        [],
-      ),
-    'createOffer' : IDL.Func([IDL.Text, IDL.Nat, IDL.Text], [IDL.Nat], []),
-    'createOrder' : IDL.Func([IDL.Nat, IDL.Nat], [IDL.Nat], []),
-    'createPaymentLink' : IDL.Func([IDL.Nat, IDL.Nat], [IDL.Nat], []),
-    'createProject' : IDL.Func(
-        [IDL.Principal, IDL.Nat, IDL.Opt(OnboardingData)],
-        [IDL.Nat],
+    'createManagedService' : IDL.Func(
+        [ManagedService],
+        [ServiceCatalogResult],
         [],
       ),
     'createRecommendation' : IDL.Func([RecommendationOutput], [IDL.Nat], []),
-    'createService' : IDL.Func(
-        [
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          PricingTier,
-          PricingTier,
-          PricingTier,
-          IDL.Vec(IDL.Text),
-          ServiceSettings,
-          IDL.Opt(IDL.Text),
-          IDL.Opt(IDL.Text),
-          IDL.Bool,
-          IDL.Opt(IDL.Text),
-          IDL.Opt(IDL.Text),
-        ],
-        [IDL.Nat],
+    'deleteManagedService' : IDL.Func([IDL.Text], [ServiceCatalogResult], []),
+    'deleteRecommendation' : IDL.Func([IDL.Nat], [], []),
+    'duplicateManagedService' : IDL.Func(
+        [IDL.Text],
+        [ServiceCatalogResult],
         [],
       ),
-    'deleteLead' : IDL.Func([IDL.Nat], [], []),
-    'deleteRecommendation' : IDL.Func([IDL.Nat], [], []),
-    'deleteService' : IDL.Func([IDL.Nat], [], []),
-    'getAllCRMActivities' : IDL.Func([], [IDL.Vec(CRMActivity)], ['query']),
-    'getAllGeneratorLogs' : IDL.Func([], [IDL.Vec(GeneratorLog)], ['query']),
-    'getAllInvoices' : IDL.Func([], [IDL.Vec(Invoice)], ['query']),
-    'getAllLeads' : IDL.Func([], [IDL.Vec(Lead)], ['query']),
-    'getAllLegalPages' : IDL.Func([], [IDL.Vec(LegalPage)], ['query']),
-    'getAllOffers' : IDL.Func([], [IDL.Vec(Offer)], ['query']),
-    'getAllOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
-    'getAllPaymentLogs' : IDL.Func([], [IDL.Vec(PaymentLog)], ['query']),
-    'getAllProjects' : IDL.Func([], [IDL.Vec(Project)], ['query']),
     'getAllRecommendations' : IDL.Func(
         [],
         [IDL.Vec(RecommendationOutput)],
         ['query'],
       ),
     'getAllServices' : IDL.Func([], [IDL.Vec(Service)], ['query']),
-    'getAllWhatsAppLogs' : IDL.Func(
-        [],
-        [IDL.Vec(WhatsAppMessageLog)],
-        ['query'],
-      ),
-    'getCRMActivitiesByLead' : IDL.Func(
-        [IDL.Nat],
-        [IDL.Vec(CRMActivity)],
-        ['query'],
-      ),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-    'getCoupon' : IDL.Func([IDL.Text], [IDL.Opt(Coupon)], ['query']),
     'getIntegrationSettings' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(IntegrationSettings)],
         ['query'],
       ),
-    'getInvoice' : IDL.Func([IDL.Text], [IDL.Opt(Invoice)], ['query']),
-    'getLeadsByScoreRange' : IDL.Func(
-        [IDL.Nat, IDL.Nat],
-        [IDL.Vec(Lead)],
+    'getManagedService' : IDL.Func(
+        [IDL.Text],
+        [ServiceCatalogResult],
         ['query'],
       ),
-    'getLegalPage' : IDL.Func([IDL.Nat], [IDL.Opt(LegalPage)], ['query']),
-    'getMyCRMActivities' : IDL.Func([], [IDL.Vec(CRMActivity)], ['query']),
-    'getMyGeneratorLogs' : IDL.Func([], [IDL.Vec(GeneratorLog)], ['query']),
-    'getMyInvoices' : IDL.Func([], [IDL.Vec(Invoice)], ['query']),
-    'getMyLeads' : IDL.Func([], [IDL.Vec(Lead)], ['query']),
-    'getMyNotifications' : IDL.Func([], [IDL.Vec(Notification)], ['query']),
-    'getMyPaymentLinks' : IDL.Func([], [IDL.Vec(PaymentLink)], ['query']),
-    'getOrdersByClient' : IDL.Func(
-        [IDL.Principal],
-        [IDL.Vec(Order)],
-        ['query'],
-      ),
-    'getOrdersByProject' : IDL.Func([IDL.Nat], [IDL.Vec(Order)], ['query']),
-    'getPaymentLinks' : IDL.Func([], [IDL.Vec(PaymentLink)], ['query']),
-    'getPaymentLog' : IDL.Func([IDL.Text], [IDL.Opt(PaymentLog)], ['query']),
-    'getProject' : IDL.Func([IDL.Nat], [IDL.Opt(Project)], ['query']),
-    'getProjectsByClient' : IDL.Func(
-        [IDL.Principal],
-        [IDL.Vec(Project)],
+    'getManagedServices' : IDL.Func([], [IDL.Vec(ManagedService)], ['query']),
+    'getManagedServicesByCategory' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(ManagedService)],
         ['query'],
       ),
     'getRecommendation' : IDL.Func(
@@ -948,111 +547,40 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getService' : IDL.Func([IDL.Nat], [IDL.Opt(Service)], ['query']),
-    'getServiceRazorpayConfig' : IDL.Func(
-        [IDL.Nat],
-        [IDL.Bool, IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
-        [],
-      ),
     'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
-    'getWhatsAppLog' : IDL.Func(
-        [IDL.Text],
-        [IDL.Opt(WhatsAppMessageLog)],
-        ['query'],
-      ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-    'isRazorpayConfigured' : IDL.Func([], [IDL.Bool], ['query']),
     'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
     'login' : IDL.Func([IDL.Text, IDL.Text], [PasswordAuthResult], []),
-    'markNotificationAsRead' : IDL.Func([IDL.Nat], [], []),
     'register' : IDL.Func(
         [IDL.Text, IDL.Text, UserRole],
         [PasswordAuthResult],
         [],
       ),
-    'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-    'saveIntegrationSettings' : IDL.Func([IntegrationSettings], [], []),
-    'saveInvoice' : IDL.Func([Invoice], [], []),
-    'savePaymentLog' : IDL.Func([PaymentLog], [], []),
-    'saveSalesSystemConfig' : IDL.Func([SalesSystemConfig], [], []),
-    'saveWhatsAppLog' : IDL.Func([WhatsAppMessageLog], [], []),
-    'setPaymentLinkQrCode' : IDL.Func([IDL.Nat, IDL.Text], [], []),
-    'setPaymentLinkUrl' : IDL.Func([IDL.Nat, IDL.Text], [], []),
-    'setRazorpayConfiguration' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Text],
-        [],
+    'reorderManagedServices' : IDL.Func(
+        [IDL.Vec(IDL.Text)],
+        [ServicesResult],
         [],
       ),
+    'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'saveIntegrationSettings' : IDL.Func([IntegrationSettings], [], []),
+    'saveSalesSystemConfig' : IDL.Func([SalesSystemConfig], [], []),
     'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
-    'toggleCoupon' : IDL.Func([IDL.Text, IDL.Bool], [], []),
-    'toggleOffer' : IDL.Func([IDL.Nat, IDL.Bool], [], []),
     'transform' : IDL.Func(
         [TransformationInput],
         [TransformationOutput],
         ['query'],
       ),
-    'updateCRMActivity' : IDL.Func(
-        [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Opt(Time)],
-        [],
-        [],
-      ),
-    'updateLead' : IDL.Func(
-        [
-          IDL.Nat,
-          IDL.Text,
-          IDL.Text,
-          IDL.Opt(IDL.Text),
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          IDL.Opt(IDL.Nat),
-          IDL.Opt(IDL.Nat),
-          IDL.Opt(IDL.Text),
-          IDL.Opt(IDL.Bool),
-        ],
-        [],
+    'updateManagedService' : IDL.Func(
+        [IDL.Text, ManagedService],
+        [UpdateServiceResult],
         [],
       ),
-    'updateLegalPage' : IDL.Func([IDL.Nat, IDL.Text, IDL.Text], [], []),
-    'updateOrderStatus' : IDL.Func([IDL.Nat, IDL.Text], [], []),
-    'updatePaymentLinkStatus' : IDL.Func([IDL.Nat, IDL.Text], [], []),
-    'updateProjectStatus' : IDL.Func([IDL.Nat, IDL.Text], [], []),
     'updateRecommendation' : IDL.Func([IDL.Nat, RecommendationOutput], [], []),
-    'updateService' : IDL.Func(
-        [
-          IDL.Nat,
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          IDL.Text,
-          PricingTier,
-          PricingTier,
-          PricingTier,
-          IDL.Vec(IDL.Text),
-          ServiceSettings,
-          IDL.Opt(IDL.Text),
-          IDL.Opt(IDL.Text),
-          IDL.Bool,
-          IDL.Opt(IDL.Text),
-          IDL.Opt(IDL.Text),
-        ],
-        [],
-        [],
-      ),
-    'updateServicePaymentInfo' : IDL.Func(
-        [IDL.Nat, IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
-        [],
-        [],
-      ),
-    'updateServiceRazorpay' : IDL.Func(
-        [IDL.Nat, IDL.Bool, IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
-        [],
-        [],
-      ),
   });
 };
 

@@ -1,229 +1,161 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet';
+import React, { useState } from 'react';
+import { Lead } from '../../hooks/useQueries';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Lead } from '../../backend';
-import QualificationBadge from './QualificationBadge';
-import { useUpdateLead } from '../../hooks/useQueries';
-import { Loader2, Mail, Phone, Building2, Calendar, User, DollarSign } from 'lucide-react';
+import {
+  X, Mail, Phone, Building2, User, Calendar, TrendingUp,
+  DollarSign, Clock, CheckCircle, Edit2, Trash2
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-interface LeadDetailPanelProps {
-  lead: Lead | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface Props {
+  lead: Lead;
+  onClose: () => void;
+  onEdit?: (lead: Lead) => void;
+  onDelete?: (lead: Lead) => void;
 }
 
-const GST_RATES = [0, 5, 12, 18, 28];
+function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | undefined | null }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start gap-3 py-2">
+      <div className="text-muted-foreground mt-0.5 flex-shrink-0">{icon}</div>
+      <div>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-sm text-foreground">{value}</p>
+      </div>
+    </div>
+  );
+}
 
-export default function LeadDetailPanel({ lead, open, onOpenChange }: LeadDetailPanelProps) {
-  const [quoteBase, setQuoteBase] = useState<string>('');
-  const [gstRate, setGstRate] = useState<number>(18);
-  const updateLead = useUpdateLead();
+function scoreColor(score: number): string {
+  if (score >= 80) return 'text-green-400';
+  if (score >= 60) return 'text-amber-400';
+  if (score >= 40) return 'text-orange-400';
+  return 'text-red-400';
+}
 
-  useEffect(() => {
-    if (lead) {
-      setQuoteBase('');
-      setGstRate(18);
-    }
-  }, [lead]);
+const BUDGET_LABELS = ['< ₹50K', '₹50K–₹2L', '₹2L–₹10L', '₹10L+'];
+const URGENCY_LABELS = ['Low', 'Medium', 'High', 'Immediate'];
 
-  if (!lead) return null;
-
-  const quoteBaseNum = parseFloat(quoteBase) || 0;
-  const gstAmount = quoteBaseNum * (gstRate / 100);
-  const quoteTotal = quoteBaseNum + gstAmount;
-
-  const handleSaveQuote = async () => {
-    if (!lead) return;
-    await updateLead.mutateAsync({
-      id: lead.id,
-      name: lead.name,
-      email: lead.email,
-      phone: lead.phone ?? null,
-      channel: lead.channel,
-      microNiche: lead.microNiche,
-      status: lead.status,
-      budgetRange: lead.budgetRange ?? null,
-      urgencyLevel: lead.urgencyLevel ?? null,
-      companySize: lead.companySize ?? null,
-      decisionMakerStatus: lead.decisionMakerStatus ?? null,
-    });
-    onOpenChange(false);
-  };
-
-  const formatDate = (ts: bigint) => {
-    return new Date(Number(ts) / 1_000_000).toLocaleDateString('en-IN', {
-      day: '2-digit', month: 'short', year: 'numeric'
-    });
-  };
-
-  const statusColors: Record<string, string> = {
-    'New Lead': 'bg-blue-100 text-blue-800',
-    'Contacted': 'bg-purple-100 text-purple-800',
-    'Qualified': 'bg-green-100 text-green-800',
-    'Proposal Sent': 'bg-yellow-100 text-yellow-800',
-    'Negotiation': 'bg-orange-100 text-orange-800',
-    'Won': 'bg-emerald-100 text-emerald-800',
-    'Lost': 'bg-red-100 text-red-800',
-  };
+export default function LeadDetailPanel({ lead, onClose, onEdit, onDelete }: Props) {
+  const score = Number(lead.qualificationScore);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-        <SheetHeader className="mb-6">
-          <SheetTitle className="text-xl font-bold">{lead.name}</SheetTitle>
-          <SheetDescription>Lead Details & GST Quote</SheetDescription>
-        </SheetHeader>
+    <div className="h-full flex flex-col bg-card border-l border-border">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <h2 className="font-semibold text-foreground">Lead Details</h2>
+        <Button size="sm" variant="ghost" onClick={onClose} className="h-7 w-7 p-0">
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
 
-        <div className="space-y-6">
-          {/* Status & Score */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColors[lead.status] ?? 'bg-gray-100 text-gray-700'}`}>
-              {lead.status}
-            </span>
-            <QualificationBadge score={Number(lead.qualificationScore)} showScore />
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-4">
+          {/* Name & Status */}
+          <div>
+            <h3 className="text-lg font-bold text-foreground mb-1">{lead.name}</h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="outline" className="text-xs border-primary/30 text-primary">
+                {lead.status}
+              </Badge>
+              <Badge variant="outline" className="text-xs border-border text-muted-foreground">
+                {lead.channel}
+              </Badge>
+            </div>
           </div>
 
-          <Separator />
+          {/* Score */}
+          <div className="bg-muted/30 rounded-xl p-3 border border-border">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-muted-foreground">Qualification Score</span>
+              <span className={cn('text-lg font-bold', scoreColor(score))}>{score}/100</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-1.5">
+              <div
+                className={cn('h-1.5 rounded-full transition-all', score >= 80 ? 'bg-green-400' : score >= 60 ? 'bg-amber-400' : score >= 40 ? 'bg-orange-400' : 'bg-red-400')}
+                style={{ width: `${score}%` }}
+              />
+            </div>
+          </div>
+
+          <Separator className="bg-border" />
 
           {/* Contact Info */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Contact</h3>
-            <div className="flex items-center gap-2 text-sm">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <span>{lead.email}</span>
-            </div>
-            {lead.phone && (
-              <div className="flex items-center gap-2 text-sm">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{lead.phone}</span>
-              </div>
-            )}
-            {lead.companySize && (
-              <div className="flex items-center gap-2 text-sm">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                <span className="capitalize">{lead.companySize} company</span>
-              </div>
-            )}
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>Created {formatDate(lead.createdAt)}</span>
-            </div>
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Contact</p>
+            <InfoRow icon={<Mail className="w-4 h-4" />} label="Email" value={lead.email} />
+            <InfoRow icon={<Phone className="w-4 h-4" />} label="Phone" value={lead.phone} />
           </div>
 
-          <Separator />
+          <Separator className="bg-border" />
 
-          {/* Lead Info */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Lead Info</h3>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <span className="text-muted-foreground">Source</span>
-                <p className="font-medium">{lead.channel}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Niche</span>
-                <p className="font-medium">{lead.microNiche}</p>
-              </div>
-              {lead.budgetRange !== undefined && lead.budgetRange !== null && (
-                <div>
-                  <span className="text-muted-foreground">Budget Range</span>
-                  <p className="font-medium">Level {String(lead.budgetRange)}</p>
-                </div>
-              )}
-              {lead.urgencyLevel !== undefined && lead.urgencyLevel !== null && (
-                <div>
-                  <span className="text-muted-foreground">Urgency</span>
-                  <p className="font-medium">Level {String(lead.urgencyLevel)}</p>
-                </div>
-              )}
-            </div>
+          {/* Business Info */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Business</p>
+            <InfoRow icon={<Building2 className="w-4 h-4" />} label="Company Size" value={lead.companySize} />
+            <InfoRow icon={<TrendingUp className="w-4 h-4" />} label="Micro Niche" value={lead.microNiche} />
+            <InfoRow
+              icon={<DollarSign className="w-4 h-4" />}
+              label="Budget Range"
+              value={lead.budgetRange !== undefined && lead.budgetRange !== null ? BUDGET_LABELS[Number(lead.budgetRange)] : undefined}
+            />
+            <InfoRow
+              icon={<Clock className="w-4 h-4" />}
+              label="Urgency"
+              value={lead.urgencyLevel !== undefined && lead.urgencyLevel !== null ? URGENCY_LABELS[Number(lead.urgencyLevel)] : undefined}
+            />
+            <InfoRow
+              icon={<CheckCircle className="w-4 h-4" />}
+              label="Decision Maker"
+              value={lead.decisionMakerStatus !== undefined && lead.decisionMakerStatus !== null ? (lead.decisionMakerStatus ? 'Yes' : 'No') : undefined}
+            />
           </div>
 
-          <Separator />
+          <Separator className="bg-border" />
 
-          {/* GST Quote Section */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              GST Quote Calculator
-            </h3>
-
-            <div className="space-y-3">
-              <div>
-                <Label htmlFor="quoteBase">Base Amount (₹)</Label>
-                <Input
-                  id="quoteBase"
-                  type="number"
-                  placeholder="Enter base amount"
-                  value={quoteBase}
-                  onChange={e => setQuoteBase(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="gstRate">GST Rate</Label>
-                <Select value={String(gstRate)} onValueChange={v => setGstRate(Number(v))}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {GST_RATES.map(rate => (
-                      <SelectItem key={rate} value={String(rate)}>{rate}%</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Calculated values */}
-              <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Base Amount</span>
-                  <span>₹{quoteBaseNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">GST ({gstRate}%)</span>
-                  <span>₹{gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between font-bold text-base">
-                  <span>Total (GST Inclusive)</span>
-                  <span className="text-primary">₹{quoteTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                </div>
-              </div>
-
-              <Button
-                onClick={handleSaveQuote}
-                disabled={updateLead.isPending || quoteBaseNum <= 0}
-                className="w-full"
-              >
-                {updateLead.isPending ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
-                ) : (
-                  'Save Quote'
-                )}
-              </Button>
-            </div>
+          {/* Dates */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Timeline</p>
+            <InfoRow
+              icon={<Calendar className="w-4 h-4" />}
+              label="Created At"
+              value={new Date(Number(lead.createdAt) / 1_000_000).toLocaleString()}
+            />
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      </ScrollArea>
+
+      {/* Actions */}
+      {(onEdit || onDelete) && (
+        <div className="p-4 border-t border-border flex gap-2">
+          {onEdit && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onEdit(lead)}
+              className="flex-1 border-border hover:border-primary/50 hover:text-primary"
+            >
+              <Edit2 className="w-3.5 h-3.5 mr-1.5" />
+              Edit
+            </Button>
+          )}
+          {onDelete && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onDelete(lead)}
+              className="flex-1 border-destructive/30 text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+              Delete
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

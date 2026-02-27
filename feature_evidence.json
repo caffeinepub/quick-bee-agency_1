@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-rewrite-frontend-src-pages-automationpage-tsx-so-every-toggle-whatsapp-auto-reply-proposal-auto-send-lead-follow-up-sequences-payment-confirmation-and-project-onboarding-reads-its-current-on-off-state-directly-from-aiconfigcontext-the-localstorage-backed-centralized-config-store-and-writes-the-updated-toggle-state-back-to-aiconfigcontext-when-clicked-the-toggle-ui-must-reflect-the-persisted-value-on-initial-render-after-page-navigation-and-after-a-full-app-reload-when-a-toggle-is-off-its-corresponding-automation-must-not-fire-any-webhook-calls-api-calls-or-ui-triggers-when-a-toggle-is-on-the-automation-is-active-and-fires-on-its-designated-trigger-condition",
-      "featureTitle": "Rewrite frontend/src/pages/AutomationPage.tsx so every toggle — WhatsApp Auto-Reply, Proposal Auto-Send, Lead Follow-Up Sequences, Payment Confirmation, and Project Onboarding — reads its current ON/OFF state directly from AIConfigContext (the localStorage-backed centralized config store) and writes the updated toggle state back to AIConfigContext when clicked. The toggle UI must reflect the persisted value on initial render, after page navigation, and after a full app reload. When a toggle is OFF, its corresponding automation must not fire any webhook calls, API calls, or UI triggers. When a toggle is ON, the automation is active and fires on its designated trigger condition.",
+      "featureId": "feature-add-react-query-mutation-and-query-hooks-for-the-new-managed-service-backend-functions-to-frontend-src-hooks-usequeries-ts-expose-usegetmanagedservices-query-usecreatemanagedservice-mutation-invalidates-managed-services-cache-on-success-useupdatemanagedservice-mutation-invalidates-on-success-usedeletemanagedservice-mutation-invalidates-on-success-useduplicatemanagedservice-mutation-invalidates-on-success-and-usereordermanagedservices-mutation-invalidates-on-success-each-hook-must-follow-the-existing-pattern-in-usequeries-ts-check-actor-availability-wrap-the-actor-call-and-handle-errors-with-toast-notifications",
+      "featureTitle": "Add React Query mutation and query hooks for the new managed-service backend functions to frontend/src/hooks/useQueries.ts. Expose: `useGetManagedServices` (query), `useCreateManagedService` (mutation, invalidates managed-services cache on success), `useUpdateManagedService` (mutation, invalidates on success), `useDeleteManagedService` (mutation, invalidates on success), `useDuplicateManagedService` (mutation, invalidates on success), and `useReorderManagedServices` (mutation, invalidates on success). Each hook must follow the existing pattern in useQueries.ts — check actor availability, wrap the actor call, and handle errors with toast notifications.",
       "files": [
-        "frontend/src/pages/AutomationPage.tsx"
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -21,7 +21,129 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-77"
+        "REQ-84"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-a-new-page-at-route-service-management-frontend-src-pages-servicemanagementpage-tsx-accessible-from-the-sidebar-navigation-under-a-services-group-this-page-is-the-agency-services-management-hub-and-must-1-display-a-prominent-add-new-service-button-at-the-top-that-opens-a-create-service-dialog-2-fetch-and-render-all-user-created-managed-services-using-usegetmanagedservices-3-render-each-managed-service-as-a-card-showing-the-service-name-category-pricing-type-base-price-inr-formatted-delivery-time-visibility-badge-active-hidden-and-action-buttons-edit-duplicate-delete-preview-drag-handle-4-support-drag-and-drop-reordering-of-service-cards-using-a-library-agnostic-approach-mouse-touch-event-handlers-or-a-lightweight-dnd-utility-on-drop-call-usereordermanagedservices-with-the-new-ordered-id-list-5-include-a-visibility-toggle-on-each-card-that-calls-useupdatemanagedservice-to-flip-isvisible-6-show-a-loading-skeleton-while-data-is-fetching-and-an-empty-state-illustration-with-a-call-to-action-when-no-services-exist-7-be-fully-responsive-and-mobile-friendly-using-the-existing-dark-gold-tailwind-theme-charcoal-backgrounds-gold-accents-rounded-xl-cards-register-the-route-service-management-in-app-tsx-nested-under-the-authenticated-shell-route",
+      "featureTitle": "Create a new page at route /service-management (frontend/src/pages/ServiceManagementPage.tsx), accessible from the sidebar navigation under a 'Services' group. This page is the Agency Services Management hub and must: (1) display a prominent 'Add New Service' button at the top that opens a create-service dialog; (2) fetch and render all user-created managed services using `useGetManagedServices`; (3) render each managed service as a card showing the service name, category, pricing type, base price (INR formatted), delivery time, visibility badge (Active/Hidden), and action buttons (Edit, Duplicate, Delete, Preview, drag handle); (4) support drag-and-drop reordering of service cards using a library-agnostic approach (mouse/touch event handlers or a lightweight DnD utility) — on drop, call `useReorderManagedServices` with the new ordered id list; (5) include a visibility toggle on each card that calls `useUpdateManagedService` to flip `isVisible`; (6) show a loading skeleton while data is fetching and an empty-state illustration with a call-to-action when no services exist; (7) be fully responsive and mobile-friendly using the existing dark-gold Tailwind theme (charcoal backgrounds, gold accents, rounded-xl cards). Register the route /service-management in App.tsx nested under the authenticated shell route.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/pages/ServiceManagementPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-85"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-a-multi-step-create-edit-service-dialog-frontend-src-components-services-managedserviceformdialog-tsx-used-by-both-the-add-new-service-button-and-the-edit-action-on-servicemanagementpage-the-dialog-must-have-the-following-tabs-steps-1-basic-info-service-name-required-short-description-detailed-description-category-dropdown-seo-web-design-ads-branding-ai-automation-app-development-digital-marketing-custom-pricing-type-radio-fixed-hourly-custom-quote-base-price-inr-number-input-shown-only-for-fixed-hourly-delivery-time-text-image-url-or-icon-picker-2-features-a-dynamic-bullet-point-list-where-users-can-add-edit-and-remove-feature-items-3-packages-three-expandable-sections-for-basic-standard-and-premium-packages-each-with-its-own-name-price-inr-delivery-time-and-features-list-optional-add-ons-section-below-with-add-remove-rows-name-price-description-4-settings-custom-requirement-label-text-e-g-describe-your-project-quantity-selector-toggle-on-off-visibility-toggle-on-off-on-submit-call-usecreatemanagedservice-for-new-or-useupdatemanagedservice-for-edit-with-the-form-data-show-inline-validation-errors-for-required-fields-show-a-loading-spinner-on-the-submit-button-while-the-mutation-is-in-flight-close-the-dialog-and-show-a-success-toast-on-completion",
+      "featureTitle": "Create a multi-step Create/Edit Service dialog (frontend/src/components/services/ManagedServiceFormDialog.tsx) used by both the 'Add New Service' button and the 'Edit' action on ServiceManagementPage. The dialog must have the following tabs/steps: (1) Basic Info — service name (required), short description, detailed description, category (dropdown: SEO, Web Design, Ads, Branding, AI Automation, App Development, Digital Marketing, Custom), pricing type (radio: Fixed / Hourly / Custom Quote), base price (INR number input, shown only for Fixed/Hourly), delivery time (text), image URL or icon picker; (2) Features — a dynamic bullet-point list where users can add, edit, and remove feature items; (3) Packages — three expandable sections for Basic, Standard, and Premium packages, each with its own name, price (INR), delivery time, and features list; optional add-ons section below with add/remove rows (name, price, description); (4) Settings — custom requirement label (text, e.g. 'Describe your project'), quantity selector toggle (on/off), visibility toggle (on/off). On submit, call `useCreateManagedService` (for new) or `useUpdateManagedService` (for edit) with the form data. Show inline validation errors for required fields. Show a loading spinner on the submit button while the mutation is in-flight. Close the dialog and show a success toast on completion.",
+      "files": [
+        "frontend/src/components/services/ManagedServiceFormDialog.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-86"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-the-duplicate-and-delete-actions-for-managed-services-on-servicemanagementpage-for-duplicate-clicking-the-duplicate-button-on-a-service-card-calls-useduplicatemanagedservice-with-the-service-id-appends-copy-to-the-duplicated-service-s-name-and-adds-it-to-the-list-immediately-via-cache-invalidation-for-delete-clicking-the-delete-button-opens-a-confirmation-dialog-reuse-or-extend-the-existing-servicedeletedialog-pattern-that-warns-the-user-the-action-is-permanent-on-confirmation-calls-usedeletemanagedservice-if-the-backend-returns-an-error-because-isusercreated-is-false-display-a-toast-error-this-service-is-part-of-the-original-catalog-and-cannot-be-deleted-on-successful-deletion-remove-the-card-from-the-list-via-cache-invalidation",
+      "featureTitle": "Implement the Duplicate and Delete actions for managed services on ServiceManagementPage. For Duplicate: clicking the Duplicate button on a service card calls `useDuplicateManagedService` with the service id, appends ' (Copy)' to the duplicated service's name, and adds it to the list immediately via cache invalidation. For Delete: clicking the Delete button opens a confirmation dialog (reuse or extend the existing ServiceDeleteDialog pattern) that warns the user the action is permanent; on confirmation, calls `useDeleteManagedService`; if the backend returns an error because `isUserCreated` is false, display a toast error: 'This service is part of the original catalog and cannot be deleted.' On successful deletion, remove the card from the list via cache invalidation.",
+      "files": [
+        "frontend/src/pages/ServiceManagementPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-87"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-a-service-preview-modal-frontend-src-components-services-managedservicepreviewmodal-tsx-that-renders-a-read-only-client-facing-view-of-a-managed-service-before-publishing-the-preview-must-display-service-name-short-and-detailed-description-category-badge-pricing-type-and-base-price-inr-formatted-delivery-time-features-bullet-list-all-package-cards-basic-standard-premium-with-their-prices-and-features-and-available-add-ons-include-a-dynamic-price-calculator-section-that-shows-the-base-price-and-recalculates-the-total-in-real-time-as-the-user-selects-add-ons-checkboxes-and-adjusts-quantity-if-quantityenabled-is-true-display-the-custom-requirement-label-as-a-disabled-text-area-placeholder-the-modal-must-use-the-existing-dark-gold-tailwind-theme-and-be-fully-responsive-a-close-button-must-dismiss-the-modal",
+      "featureTitle": "Implement a Service Preview modal (frontend/src/components/services/ManagedServicePreviewModal.tsx) that renders a read-only, client-facing view of a managed service before publishing. The preview must display: service name, short and detailed description, category badge, pricing type and base price (INR formatted), delivery time, features bullet list, all package cards (Basic/Standard/Premium) with their prices and features, and available add-ons. Include a dynamic price calculator section that shows the base price and recalculates the total in real time as the user selects add-ons (checkboxes) and adjusts quantity (if `quantityEnabled` is true). Display the custom requirement label as a disabled text area placeholder. The modal must use the existing dark-gold Tailwind theme and be fully responsive. A 'Close' button must dismiss the modal.",
+      "files": [
+        "frontend/src/components/services/ManagedServicePreviewModal.tsx",
+        "frontend/src/pages/ServiceManagementPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-88"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-service-management-link-to-the-sidebar-navigation-frontend-src-components-layout-sidebarnav-tsx-under-a-services-group-or-adjacent-to-the-existing-services-link-the-link-must-point-to-service-management-and-be-visible-to-all-users-no-role-gate-also-add-a-simple-analytics-sub-section-at-the-bottom-of-servicemanagementpage-that-displays-for-each-managed-service-a-views-count-and-a-purchases-count-read-from-localstorage-counters-that-are-incremented-a-when-the-preview-modal-is-opened-views-and-b-when-a-managed-service-s-buy-now-action-is-triggered-purchases-display-these-counts-as-small-stat-badges-on-each-service-card",
+      "featureTitle": "Add a 'Service Management' link to the sidebar navigation (frontend/src/components/layout/SidebarNav.tsx) under a 'Services' group or adjacent to the existing Services link. The link must point to /service-management and be visible to all users (no role gate). Also add a simple analytics sub-section at the bottom of ServiceManagementPage that displays, for each managed service: a 'Views' count and a 'Purchases' count, read from localStorage counters that are incremented (a) when the preview modal is opened (views) and (b) when a managed service's 'Buy Now' action is triggered (purchases). Display these counts as small stat badges on each service card.",
+      "files": [
+        "frontend/src/pages/ServiceManagementPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-89"
       ],
       "confidence": "high"
     }

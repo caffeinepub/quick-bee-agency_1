@@ -2,29 +2,158 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
 import {
   UserProfile,
-  Lead,
-  CRMActivity,
   Service,
   ServiceSettings,
   PricingTier,
-  Project,
-  OnboardingData,
-  Order,
-  Offer,
-  LegalPage,
-  Notification,
-  GeneratorLog,
-  PaymentLink,
-  PaymentLog,
-  Invoice,
-  WhatsAppMessageLog,
-  RecommendationOutput,
   IntegrationSettings,
   SalesSystemConfig,
-  AutomationSettings,
-  AutomationConfig,
+  RecommendationOutput,
+  ManagedService,
+  ServicePackage,
+  ServiceAddOn,
+  PricingType,
 } from '../backend';
 import { Principal } from '@dfinity/principal';
+import { toast } from 'sonner';
+
+// Re-export managed service types for convenience
+export type { ManagedService, ServicePackage, ServiceAddOn };
+export { PricingType };
+
+// ─── Local type definitions (not in backend interface) ───────────────────────
+
+export interface Lead {
+  id: bigint;
+  name: string;
+  email: string;
+  phone?: string;
+  channel: string;
+  microNiche: string;
+  status: string;
+  assignedTo?: Principal;
+  createdAt: bigint;
+  createdBy: Principal;
+  qualificationScore: bigint;
+  budgetRange?: bigint;
+  urgencyLevel?: bigint;
+  companySize?: string;
+  decisionMakerStatus?: boolean;
+}
+
+export interface CRMActivity {
+  id: bigint;
+  leadId?: bigint;
+  projectId?: bigint;
+  activityType: string;
+  stage: string;
+  notes: string;
+  assignedTo?: Principal;
+  dueDate?: bigint;
+  createdBy: Principal;
+  createdAt: bigint;
+}
+
+export interface Project {
+  id: bigint;
+  clientId: Principal;
+  serviceId: bigint;
+  status: string;
+  startTime: bigint;
+  onboardingData?: OnboardingData;
+}
+
+export interface OnboardingData {
+  businessName: string;
+  niche: string;
+  goals: string;
+  budget: bigint;
+  timeline: string;
+}
+
+export interface Order {
+  id: bigint;
+  projectId: bigint;
+  clientId: Principal;
+  amount: bigint;
+  paymentStatus: string;
+  createdAt: bigint;
+}
+
+export interface Offer {
+  id: bigint;
+  name: string;
+  discountPercent: bigint;
+  isActive: boolean;
+  offerType: string;
+}
+
+export interface LegalPage {
+  id: bigint;
+  title: string;
+  content: string;
+  lastUpdatedBy: Principal;
+  lastUpdatedAt: bigint;
+}
+
+export interface Notification {
+  id: bigint;
+  userId: Principal;
+  message: string;
+  notificationType: string;
+  isRead: boolean;
+  createdAt: bigint;
+}
+
+export interface GeneratorLog {
+  id: bigint;
+  generatorType: string;
+  userId: Principal;
+  inputData: string;
+  outputData: string;
+  createdAt: bigint;
+}
+
+export interface PaymentLink {
+  id: bigint;
+  leadId: bigint;
+  amount: bigint;
+  status: string;
+  createdAt: bigint;
+  createdBy: Principal;
+  paymentLinkUrl?: string;
+  qrCodeDataUrl?: string;
+}
+
+export interface PaymentLog {
+  orderId: string;
+  paymentId: string;
+  signature: string;
+  amount: bigint;
+  status: string;
+  timestamp: bigint;
+}
+
+export interface Invoice {
+  invoiceId: string;
+  clientId: Principal;
+  serviceBreakdown: string;
+  gstAmount: bigint;
+  totalPaid: bigint;
+  createdAt: bigint;
+}
+
+export interface WhatsAppMessageLog {
+  recipientPhone: string;
+  messageType: string;
+  deliveryStatus: string;
+  sentAt: bigint;
+}
+
+export interface RazorpayConfig {
+  apiKey: string;
+  apiSecret: string;
+  webhookSecret: string;
+}
 
 // ─── User Profile ────────────────────────────────────────────────────────────
 
@@ -177,287 +306,278 @@ export function useGetService(id: bigint) {
   });
 }
 
+// Stub mutations for service CRUD — backend methods don't exist in current interface
+// These are kept for component compatibility but will throw if called
 export function useCreateService() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: {
-      name: string;
-      description: string;
-      category: string;
-      subcategory: string;
-      pricingBasic: PricingTier;
-      pricingPro: PricingTier;
-      pricingPremium: PricingTier;
-      features: string[];
-      settings: ServiceSettings;
-      paymentLinkUrl: string | null;
-      qrCodeDataUrl: string | null;
-      razorpayEnabled: boolean;
-      razorpayKeyId: string | null;
-      razorpayOrderId: string | null;
-    }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.createService(
-        params.name, params.description, params.category, params.subcategory,
-        params.pricingBasic, params.pricingPro, params.pricingPremium,
-        params.features, params.settings, params.paymentLinkUrl, params.qrCodeDataUrl,
-        params.razorpayEnabled, params.razorpayKeyId, params.razorpayOrderId
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['services'] });
+    mutationFn: async (_params: unknown): Promise<void> => {
+      throw new Error('createService is not available in the current backend');
     },
   });
 }
 
 export function useUpdateService() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: {
-      id: bigint;
-      name: string;
-      description: string;
-      category: string;
-      subcategory: string;
-      pricingBasic: PricingTier;
-      pricingPro: PricingTier;
-      pricingPremium: PricingTier;
-      features: string[];
-      settings: ServiceSettings;
-      paymentLinkUrl: string | null;
-      qrCodeDataUrl: string | null;
-      razorpayEnabled: boolean;
-      razorpayKeyId: string | null;
-      razorpayOrderId: string | null;
-    }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.updateService(
-        params.id, params.name, params.description, params.category, params.subcategory,
-        params.pricingBasic, params.pricingPro, params.pricingPremium,
-        params.features, params.settings, params.paymentLinkUrl, params.qrCodeDataUrl,
-        params.razorpayEnabled, params.razorpayKeyId, params.razorpayOrderId
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['services'] });
+    mutationFn: async (_params: unknown): Promise<void> => {
+      throw new Error('updateService is not available in the current backend');
     },
   });
 }
 
 export function useDeleteService() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (id: bigint) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.deleteService(id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['services'] });
+    mutationFn: async (_id: bigint): Promise<void> => {
+      throw new Error('deleteService is not available in the current backend');
     },
   });
 }
 
 export function useUpdateServicePaymentInfo() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: { id: bigint; paymentLinkUrl: string | null; qrCodeDataUrl: string | null }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.updateServicePaymentInfo(params.id, params.paymentLinkUrl, params.qrCodeDataUrl);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['services'] });
+    mutationFn: async (_params: { id: bigint; paymentLinkUrl: string | null; qrCodeDataUrl: string | null }): Promise<void> => {
+      throw new Error('updateServicePaymentInfo is not available in the current backend');
     },
   });
 }
 
 export function useUpdateServiceRazorpay() {
+  return useMutation({
+    mutationFn: async (_params: { id: bigint; enabled: boolean; keyId: string | null; orderId: string | null }): Promise<void> => {
+      throw new Error('updateServiceRazorpay is not available in the current backend');
+    },
+  });
+}
+
+// ─── Managed Services ─────────────────────────────────────────────────────────
+
+export function useGetManagedServices() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<ManagedService[]>({
+    queryKey: ['managed-services'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getManagedServices();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useCreateManagedService() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (params: { id: bigint; enabled: boolean; keyId: string | null; orderId: string | null }) => {
+    mutationFn: async (service: ManagedService) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.updateServiceRazorpay(params.id, params.enabled, params.keyId, params.orderId);
+      const result = await actor.createManagedService(service);
+      if (result.__kind__ === 'error') {
+        throw new Error(result.error);
+      }
+      return result.success;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['services'] });
+      queryClient.invalidateQueries({ queryKey: ['managed-services'] });
+      toast.success('Service created successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to create service');
     },
   });
 }
 
-// ─── Projects ────────────────────────────────────────────────────────────────
+export function useUpdateManagedService() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
 
-export function useGetProjectsByClient(clientId: string) {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Project[]>({
-    queryKey: ['projects', clientId],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getProjectsByClient(Principal.fromText(clientId));
-    },
-    enabled: !!actor && !isFetching && !!clientId,
-  });
-}
-
-export function useGetProject(id: bigint) {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Project | null>({
-    queryKey: ['project', id.toString()],
-    queryFn: async () => {
+  return useMutation({
+    mutationFn: async ({ id, service }: { id: string; service: ManagedService }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.getProject(id);
+      const result = await actor.updateManagedService(id, service);
+      if (result.__kind__ === 'error') {
+        throw new Error(result.error);
+      }
+      return result.success;
     },
-    enabled: !!actor && !isFetching,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['managed-services'] });
+      toast.success('Service updated successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update service');
+    },
+  });
+}
+
+export function useDeleteManagedService() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.deleteManagedService(id);
+      if (result.__kind__ === 'error') {
+        throw new Error(result.error);
+      }
+      return result.success;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['managed-services'] });
+      toast.success('Service deleted successfully');
+    },
+    onError: (error: Error) => {
+      if (error.message?.includes('non-user created') || error.message?.includes('Cannot remove')) {
+        toast.error('This service is part of the original catalog and cannot be deleted.');
+      } else {
+        toast.error(error.message || 'Failed to delete service');
+      }
+    },
+  });
+}
+
+export function useDuplicateManagedService() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.duplicateManagedService(id);
+      if (result.__kind__ === 'error') {
+        throw new Error(result.error);
+      }
+      return result.success;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['managed-services'] });
+      toast.success('Service duplicated successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to duplicate service');
+    },
+  });
+}
+
+export function useReorderManagedServices() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.reorderManagedServices(orderedIds);
+      if (result.__kind__ === 'error') {
+        throw new Error(result.error);
+      }
+      return result.success;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['managed-services'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to reorder services');
+    },
+  });
+}
+
+// ─── Projects (stub — backend methods not in current interface) ───────────────
+
+export function useGetProjectsByClient(_clientId: string) {
+  return useQuery<Project[]>({
+    queryKey: ['projects', _clientId],
+    queryFn: async () => [],
+    enabled: false,
+  });
+}
+
+export function useGetProject(_id: bigint) {
+  return useQuery<Project | null>({
+    queryKey: ['project', _id.toString()],
+    queryFn: async () => null,
+    enabled: false,
   });
 }
 
 export function useGetAllProjects() {
-  const { actor, isFetching } = useActor();
-
   return useQuery<Project[]>({
     queryKey: ['allProjects'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllProjects();
-    },
-    enabled: !!actor && !isFetching,
+    queryFn: async () => [],
+    enabled: false,
   });
 }
 
 export function useCreateProject() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: { clientId: Principal; serviceId: bigint; onboardingData: OnboardingData | null }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.createProject(params.clientId, params.serviceId, params.onboardingData);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      queryClient.invalidateQueries({ queryKey: ['allProjects'] });
+    mutationFn: async (_params: { clientId: Principal; serviceId: bigint; onboardingData: OnboardingData | null }): Promise<bigint> => {
+      throw new Error('createProject is not available in the current backend');
     },
   });
 }
 
 export function useUpdateProjectStatus() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: { id: bigint; status: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.updateProjectStatus(params.id, params.status);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      queryClient.invalidateQueries({ queryKey: ['allProjects'] });
+    mutationFn: async (_params: { id: bigint; status: string }): Promise<void> => {
+      throw new Error('updateProjectStatus is not available in the current backend');
     },
   });
 }
 
-// ─── Orders ──────────────────────────────────────────────────────────────────
+// ─── Orders (stub) ────────────────────────────────────────────────────────────
 
 export function useGetAllOrders() {
-  const { actor, isFetching } = useActor();
-
   return useQuery<Order[]>({
     queryKey: ['allOrders'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllOrders();
-    },
-    enabled: !!actor && !isFetching,
+    queryFn: async () => [],
+    enabled: false,
   });
 }
 
-export function useGetOrdersByClient(clientId: Principal) {
-  const { actor, isFetching } = useActor();
-
+export function useGetOrdersByClient(_clientId: Principal) {
   return useQuery<Order[]>({
-    queryKey: ['orders', clientId.toString()],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getOrdersByClient(clientId);
-    },
-    enabled: !!actor && !isFetching,
+    queryKey: ['orders', _clientId.toString()],
+    queryFn: async () => [],
+    enabled: false,
   });
 }
 
 export function useCreateOrder() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: { projectId: bigint; amount: bigint }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.createOrder(params.projectId, params.amount);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allOrders'] });
+    mutationFn: async (_params: { projectId: bigint; amount: bigint }): Promise<bigint> => {
+      throw new Error('createOrder is not available in the current backend');
     },
   });
 }
 
 export function useUpdateOrderStatus() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: { id: bigint; status: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.updateOrderStatus(params.id, params.status);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allOrders'] });
+    mutationFn: async (_params: { id: bigint; status: string }): Promise<void> => {
+      throw new Error('updateOrderStatus is not available in the current backend');
     },
   });
 }
 
-// ─── Leads ───────────────────────────────────────────────────────────────────
+// ─── Leads (stub) ─────────────────────────────────────────────────────────────
 
 export function useGetAllLeads() {
-  const { actor, isFetching } = useActor();
-
   return useQuery<Lead[]>({
     queryKey: ['allLeads'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllLeads();
-    },
-    enabled: !!actor && !isFetching,
+    queryFn: async () => [],
+    enabled: false,
   });
 }
 
 export function useGetMyLeads() {
-  const { actor, isFetching } = useActor();
-
   return useQuery<Lead[]>({
     queryKey: ['myLeads'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getMyLeads();
-    },
-    enabled: !!actor && !isFetching,
+    queryFn: async () => [],
+    enabled: false,
   });
 }
 
 export function useCreateLead() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: {
+    mutationFn: async (_params: {
       name: string;
       email: string;
       phone: string | null;
@@ -467,26 +587,15 @@ export function useCreateLead() {
       urgencyLevel: bigint | null;
       companySize: string | null;
       decisionMakerStatus: boolean | null;
-    }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.createLead(
-        params.name, params.email, params.phone, params.channel, params.microNiche,
-        params.budgetRange, params.urgencyLevel, params.companySize, params.decisionMakerStatus
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allLeads'] });
-      queryClient.invalidateQueries({ queryKey: ['myLeads'] });
+    }): Promise<bigint> => {
+      throw new Error('createLead is not available in the current backend');
     },
   });
 }
 
 export function useUpdateLead() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: {
+    mutationFn: async (_params: {
       id: bigint;
       name: string;
       email: string;
@@ -498,99 +607,57 @@ export function useUpdateLead() {
       urgencyLevel: bigint | null;
       companySize: string | null;
       decisionMakerStatus: boolean | null;
-    }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.updateLead(
-        params.id, params.name, params.email, params.phone, params.channel,
-        params.microNiche, params.status, params.budgetRange, params.urgencyLevel,
-        params.companySize, params.decisionMakerStatus
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allLeads'] });
-      queryClient.invalidateQueries({ queryKey: ['myLeads'] });
+    }): Promise<void> => {
+      throw new Error('updateLead is not available in the current backend');
     },
   });
 }
 
 export function useDeleteLead() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (id: bigint) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.deleteLead(id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allLeads'] });
-      queryClient.invalidateQueries({ queryKey: ['myLeads'] });
+    mutationFn: async (_id: bigint): Promise<void> => {
+      throw new Error('deleteLead is not available in the current backend');
     },
   });
 }
 
 export function useAssignLead() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: { leadId: bigint; userId: Principal }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.assignLead(params.leadId, params.userId);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allLeads'] });
+    mutationFn: async (_params: { leadId: bigint; userId: Principal }): Promise<void> => {
+      throw new Error('assignLead is not available in the current backend');
     },
   });
 }
 
-// ─── CRM Activities ───────────────────────────────────────────────────────────
+// ─── CRM Activities (stub) ────────────────────────────────────────────────────
 
 export function useGetAllCRMActivities() {
-  const { actor, isFetching } = useActor();
-
   return useQuery<CRMActivity[]>({
     queryKey: ['allCRMActivities'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllCRMActivities();
-    },
-    enabled: !!actor && !isFetching,
+    queryFn: async () => [],
+    enabled: false,
   });
 }
 
 export function useGetMyCRMActivities() {
-  const { actor, isFetching } = useActor();
-
   return useQuery<CRMActivity[]>({
     queryKey: ['myCRMActivities'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getMyCRMActivities();
-    },
-    enabled: !!actor && !isFetching,
+    queryFn: async () => [],
+    enabled: false,
   });
 }
 
-export function useGetCRMActivitiesByLead(leadId: bigint) {
-  const { actor, isFetching } = useActor();
-
+export function useGetCRMActivitiesByLead(_leadId: bigint) {
   return useQuery<CRMActivity[]>({
-    queryKey: ['crmActivities', leadId.toString()],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getCRMActivitiesByLead(leadId);
-    },
-    enabled: !!actor && !isFetching,
+    queryKey: ['crmActivities', _leadId.toString()],
+    queryFn: async () => [],
+    enabled: false,
   });
 }
 
 export function useCreateCRMActivity() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: {
+    mutationFn: async (_params: {
       leadId: bigint | null;
       projectId: bigint | null;
       activityType: string;
@@ -598,391 +665,207 @@ export function useCreateCRMActivity() {
       notes: string;
       assignedTo: Principal | null;
       dueDate: bigint | null;
-    }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.createCRMActivity(
-        params.leadId, params.projectId, params.activityType,
-        params.stage, params.notes, params.assignedTo, params.dueDate
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allCRMActivities'] });
-      queryClient.invalidateQueries({ queryKey: ['myCRMActivities'] });
+    }): Promise<bigint> => {
+      throw new Error('createCRMActivity is not available in the current backend');
     },
   });
 }
 
-// ─── Offers ───────────────────────────────────────────────────────────────────
+// ─── Offers (stub) ────────────────────────────────────────────────────────────
 
 export function useGetAllOffers() {
-  const { actor, isFetching } = useActor();
-
   return useQuery<Offer[]>({
-    queryKey: ['offers'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllOffers();
-    },
-    enabled: !!actor && !isFetching,
+    queryKey: ['allOffers'],
+    queryFn: async () => [],
+    enabled: false,
   });
 }
 
 export function useCreateOffer() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: { name: string; discountPercent: bigint; offerType: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.createOffer(params.name, params.discountPercent, params.offerType);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['offers'] });
+    mutationFn: async (_params: { name: string; discountPercent: bigint; isActive: boolean; offerType: string }): Promise<bigint> => {
+      throw new Error('createOffer is not available in the current backend');
     },
   });
 }
 
-export function useToggleOffer() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
+export function useUpdateOffer() {
   return useMutation({
-    mutationFn: async (params: { id: bigint; isActive: boolean }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.toggleOffer(params.id, params.isActive);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['offers'] });
+    mutationFn: async (_params: { id: bigint; name: string; discountPercent: bigint; isActive: boolean; offerType: string }): Promise<void> => {
+      throw new Error('updateOffer is not available in the current backend');
     },
   });
 }
 
-// ─── Legal Pages ──────────────────────────────────────────────────────────────
+export function useDeleteOffer() {
+  return useMutation({
+    mutationFn: async (_id: bigint): Promise<void> => {
+      throw new Error('deleteOffer is not available in the current backend');
+    },
+  });
+}
+
+// ─── Legal Pages (stub) ───────────────────────────────────────────────────────
 
 export function useGetAllLegalPages() {
-  const { actor, isFetching } = useActor();
-
   return useQuery<LegalPage[]>({
-    queryKey: ['legalPages'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllLegalPages();
-    },
-    enabled: !!actor && !isFetching,
+    queryKey: ['allLegalPages'],
+    queryFn: async () => [],
+    enabled: false,
   });
 }
 
 export function useCreateLegalPage() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: { title: string; content: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.createLegalPage(params.title, params.content);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['legalPages'] });
+    mutationFn: async (_params: { title: string; content: string }): Promise<bigint> => {
+      throw new Error('createLegalPage is not available in the current backend');
     },
   });
 }
 
 export function useUpdateLegalPage() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: { id: bigint; title: string; content: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.updateLegalPage(params.id, params.title, params.content);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['legalPages'] });
+    mutationFn: async (_params: { id: bigint; title: string; content: string }): Promise<void> => {
+      throw new Error('updateLegalPage is not available in the current backend');
     },
   });
 }
 
-// ─── Notifications ────────────────────────────────────────────────────────────
+// ─── Notifications (stub) ─────────────────────────────────────────────────────
 
 export function useGetMyNotifications() {
-  const { actor, isFetching } = useActor();
-
   return useQuery<Notification[]>({
     queryKey: ['myNotifications'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getMyNotifications();
-    },
-    enabled: !!actor && !isFetching,
+    queryFn: async () => [],
+    enabled: false,
   });
 }
 
-export function useMarkNotificationAsRead() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
+export function useMarkNotificationRead() {
   return useMutation({
-    mutationFn: async (id: bigint) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.markNotificationAsRead(id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myNotifications'] });
+    mutationFn: async (_id: bigint): Promise<void> => {
+      throw new Error('markNotificationRead is not available in the current backend');
     },
   });
 }
 
-export function useCreateNotification() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
+// Alias for components that use the old name
+export const useMarkNotificationAsRead = useMarkNotificationRead;
 
-  return useMutation({
-    mutationFn: async (params: { userId: Principal; message: string; notificationType: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.createNotification(params.userId, params.message, params.notificationType);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myNotifications'] });
-    },
-  });
-}
-
-// ─── Generator Logs ───────────────────────────────────────────────────────────
+// ─── Generator Logs (stub) ────────────────────────────────────────────────────
 
 export function useGetMyGeneratorLogs() {
-  const { actor, isFetching } = useActor();
-
   return useQuery<GeneratorLog[]>({
     queryKey: ['myGeneratorLogs'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getMyGeneratorLogs();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useGetAllGeneratorLogs() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<GeneratorLog[]>({
-    queryKey: ['allGeneratorLogs'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllGeneratorLogs();
-    },
-    enabled: !!actor && !isFetching,
+    queryFn: async () => [],
+    enabled: false,
   });
 }
 
 export function useCreateGeneratorLog() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: { generatorType: string; inputData: string; outputData: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.createGeneratorLog(params.generatorType, params.inputData, params.outputData);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myGeneratorLogs'] });
+    mutationFn: async (_params: { generatorType: string; inputData: string; outputData: string }): Promise<bigint> => {
+      throw new Error('createGeneratorLog is not available in the current backend');
     },
   });
 }
 
-// ─── Payment Links ────────────────────────────────────────────────────────────
+// ─── Payment Links (stub) ─────────────────────────────────────────────────────
 
-export function useGetPaymentLinks() {
-  const { actor, isFetching } = useActor();
-
+export function useGetAllPaymentLinks() {
   return useQuery<PaymentLink[]>({
-    queryKey: ['paymentLinks'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getPaymentLinks();
-    },
-    enabled: !!actor && !isFetching,
+    queryKey: ['allPaymentLinks'],
+    queryFn: async () => [],
+    enabled: false,
   });
 }
 
-export function useGetMyPaymentLinks() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<PaymentLink[]>({
-    queryKey: ['myPaymentLinks'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getMyPaymentLinks();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
+// Alias for components using old name
+export const useGetPaymentLinks = useGetAllPaymentLinks;
+export const useGetMyPaymentLinks = useGetAllPaymentLinks;
 
 export function useCreatePaymentLink() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: { leadId: bigint; amount: bigint }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.createPaymentLink(params.leadId, params.amount);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['paymentLinks'] });
-      queryClient.invalidateQueries({ queryKey: ['myPaymentLinks'] });
-    },
-  });
-}
-
-export function useUpdatePaymentLinkStatus() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params: { id: bigint; status: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.updatePaymentLinkStatus(params.id, params.status);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['paymentLinks'] });
-      queryClient.invalidateQueries({ queryKey: ['myPaymentLinks'] });
-      queryClient.invalidateQueries({ queryKey: ['allLeads'] });
+    mutationFn: async (_params: { leadId: bigint; amount: bigint }): Promise<bigint> => {
+      throw new Error('createPaymentLink is not available in the current backend');
     },
   });
 }
 
 export function useSetPaymentLinkUrl() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: { id: bigint; url: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.setPaymentLinkUrl(params.id, params.url);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['paymentLinks'] });
-      queryClient.invalidateQueries({ queryKey: ['myPaymentLinks'] });
+    mutationFn: async (_params: { id: bigint; url: string }): Promise<void> => {
+      throw new Error('setPaymentLinkUrl is not available in the current backend');
     },
   });
 }
 
 export function useSetPaymentLinkQrCode() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (params: { id: bigint; qrCodeDataUrl: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.setPaymentLinkQrCode(params.id, params.qrCodeDataUrl);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['paymentLinks'] });
-      queryClient.invalidateQueries({ queryKey: ['myPaymentLinks'] });
+    mutationFn: async (_params: { id: bigint; qrCodeDataUrl: string }): Promise<void> => {
+      throw new Error('setPaymentLinkQrCode is not available in the current backend');
     },
   });
 }
 
-// ─── Payment Logs ─────────────────────────────────────────────────────────────
+export function useUpdatePaymentLinkStatus() {
+  return useMutation({
+    mutationFn: async (_params: { id: bigint; status: string }): Promise<void> => {
+      throw new Error('updatePaymentLinkStatus is not available in the current backend');
+    },
+  });
+}
+
+// ─── Payment Logs (stub) ──────────────────────────────────────────────────────
 
 export function useGetAllPaymentLogs() {
-  const { actor, isFetching } = useActor();
-
   return useQuery<PaymentLog[]>({
     queryKey: ['allPaymentLogs'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllPaymentLogs();
-    },
-    enabled: !!actor && !isFetching,
+    queryFn: async () => [],
+    enabled: false,
   });
 }
 
-export function useSavePaymentLog() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
+export function useCreatePaymentLog() {
   return useMutation({
-    mutationFn: async (log: PaymentLog) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.savePaymentLog(log);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allPaymentLogs'] });
+    mutationFn: async (_params: { orderId: string; paymentId: string; signature: string; amount: bigint; status: string }): Promise<void> => {
+      throw new Error('createPaymentLog is not available in the current backend');
     },
   });
 }
 
-// ─── Invoices ─────────────────────────────────────────────────────────────────
+// ─── Invoices (stub) ──────────────────────────────────────────────────────────
 
 export function useGetAllInvoices() {
-  const { actor, isFetching } = useActor();
-
   return useQuery<Invoice[]>({
     queryKey: ['allInvoices'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllInvoices();
-    },
-    enabled: !!actor && !isFetching,
+    queryFn: async () => [],
+    enabled: false,
   });
 }
 
-export function useGetMyInvoices() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Invoice[]>({
-    queryKey: ['myInvoices'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getMyInvoices();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useSaveInvoice() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
+export function useCreateInvoice() {
   return useMutation({
-    mutationFn: async (invoice: Invoice) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.saveInvoice(invoice);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allInvoices'] });
-      queryClient.invalidateQueries({ queryKey: ['myInvoices'] });
+    mutationFn: async (_params: { invoiceId: string; serviceBreakdown: string; gstAmount: bigint; totalPaid: bigint }): Promise<void> => {
+      throw new Error('createInvoice is not available in the current backend');
     },
   });
 }
 
-// ─── WhatsApp Logs ────────────────────────────────────────────────────────────
+// ─── WhatsApp Logs (stub) ─────────────────────────────────────────────────────
 
 export function useGetAllWhatsAppLogs() {
-  const { actor, isFetching } = useActor();
-
   return useQuery<WhatsAppMessageLog[]>({
     queryKey: ['allWhatsAppLogs'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllWhatsAppLogs();
-    },
-    enabled: !!actor && !isFetching,
+    queryFn: async () => [],
+    enabled: false,
   });
 }
 
-export function useSaveWhatsAppLog() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
+export function useCreateWhatsAppLog() {
   return useMutation({
-    mutationFn: async (log: WhatsAppMessageLog) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.saveWhatsAppLog(log);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allWhatsAppLogs'] });
+    mutationFn: async (_params: { recipientPhone: string; messageType: string; deliveryStatus: string }): Promise<void> => {
+      throw new Error('createWhatsAppLog is not available in the current backend');
     },
   });
 }
@@ -993,7 +876,7 @@ export function useGetAllRecommendations() {
   const { actor, isFetching } = useActor();
 
   return useQuery<RecommendationOutput[]>({
-    queryKey: ['recommendations'],
+    queryKey: ['allRecommendations'],
     queryFn: async () => {
       if (!actor) return [];
       return actor.getAllRecommendations();
@@ -1012,10 +895,32 @@ export function useCreateRecommendation() {
       return actor.createRecommendation(recommendation);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
+      queryClient.invalidateQueries({ queryKey: ['allRecommendations'] });
     },
   });
 }
+
+// ─── Razorpay Config (stub) ───────────────────────────────────────────────────
+
+export function useGetRazorpayConfig() {
+  return useQuery<RazorpayConfig | null>({
+    queryKey: ['razorpayConfig'],
+    queryFn: async () => null,
+    enabled: false,
+  });
+}
+
+export function useSaveRazorpayConfig() {
+  return useMutation({
+    mutationFn: async (_params: { apiKey: string; apiSecret: string; webhookSecret: string }): Promise<void> => {
+      throw new Error('saveRazorpayConfig is not available in the current backend');
+    },
+  });
+}
+
+// Aliases for RazorpayConfigPanel compatibility
+export const useIsRazorpayConfigured = useGetRazorpayConfig;
+export const useSetRazorpayConfiguration = useSaveRazorpayConfig;
 
 // ─── Stripe ───────────────────────────────────────────────────────────────────
 
@@ -1032,47 +937,20 @@ export function useIsStripeConfigured() {
   });
 }
 
-export function useSetStripeConfiguration() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
+// ─── Bulk Lead Operations (stub) ──────────────────────────────────────────────
 
+export function useBulkUpdateLeadStatus() {
   return useMutation({
-    mutationFn: async (config: { secretKey: string; allowedCountries: string[] }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.setStripeConfiguration(config);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['isStripeConfigured'] });
+    mutationFn: async (_params: { ids: bigint[]; status: string }): Promise<void> => {
+      throw new Error('bulkUpdateLeadStatus is not available in the current backend');
     },
   });
 }
 
-// ─── Razorpay ─────────────────────────────────────────────────────────────────
-
-export function useIsRazorpayConfigured() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<boolean>({
-    queryKey: ['isRazorpayConfigured'],
-    queryFn: async () => {
-      if (!actor) return false;
-      return actor.isRazorpayConfigured();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useSetRazorpayConfiguration() {
-  const { actor } = useActor();
-  const queryClient = useQueryClient();
-
+export function useBulkDeleteLeads() {
   return useMutation({
-    mutationFn: async (params: { apiKey: string; apiSecret: string; webhookSecret: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.setRazorpayConfiguration(params.apiKey, params.apiSecret, params.webhookSecret);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['isRazorpayConfigured'] });
+    mutationFn: async (_ids: bigint[]): Promise<void> => {
+      throw new Error('bulkDeleteLeads is not available in the current backend');
     },
   });
 }

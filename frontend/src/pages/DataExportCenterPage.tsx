@@ -1,194 +1,177 @@
-import { useState } from 'react';
-import { Download, FileText, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
 import { useActor } from '../hooks/useActor';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Download, FileDown, Database, Loader2, CheckCircle } from 'lucide-react';
+import { exportToJSON, exportObjectsToCSV } from '../utils/exportUtils';
 import { toast } from 'sonner';
-
-function downloadFile(content: string, filename: string, mimeType: string) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-function getTimestamp() {
-  return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + 'Z';
-}
+import { cn } from '@/lib/utils';
 
 interface ExportModule {
   id: string;
   label: string;
   description: string;
-  formats: string[];
+  icon: React.ReactNode;
 }
 
-const EXPORT_MODULES: ExportModule[] = [
-  { id: 'leads', label: 'Leads Database', description: 'All lead records with qualification scores', formats: ['CSV', 'JSON'] },
-  { id: 'invoices', label: 'Invoice Archive', description: 'Complete invoice history with GST breakdown', formats: ['CSV', 'JSON'] },
-  { id: 'payments', label: 'Payment Logs', description: 'All payment transactions and statuses', formats: ['CSV', 'JSON'] },
-  { id: 'whatsapp', label: 'WhatsApp Logs', description: 'Message delivery logs and statuses', formats: ['CSV', 'JSON'] },
-  { id: 'services', label: 'Services Catalog', description: 'All services with pricing tiers', formats: ['CSV', 'JSON'] },
-  { id: 'projects', label: 'Projects', description: 'All project records and statuses', formats: ['CSV', 'JSON'] },
+const MODULES: ExportModule[] = [
+  { id: 'services', label: 'Services', description: 'All service catalog entries', icon: <Database className="w-4 h-4" /> },
+  { id: 'managed-services', label: 'Managed Services', description: 'User-created managed services', icon: <Database className="w-4 h-4" /> },
+  { id: 'recommendations', label: 'Recommendations', description: 'AI service recommendations', icon: <Database className="w-4 h-4" /> },
 ];
 
 export default function DataExportCenterPage() {
   const { actor } = useActor();
-  const [loadingExport, setLoadingExport] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<string | null>(null);
+  const [exported, setExported] = useState<Set<string>>(new Set());
 
-  const handleExport = async (moduleId: string, format: string) => {
-    if (!actor) {
-      toast.error('Backend not available');
-      return;
-    }
-    const key = `${moduleId}-${format}`;
-    setLoadingExport(key);
+  const handleExport = async (moduleId: string, format: 'csv' | 'json') => {
+    if (!actor) { toast.error('Not connected to backend'); return; }
+    setExporting(`${moduleId}-${format}`);
     try {
       let data: unknown[] = [];
-      switch (moduleId) {
-        case 'leads':
-          data = await actor.getAllLeads().catch(() => []);
-          break;
-        case 'invoices':
-          data = await actor.getAllInvoices().catch(() => []);
-          break;
-        case 'payments':
-          data = await actor.getAllPaymentLogs().catch(() => []);
-          break;
-        case 'whatsapp':
-          data = await actor.getAllWhatsAppLogs().catch(() => []);
-          break;
-        case 'services':
-          data = await actor.getAllServices().catch(() => []);
-          break;
-        case 'projects':
-          data = await actor.getAllProjects().catch(() => []);
-          break;
-        default:
-          data = [];
+
+      if (moduleId === 'services') {
+        data = await actor.getAllServices().catch(() => []);
+      } else if (moduleId === 'managed-services') {
+        data = await actor.getManagedServices().catch(() => []);
+      } else if (moduleId === 'recommendations') {
+        data = await actor.getAllRecommendations().catch(() => []);
       }
 
-      const ts = getTimestamp();
-      if (format === 'JSON') {
-        const content = JSON.stringify(data, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2);
-        downloadFile(content, `${moduleId}-export-${ts}.json`, 'application/json');
+      const filename = `${moduleId}-${Date.now()}`;
+      if (format === 'json') {
+        exportToJSON(data, `${filename}.json`);
       } else {
-        if (data.length === 0) {
-          toast.info('No data to export');
-          return;
-        }
-        const headers = Object.keys(data[0] as object);
-        const rows = (data as Record<string, unknown>[]).map(row =>
-          headers.map(h => {
-            const val = row[h];
-            if (val === null || val === undefined) return '';
-            if (typeof val === 'bigint') return val.toString();
-            if (typeof val === 'object') return JSON.stringify(val);
-            return String(val);
-          }).join(',')
+        exportObjectsToCSV(
+          (data as Record<string, unknown>[]).map(item => {
+            const flat: Record<string, unknown> = {};
+            Object.entries(item).forEach(([k, v]) => {
+              flat[k] = typeof v === 'object' ? JSON.stringify(v) : String(v ?? '');
+            });
+            return flat;
+          }),
+          `${filename}.csv`
         );
-        const csv = [headers.join(','), ...rows].join('\n');
-        downloadFile(csv, `${moduleId}-export-${ts}.csv`, 'text/csv');
       }
-      toast.success(`${moduleId} exported as ${format}`);
+      setExported(prev => new Set([...prev, moduleId]));
+      toast.success(`${moduleId} exported as ${format.toUpperCase()}`);
     } catch (err) {
-      toast.error('Export failed');
+      toast.error(`Failed to export ${moduleId}`);
     } finally {
-      setLoadingExport(null);
+      setExporting(null);
     }
   };
 
   const handleFullExport = async () => {
-    if (!actor) {
-      toast.error('Backend not available');
-      return;
-    }
-    setLoadingExport('full');
+    if (!actor) { toast.error('Not connected to backend'); return; }
+    setExporting('full');
     try {
-      const [leads, invoices, payments, whatsapp, services, projects] = await Promise.all([
-        actor.getAllLeads().catch(() => []),
-        actor.getAllInvoices().catch(() => []),
-        actor.getAllPaymentLogs().catch(() => []),
-        actor.getAllWhatsAppLogs().catch(() => []),
+      const [services, managedServices, recommendations] = await Promise.all([
         actor.getAllServices().catch(() => []),
-        actor.getAllProjects().catch(() => []),
+        actor.getManagedServices().catch(() => []),
+        actor.getAllRecommendations().catch(() => []),
       ]);
-      const fullData = { leads, invoices, payments, whatsapp, services, projects };
-      const content = JSON.stringify(fullData, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2);
-      downloadFile(content, `full-platform-export-${getTimestamp()}.json`, 'application/json');
+
+      exportToJSON({
+        exportedAt: new Date().toISOString(),
+        services,
+        managedServices,
+        recommendations,
+      }, `full-export-${Date.now()}.json`);
+
       toast.success('Full platform export complete');
-    } catch (err) {
-      toast.error('Full export failed');
+    } catch {
+      toast.error('Failed to export platform data');
     } finally {
-      setLoadingExport(null);
+      setExporting(null);
     }
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold font-display text-foreground flex items-center gap-2">
-            <Download className="w-6 h-6" /> Data Export Center
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">Export platform data in CSV or JSON format</p>
+    <div className="min-h-screen bg-background mesh-bg">
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-6">
+          <Database className="w-6 h-6 text-primary" />
+          <h1 className="text-2xl font-bold font-heading text-foreground">Data Export Center</h1>
         </div>
-        <Button
-          onClick={handleFullExport}
-          disabled={loadingExport === 'full'}
-          className="gap-2"
-        >
-          {loadingExport === 'full' ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Download className="w-4 h-4" />
-          )}
-          Full Export
-        </Button>
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {EXPORT_MODULES.map((mod) => (
-          <Card key={mod.id} className="glass border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-display flex items-center gap-2">
-                <FileText className="w-4 h-4 text-primary" />
-                {mod.label}
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">{mod.description}</p>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2">
-                {mod.formats.map((fmt) => {
-                  const key = `${mod.id}-${fmt}`;
-                  const isLoading = loadingExport === key;
-                  return (
-                    <Button
-                      key={fmt}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleExport(mod.id, fmt)}
-                      disabled={!!loadingExport}
-                      className="gap-1.5 text-xs"
-                    >
-                      {isLoading ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <Download className="w-3 h-3" />
-                      )}
-                      {fmt}
-                    </Button>
-                  );
-                })}
+        {/* Full Export */}
+        <div className="card-glass rounded-xl p-5 mb-6 border-primary/20">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-base font-semibold text-foreground mb-1">Full Platform Export</h2>
+              <p className="text-sm text-muted-foreground">Export all available data as a single JSON file.</p>
+            </div>
+            <Button
+              onClick={handleFullExport}
+              disabled={exporting === 'full'}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold flex-shrink-0"
+            >
+              {exporting === 'full' ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Exporting...</>
+              ) : (
+                <><Download className="w-4 h-4 mr-2" />Export All</>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* Per-Module Exports */}
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Export by Module
+        </h2>
+        <div className="space-y-3">
+          {MODULES.map(mod => {
+            const isExporting = exporting?.startsWith(mod.id);
+            const isDone = exported.has(mod.id);
+            return (
+              <div key={mod.id} className="card-glass rounded-xl p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    {mod.icon}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">{mod.label}</span>
+                      {isDone && <CheckCircle className="w-3.5 h-3.5 text-green-400" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{mod.description}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleExport(mod.id, 'csv')}
+                    disabled={!!exporting}
+                    className="h-7 px-2.5 text-xs border-border hover:border-primary/50"
+                  >
+                    {exporting === `${mod.id}-csv` ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <><FileDown className="w-3 h-3 mr-1" />CSV</>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleExport(mod.id, 'json')}
+                    disabled={!!exporting}
+                    className="h-7 px-2.5 text-xs border-border hover:border-primary/50"
+                  >
+                    {exporting === `${mod.id}-json` ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <><FileDown className="w-3 h-3 mr-1" />JSON</>
+                    )}
+                  </Button>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -1,184 +1,153 @@
 import React, { useState } from 'react';
-import { CreditCard, Link, ExternalLink, RefreshCw, CheckCircle, Clock, XCircle } from 'lucide-react';
-import { useGetAllOrders, useGetPaymentLinks, useUpdatePaymentLinkStatus } from '../hooks/useQueries';
+import { useGetAllOrders, useGetAllPaymentLinks } from '../hooks/useQueries';
+import type { Order, PaymentLink } from '../hooks/useQueries';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { CreditCard, Link2, ExternalLink, Copy } from 'lucide-react';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
-const STATUS_ICON: Record<string, React.ReactNode> = {
-  'Paid': <CheckCircle className="w-3.5 h-3.5 text-green-400" />,
-  'paid': <CheckCircle className="w-3.5 h-3.5 text-green-400" />,
-  'Pending': <Clock className="w-3.5 h-3.5 text-amber-400" />,
-  'Failed': <XCircle className="w-3.5 h-3.5 text-red-400" />,
-  'created': <Clock className="w-3.5 h-3.5 text-brand-400" />,
-};
+function formatINR(amount: bigint | number): string {
+  const n = typeof amount === 'bigint' ? Number(amount) : amount;
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+}
 
-const STATUS_CLASS: Record<string, string> = {
-  'Paid': 'text-green-400 bg-green-500/10 border-green-500/20',
-  'paid': 'text-green-400 bg-green-500/10 border-green-500/20',
-  'Pending': 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-  'Failed': 'text-red-400 bg-red-500/10 border-red-500/20',
-  'created': 'text-brand-400 bg-brand-500/10 border-brand-500/20',
-};
+function statusColor(status: string): string {
+  if (status === 'paid' || status === 'completed') return 'text-green-400 bg-green-400/10 border-green-400/30';
+  if (status === 'pending') return 'text-amber-400 bg-amber-400/10 border-amber-400/30';
+  if (status === 'failed' || status === 'cancelled') return 'text-red-400 bg-red-400/10 border-red-400/30';
+  return 'text-muted-foreground bg-muted/30 border-border';
+}
 
-export default function PaymentsPage() {
-  const [tab, setTab] = useState<'orders' | 'links'>('orders');
-  const { data: orders = [], isLoading: ordersLoading } = useGetAllOrders();
-  const { data: paymentLinks = [], isLoading: linksLoading } = useGetPaymentLinks();
-  const updateStatus = useUpdatePaymentLinkStatus();
+function OrderRow({ order }: { order: Order }) {
+  return (
+    <div className="card-glass rounded-xl p-4 flex items-center justify-between gap-3">
+      <div>
+        <p className="text-sm font-medium text-foreground">Order #{order.id.toString()}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {new Date(Number(order.createdAt) / 1_000_000).toLocaleDateString()}
+        </p>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-semibold text-primary">{formatINR(order.amount)}</span>
+        <Badge variant="outline" className={cn('text-xs', statusColor(order.paymentStatus))}>
+          {order.paymentStatus}
+        </Badge>
+      </div>
+    </div>
+  );
+}
 
-  const totalRevenue = orders
-    .filter(o => o.paymentStatus === 'Paid' || o.paymentStatus === 'paid')
-    .reduce((sum, o) => sum + Number(o.amount), 0);
+function PaymentLinkRow({ link }: { link: PaymentLink }) {
+  const copyUrl = () => {
+    if (!link.paymentLinkUrl) { toast.error('No URL available'); return; }
+    navigator.clipboard.writeText(link.paymentLinkUrl);
+    toast.success('URL copied');
+  };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="card-glass rounded-xl p-4 flex items-center justify-between gap-3">
       <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">Payments</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">Manage orders and payment links</p>
+        <p className="text-sm font-medium text-foreground">Link #{link.id.toString()}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {new Date(Number(link.createdAt) / 1_000_000).toLocaleDateString()}
+        </p>
       </div>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-semibold text-primary">{formatINR(link.amount)}</span>
+        <Badge variant="outline" className={cn('text-xs', statusColor(link.status))}>
+          {link.status}
+        </Badge>
+        {link.paymentLinkUrl && (
+          <>
+            <Button size="sm" variant="ghost" onClick={copyUrl} className="h-7 w-7 p-0">
+              <Copy className="w-3.5 h-3.5" />
+            </Button>
+            <a href={link.paymentLinkUrl} target="_blank" rel="noopener noreferrer">
+              <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Button>
+            </a>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: 'Total Revenue', value: `₹${(totalRevenue / 100).toLocaleString('en-IN')}`, color: 'text-brand-400' },
-          { label: 'Total Orders', value: orders.length.toString(), color: 'text-foreground' },
-          { label: 'Payment Links', value: paymentLinks.length.toString(), color: 'text-foreground' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="glass-card rounded-2xl p-5 border border-border">
-            <p className={`text-2xl font-display font-bold ${color}`}>{value}</p>
-            <p className="text-sm text-muted-foreground mt-1">{label}</p>
+export default function PaymentsPage() {
+  const { data: orders = [], isLoading: ordersLoading } = useGetAllOrders();
+  const { data: paymentLinks = [], isLoading: linksLoading } = useGetAllPaymentLinks();
+  const [tab, setTab] = useState('orders');
+
+  return (
+    <div className="min-h-screen bg-background mesh-bg">
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <div className="flex items-center gap-3 mb-6">
+          <CreditCard className="w-6 h-6 text-primary" />
+          <h1 className="text-2xl font-bold font-heading text-foreground">Payments</h1>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="card-glass rounded-xl p-4 text-center">
+            <div className="text-2xl font-bold text-primary">{orders.length}</div>
+            <div className="text-xs text-muted-foreground mt-1">Total Orders</div>
           </div>
-        ))}
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-card rounded-xl border border-border w-fit">
-        {(['orders', 'links'] as const).map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              tab === t ? 'gradient-brand text-dark-500' : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {t === 'orders' ? 'Orders' : 'Payment Links'}
-          </button>
-        ))}
-      </div>
-
-      {/* Orders Tab */}
-      {tab === 'orders' && (
-        <div className="glass-card rounded-2xl border border-border overflow-hidden">
-          {ordersLoading ? (
-            <div className="p-8 text-center">
-              <RefreshCw className="w-6 h-6 animate-spin text-brand-400 mx-auto" />
-            </div>
-          ) : orders.length === 0 ? (
-            <div className="p-12 text-center">
-              <CreditCard className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-muted-foreground">No orders yet</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border bg-background/50">
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Order ID</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Amount</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/50">
-                  {orders.map(order => (
-                    <tr key={order.id.toString()} className="hover:bg-brand-500/3 transition-colors">
-                      <td className="px-5 py-3 text-sm font-medium text-foreground">#{order.id.toString()}</td>
-                      <td className="px-5 py-3 text-sm font-semibold text-brand-400">
-                        ₹{(Number(order.amount) / 100).toLocaleString('en-IN')}
-                      </td>
-                      <td className="px-5 py-3">
-                        <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border font-medium ${STATUS_CLASS[order.paymentStatus] ?? 'text-muted-foreground bg-muted/30 border-border'}`}>
-                          {STATUS_ICON[order.paymentStatus]}
-                          {order.paymentStatus}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 text-xs text-muted-foreground">
-                        {new Date(Number(order.createdAt) / 1_000_000).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <div className="card-glass rounded-xl p-4 text-center">
+            <div className="text-2xl font-bold text-primary">{paymentLinks.length}</div>
+            <div className="text-xs text-muted-foreground mt-1">Payment Links</div>
+          </div>
         </div>
-      )}
 
-      {/* Payment Links Tab */}
-      {tab === 'links' && (
-        <div className="glass-card rounded-2xl border border-border overflow-hidden">
-          {linksLoading ? (
-            <div className="p-8 text-center">
-              <RefreshCw className="w-6 h-6 animate-spin text-brand-400 mx-auto" />
-            </div>
-          ) : paymentLinks.length === 0 ? (
-            <div className="p-12 text-center">
-              <Link className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-muted-foreground">No payment links yet</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border bg-background/50">
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">ID</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Amount</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Link</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/50">
-                  {paymentLinks.map(link => (
-                    <tr key={link.id.toString()} className="hover:bg-brand-500/3 transition-colors">
-                      <td className="px-5 py-3 text-sm font-medium text-foreground">#{link.id.toString()}</td>
-                      <td className="px-5 py-3 text-sm font-semibold text-brand-400">
-                        ₹{(Number(link.amount) / 100).toLocaleString('en-IN')}
-                      </td>
-                      <td className="px-5 py-3">
-                        <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border font-medium ${STATUS_CLASS[link.status] ?? 'text-muted-foreground bg-muted/30 border-border'}`}>
-                          {STATUS_ICON[link.status]}
-                          {link.status}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3">
-                        {link.paymentLinkUrl ? (
-                          <a href={link.paymentLinkUrl} target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300 transition-colors">
-                            <ExternalLink className="w-3 h-3" />
-                            Open Link
-                          </a>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">No link set</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3">
-                        {link.status !== 'paid' && (
-                          <button
-                            onClick={() => updateStatus.mutateAsync({ id: link.id, status: 'paid' })}
-                            disabled={updateStatus.isPending}
-                            className="text-xs px-3 py-1.5 rounded-lg gradient-brand text-dark-500 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-                          >
-                            Mark Paid
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="bg-muted/50 border border-border mb-4">
+            <TabsTrigger value="orders" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <CreditCard className="w-3.5 h-3.5 mr-1.5" />
+              Stripe Orders
+            </TabsTrigger>
+            <TabsTrigger value="links" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Link2 className="w-3.5 h-3.5 mr-1.5" />
+              Payment Links
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="orders" className="mt-0">
+            {ordersLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => <div key={i} className="card-glass rounded-xl p-4 animate-pulse h-16" />)}
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="text-center py-12">
+                <CreditCard className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">No orders yet</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {orders.map(o => <OrderRow key={Number(o.id)} order={o} />)}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="links" className="mt-0">
+            {linksLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => <div key={i} className="card-glass rounded-xl p-4 animate-pulse h-16" />)}
+              </div>
+            ) : paymentLinks.length === 0 ? (
+              <div className="text-center py-12">
+                <Link2 className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">No payment links yet</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {paymentLinks.map(l => <PaymentLinkRow key={Number(l.id)} link={l} />)}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }

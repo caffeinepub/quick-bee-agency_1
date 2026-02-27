@@ -45,6 +45,7 @@ import InvoiceHistoryPage from './pages/InvoiceHistoryPage';
 import WhatsAppLogsPage from './pages/WhatsAppLogsPage';
 import DataExportCenterPage from './pages/DataExportCenterPage';
 import WebhookLogsPage from './pages/WebhookLogsPage';
+import ServiceManagementPage from './pages/ServiceManagementPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -141,6 +142,13 @@ const serviceDetailRoute = createRoute({
   getParentRoute: () => authenticatedRoute,
   path: '/services/$serviceId',
   component: ServiceDetailPage,
+});
+
+// Service Management
+const serviceManagementRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/service-management',
+  component: ServiceManagementPage,
 });
 
 // Cart & Checkout
@@ -340,6 +348,7 @@ const routeTree = rootRoute.addChildren([
     crmRoute,
     servicesRoute,
     serviceDetailRoute,
+    serviceManagementRoute,
     cartRoute,
     checkoutRoute,
     paymentSuccessRoute,

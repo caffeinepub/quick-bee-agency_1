@@ -1,58 +1,143 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix Automation Page toggles to reliably enable/disable each automation",
+  "title": "Agency Services Management — Frontend Implementation",
   "requirements": [
     {
-      "id": "REQ-77",
-      "summary": "Rewrite AutomationPage.tsx to read and write toggle state directly from AIConfigContext with proper localStorage persistence and immediate UI reflection",
+      "id": "REQ-84",
+      "summary": "Add React Query hooks for managed-service backend operations",
       "acceptanceCriteria": [
-        "Each of the five toggle switches on AutomationPage reads its initial ON/OFF state from AIConfigContext (backed by localStorage) on mount.",
-        "Clicking a toggle calls the appropriate AIConfigContext setter and immediately updates both the UI and localStorage.",
-        "After navigating away from AutomationPage and returning, each toggle displays the last-saved state.",
-        "After a full browser refresh, each toggle displays the last-saved state.",
-        "When a toggle is set to OFF, its corresponding automation (WhatsApp Auto-Reply, Proposal Auto-Send, Lead Follow-Up Sequences, Payment Confirmation, Project Onboarding) does not fire any webhook POST, API call, or UI trigger.",
-        "When a toggle is set to ON, the automation becomes active and fires when its trigger condition is met."
+        "useGetManagedServices returns the list of ManagedService objects from the backend.",
+        "useCreateManagedService, useUpdateManagedService, useDeleteManagedService, useDuplicateManagedService, and useReorderManagedServices are available and invalidate the managed-services query key on success.",
+        "Hooks follow the existing actor-availability guard pattern in useQueries.ts.",
+        "TypeScript types for ManagedService, ServicePackage, and ServiceAddOn are declared and exported from useQueries.ts or a shared types file."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/AutomationPage.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Rewrite the AutomationPage component to use AIConfigContext for reading and writing all five automation toggle states. Each toggle (WhatsApp Auto-Reply via whatsappAutoReplyEnabled, Proposal Auto-Send via proposalAutoSendEnabled, Lead Follow-Up Sequences via leadFollowUpEnabled, Payment Confirmation via paymentConfirmationEnabled, and Project Onboarding via projectOnboardingEnabled) must read its initial value from the context on mount and call the appropriate context setter when clicked. Ensure the UI reflects the persisted state immediately and after page navigation or full reload. Remove any local state management for toggles and rely exclusively on AIConfigContext."
+          "description": "Add React Query hooks for managed services: useGetManagedServices (query), useCreateManagedService (mutation with cache invalidation), useUpdateManagedService (mutation with cache invalidation), useDeleteManagedService (mutation with cache invalidation and error toast for non-user-created services), useDuplicateManagedService (mutation with cache invalidation), and useReorderManagedServices (mutation with cache invalidation). Each hook must check actor availability using the existing pattern, wrap actor calls, handle errors with toast notifications, and invalidate the 'managed-services' query key on success. Export TypeScript types ManagedService, ServicePackage, ServiceAddOn, and PricingType enum imported from backend.d.ts."
         }
       ]
     },
     {
-      "id": "REQ-78",
-      "summary": "Audit and fix AIConfigContext to ensure all five automation toggle fields are properly typed, initialized from localStorage, and persisted on every update",
+      "id": "REQ-85",
+      "summary": "Create service management hub page with drag-and-drop reordering",
       "acceptanceCriteria": [
-        "AIConfigContext type includes boolean fields for all five automation toggles.",
-        "On provider mount the toggle values are read from localStorage and used as initial state.",
-        "Updating a single toggle via the context API persists only that field's change to localStorage without resetting other config values.",
-        "All consuming components (AutomationPage, useAutomationTriggers) receive the correct live toggle values from context."
+        "Route /service-management is registered in App.tsx and renders ServiceManagementPage.",
+        "Page renders a card for every managed service returned by useGetManagedServices.",
+        "Drag-and-drop reorder works; dropping a card calls useReorderManagedServices with the updated order.",
+        "Visibility toggle on each card calls useUpdateManagedService and reflects the new state immediately.",
+        "Empty state is shown when no managed services exist.",
+        "Page is mobile-responsive and uses the dark-gold theme.",
+        "Loading skeleton is displayed while data is fetching."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/contexts/AIConfigContext.tsx",
+          "path": "frontend/src/pages/ServiceManagementPage.tsx",
+          "operation": "create",
+          "description": "Create the Agency Services Management hub page that fetches managed services using useGetManagedServices and displays them as draggable cards. Include a prominent 'Add New Service' button at the top that opens ManagedServiceFormDialog in create mode. Render each service card showing: service name, category badge, pricing type (Fixed/Hourly/Custom), base price formatted as INR using formatCurrency from utils/formatCurrency.ts, delivery time, visibility badge (Active/Hidden styled with gold accent for active, gray for hidden), and action buttons (Edit, Duplicate, Delete, Preview) plus a drag handle icon. Implement drag-and-drop reordering using native mouse/touch events (onDragStart, onDragOver, onDrop) with visual feedback; on drop, call useReorderManagedServices with the new ordered array of service IDs. Add an inline visibility toggle switch on each card that immediately calls useUpdateManagedService to flip the isVisible boolean. Display a loading skeleton (4-6 cards with shimmer effect) while data is fetching. Show an empty state with an illustration/icon, heading 'No Services Yet', subtext encouraging creation, and a call-to-action button when the list is empty. Use dark-gold Tailwind theme: charcoal background (bg-charcoal-900), gold accent buttons (bg-gold-500 hover:bg-gold-600), rounded-xl cards with card-glass backdrop effect. Ensure full mobile responsiveness with single-column layout on small screens. Include localStorage-backed stat badges on each card showing 'Views: N' and 'Purchases: N' counters (initialize from localStorage keys service-views-{id} and service-purchases-{id}, default to 0)."
+        },
+        {
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Audit the AIConfigContext to verify that the AIConfig type includes boolean fields for whatsappAutoReplyEnabled, proposalAutoSendEnabled, leadFollowUpEnabled, paymentConfirmationEnabled, and projectOnboardingEnabled. Ensure the provider initializes these fields by reading from localStorage on mount (using a default value of false if not present). Verify that the saveConfig or updateField functions correctly persist individual toggle changes to localStorage without overwriting other config fields. Expose individual setter functions or a generic updateField helper so that AutomationPage can update each toggle independently. Ensure all changes trigger a re-render and persist immediately."
+          "description": "Register the /service-management route under the authenticated shell layout (nested under /authenticated). Import ServiceManagementPage and add it to the route configuration following the existing TanStack Router pattern. Ensure the route is accessible to all authenticated users without role restrictions."
+        },
+        {
+          "path": "frontend/src/components/layout/SidebarNav.tsx",
+          "operation": "modify",
+          "description": "Add a 'Service Management' navigation link to the sidebar under a 'Services' group. Place it adjacent to or within the existing Services section. The link must point to /service-management, use an appropriate icon (e.g., Settings or Edit icon), and be visible to all authenticated users without role gating. Follow the existing nav item structure and styling conventions (gold accent on active, charcoal background)."
         }
       ]
     },
     {
-      "id": "REQ-79",
-      "summary": "Audit useAutomationTriggers to ensure each trigger function checks its corresponding toggle from AIConfigContext and returns early when disabled",
+      "id": "REQ-86",
+      "summary": "Create multi-step service create/edit dialog with packages and add-ons",
       "acceptanceCriteria": [
-        "When the corresponding AIConfigContext toggle is OFF, calling the trigger function makes no fetch/XHR request and returns without error.",
-        "When the corresponding toggle is ON and the webhook URL is configured, the trigger fires a POST with Content-Type: application/json and Authorization: Bearer <apiKey> headers.",
-        "A user-visible toast error is displayed if the POST fails or the URL is not configured while the toggle is ON.",
-        "Each trigger logs the attempt in WebhookLogContext regardless of success or failure."
+        "Dialog opens from the 'Add New Service' button with all fields blank.",
+        "Dialog opens from the 'Edit' button pre-populated with the existing service's data.",
+        "All four tabs (Basic Info, Features, Packages, Settings) render and are navigable.",
+        "Features tab allows adding, editing, and removing bullet-point items.",
+        "Packages tab shows Basic, Standard, and Premium sections each with price, delivery time, and features.",
+        "Add-ons section allows adding/removing rows with name, price, and description.",
+        "Submitting with an empty service name shows an inline validation error.",
+        "Successful create calls useCreateManagedService; successful edit calls useUpdateManagedService.",
+        "Dialog closes and a success toast is shown after a successful save.",
+        "Submit button shows a loading spinner during mutation."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useAutomationTriggers.ts",
+          "path": "frontend/src/components/services/ManagedServiceFormDialog.tsx",
+          "operation": "create",
+          "description": "Create a multi-step dialog component for creating/editing managed services using shadcn/ui Dialog, Tabs, and Form components. Accept props: open (boolean), onClose (callback), mode ('create' | 'edit'), and initialService (ManagedService | null for edit mode). Implement four tab steps: (1) Basic Info — fields for service name (required, text input with inline error if empty), shortDescription (textarea), detailedDescription (textarea), category (Select dropdown with options: SEO, Web Design, Ads, Branding, AI Automation, App Development, Digital Marketing, Custom), pricingType (RadioGroup: Fixed / Hourly / Custom Quote), basePrice (number input shown only when pricingType is Fixed or Hourly, formatted as INR), deliveryTime (text input), imageUrl (text input for URL, with optional icon picker placeholder); (2) Features — a dynamic list where users add/edit/remove feature items using input fields with add/remove buttons, array-backed state; (3) Packages — three collapsible Accordion sections labeled Basic, Standard, Premium, each containing fields for package name, price (INR number input), deliveryTime (text), and a dynamic features list similar to step 2; below packages, include an Add-ons section with add/remove rows for addOn name, price (INR), and description (textarea); (4) Settings — fields for customRequirementLabel (text input, placeholder: 'Describe your project'), quantityEnabled (Checkbox toggle), and isVisible (Checkbox toggle). Use React Hook Form for state management with Zod validation schema requiring non-empty name and basePrice >= 0. On submit, call useCreateManagedService (when mode='create') or useUpdateManagedService (when mode='edit') with the form data, including generated fields: id (nanoid for create, preserve for edit), sortOrder (0 for new, preserve for edit), createdAt (Date.now() for new, preserve for edit), updatedAt (Date.now()), isUserCreated (true for new, preserve for edit). Show inline validation errors below each invalid field. Display a loading Spinner on the submit button (disabled during mutation). On success, close the dialog and show a success toast ('Service created successfully' or 'Service updated successfully'). Style with dark-gold theme: charcoal backgrounds, gold primary buttons, rounded-xl modals. Ensure full mobile responsiveness with scrollable tabs."
+        }
+      ]
+    },
+    {
+      "id": "REQ-87",
+      "summary": "Implement duplicate and delete actions for managed services",
+      "acceptanceCriteria": [
+        "Duplicate button creates a copy of the service with ' (Copy)' appended to the name.",
+        "Duplicate is reflected in the list immediately after the mutation succeeds.",
+        "Delete button opens a confirmation dialog before proceeding.",
+        "Confirming delete calls useDeleteManagedService.",
+        "If the backend rejects the delete (isUserCreated = false), a toast error is shown: 'This service is part of the original catalog and cannot be deleted.'",
+        "Successfully deleted service is removed from the UI without a page reload."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/ServiceManagementPage.tsx",
           "operation": "modify",
-          "description": "Audit the useAutomationTriggers hook to confirm that each of the five trigger functions (triggerWhatsAppAutoReply, triggerProposalAutoSend, triggerLeadFollowUp, triggerPaymentConfirmation, triggerProjectOnboarding) reads its corresponding toggle field from AIConfigContext at call time. If the toggle is OFF, the function must return early without making any network request. When the toggle is ON, verify the function reads the correct webhook URL and API key from AIConfigContext, constructs the POST request with Content-Type: application/json and Authorization: Bearer <apiKey> headers, and logs the attempt to WebhookLogContext. Display a toast error if the URL is missing or the request fails while the toggle is ON."
+          "description": "Wire the Duplicate and Delete actions on each service card. For Duplicate: add an onClick handler to the Duplicate button that calls useDuplicateManagedService mutation with the service.id; the backend will handle appending ' (Copy)' to the name; show a loading state on the button during mutation; on success, the cache invalidation will refresh the list automatically. For Delete: add an onClick handler to the Delete button that opens a confirmation dialog (create inline or reuse/extend ServiceDeleteDialog pattern) warning 'This action is permanent. Are you sure you want to delete this service?'; on confirmation, call useDeleteManagedService mutation with service.id; handle the mutation error: if the backend returns an error (check error message or status), display a toast error: 'This service is part of the original catalog and cannot be deleted.'; on successful deletion, the cache invalidation will remove the card from the UI automatically. Ensure both actions show toast success messages on completion."
+        }
+      ]
+    },
+    {
+      "id": "REQ-88",
+      "summary": "Create service preview modal with dynamic price calculator",
+      "acceptanceCriteria": [
+        "Preview modal opens from the 'Preview' button on a service card.",
+        "All service fields are rendered in a read-only client-facing layout.",
+        "Package cards (Basic/Standard/Premium) display their individual prices and features.",
+        "Add-on checkboxes update the total price dynamically when checked/unchecked.",
+        "Quantity input (if quantityEnabled = true) multiplies the selected price and updates the total.",
+        "Custom requirement label appears as a disabled placeholder text area.",
+        "Modal is responsive and styled with the dark-gold theme.",
+        "Close button dismisses the modal."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/services/ManagedServicePreviewModal.tsx",
+          "operation": "create",
+          "description": "Create a read-only preview modal component using shadcn/ui Dialog that displays a managed service in a client-facing layout. Accept props: open (boolean), onClose (callback), and service (ManagedService). Render: service name as heading, category badge (styled pill), shortDescription and detailedDescription (paragraphs), pricingType and basePrice formatted as INR (e.g., 'Fixed: ₹50,000' or 'Hourly: ₹5,000/hr' or 'Custom Quote'), deliveryTime, features as bullet list. Display all packages (service.packages array) as three cards labeled Basic/Standard/Premium (or use package.name), each showing package.price (formatted INR), package.deliveryTime, and package.features list. Below packages, render available add-ons (service.addOns array) as checkboxes with name, description, and price displayed. Implement a dynamic price calculator section: maintain local state for selected package (default to first), selected add-ons (array of indices or IDs), and quantity (number input, shown only if service.quantityEnabled is true, default to 1). Display a live-updating total price calculated as: (selectedPackage.price + sum(selected addOn prices)) * quantity, formatted as INR. Show the customRequirementLabel as a disabled Textarea with placeholder text (e.g., 'Project requirements will be discussed here'). Include a Close button at the bottom that calls onClose. Style with dark-gold theme: charcoal modal background, gold accent for checkboxes and total price highlight, rounded-xl cards. Ensure full mobile responsiveness with vertical stacking. On modal open, increment the localStorage counter for service-views-{service.id}."
+        },
+        {
+          "path": "frontend/src/pages/ServiceManagementPage.tsx",
+          "operation": "modify",
+          "description": "Wire the Preview button on each service card to open ManagedServicePreviewModal. Add state to track which service is being previewed and a boolean for modal open state. On Preview button click, set the selected service and open the modal. Pass the service object as a prop to ManagedServicePreviewModal. When the modal opens, increment the localStorage-backed view counter (key: service-views-{service.id}) by 1 and update the displayed badge immediately."
+        }
+      ]
+    },
+    {
+      "id": "REQ-89",
+      "summary": "Add analytics stat badges to service cards for views and purchases",
+      "acceptanceCriteria": [
+        "'Service Management' nav link appears in SidebarNav and navigates to /service-management.",
+        "Views counter increments in localStorage each time a service's preview modal is opened.",
+        "Purchases counter increments in localStorage each time a 'Buy Now' action is triggered for a managed service.",
+        "Each service card on ServiceManagementPage shows a 'Views: N' and 'Purchases: N' badge.",
+        "Counters persist across page navigation (localStorage-backed)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/ServiceManagementPage.tsx",
+          "operation": "modify",
+          "description": "Add analytics stat badges to each service card displaying 'Views: N' and 'Purchases: N'. Read counters from localStorage using keys service-views-{service.id} and service-purchases-{service.id}, defaulting to 0 if not set. Display these as small Badge components (e.g., using shadcn/ui Badge) styled with muted colors, positioned at the bottom or corner of each card. Ensure the view counter is incremented when the preview modal is opened (already handled in REQ-88 file operation). The purchase counter will be incremented externally when a 'Buy Now' action is triggered for a managed service (this will be implemented in checkout or cart flows outside this plan). Ensure the displayed counts are reactive and update when localStorage changes (use a state refresh or force re-render after modal close)."
+        },
+        {
+          "path": "frontend/src/components/layout/SidebarNav.tsx",
+          "operation": "modify",
+          "description": "Ensure the 'Service Management' nav link added in REQ-85 is present and functional. This file operation confirms the link is visible and navigates to /service-management. No additional changes needed if already implemented in REQ-85."
         }
       ]
     }

@@ -1,263 +1,139 @@
-import { useState } from 'react';
-import { MessageSquare, Download, FileJson, FileSpreadsheet, FileText, Loader2, Search, CheckCircle, XCircle, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
+import { WhatsAppMessageLog } from '../hooks/useQueries';
+import { useGetAllWhatsAppLogs } from '../hooks/useQueries';
 import { Input } from '@/components/ui/input';
-import { useQuery } from '@tanstack/react-query';
-import { useActor } from '../hooks/useActor';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { WhatsAppMessageLog } from '../backend';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { MessageSquare, Search, FileDown, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { exportWhatsAppLogsToCSV, exportToJSON } from '../utils/exportUtils';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-function useGetAllWhatsAppLogs() {
-  const { actor, isFetching } = useActor();
-  const { identity } = useInternetIdentity();
-
-  return useQuery<WhatsAppMessageLog[]>({
-    queryKey: ['whatsappLogs'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllWhatsAppLogs();
-    },
-    enabled: !!actor && !isFetching && !!identity,
-  });
+function statusIcon(status: string) {
+  if (status === 'delivered' || status === 'read') return <CheckCircle className="w-3.5 h-3.5 text-green-400" />;
+  if (status === 'failed') return <XCircle className="w-3.5 h-3.5 text-red-400" />;
+  return <Clock className="w-3.5 h-3.5 text-amber-400" />;
 }
 
-function downloadFile(content: string, filename: string, mimeType: string) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+function statusColor(status: string): string {
+  if (status === 'delivered' || status === 'read') return 'text-green-400 bg-green-400/10 border-green-400/30';
+  if (status === 'failed') return 'text-red-400 bg-red-400/10 border-red-400/30';
+  return 'text-amber-400 bg-amber-400/10 border-amber-400/30';
 }
-
-function getTimestamp() {
-  return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + 'Z';
-}
-
-const STATUS_CONFIG: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
-  delivered: { icon: CheckCircle, color: 'text-[oklch(0.72_0.17_155)]', bg: 'bg-[oklch(0.72_0.17_155/0.15)]' },
-  sent: { icon: CheckCircle, color: 'text-[oklch(0.82_0.18_175)]', bg: 'bg-[oklch(0.82_0.18_175/0.15)]' },
-  failed: { icon: XCircle, color: 'text-[oklch(0.55_0.22_25)]', bg: 'bg-[oklch(0.55_0.22_25/0.15)]' },
-  pending: { icon: Clock, color: 'text-[oklch(0.78_0.18_75)]', bg: 'bg-[oklch(0.78_0.18_75/0.15)]' },
-};
 
 export default function WhatsAppLogsPage() {
   const { data: logs = [], isLoading } = useGetAllWhatsAppLogs();
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
 
-  const messageTypes = ['all', ...Array.from(new Set(logs.map(l => l.messageType)))];
+  const filtered = logs.filter(l =>
+    l.recipientPhone.includes(search) ||
+    l.messageType.toLowerCase().includes(search.toLowerCase()) ||
+    l.deliveryStatus.toLowerCase().includes(search.toLowerCase())
+  );
 
-  const filtered = logs.filter(log => {
-    const matchSearch = log.recipientPhone.includes(search) || log.messageType.toLowerCase().includes(search.toLowerCase());
-    const matchType = typeFilter === 'all' || log.messageType === typeFilter;
-    return matchSearch && matchType;
-  });
-
-  const downloadCSV = () => {
-    if (logs.length === 0) { toast.error('No logs to export'); return; }
-    const rows = [['Recipient Phone', 'Message Type', 'Delivery Status', 'Sent At']];
-    logs.forEach(log => rows.push([
-      log.recipientPhone,
-      log.messageType,
-      log.deliveryStatus,
-      new Date(Number(log.sentAt) / 1_000_000).toISOString(),
-    ]));
-    downloadFile(rows.map(r => r.join(',')).join('\n'), `whatsapp_logs_${getTimestamp()}.csv`, 'text/csv');
-    toast.success('CSV exported');
+  const handleExportCSV = () => {
+    exportWhatsAppLogsToCSV(filtered);
+    toast.success('Logs exported as CSV');
   };
 
-  const downloadJSON = () => {
-    if (logs.length === 0) { toast.error('No logs to export'); return; }
-    const data = logs.map(log => ({
-      recipientPhone: log.recipientPhone,
-      messageType: log.messageType,
-      deliveryStatus: log.deliveryStatus,
-      sentAt: new Date(Number(log.sentAt) / 1_000_000).toISOString(),
-    }));
-    downloadFile(JSON.stringify(data, null, 2), `whatsapp_delivery_status_${getTimestamp()}.json`, 'application/json');
-    toast.success('JSON exported');
+  const handleExportJSON = () => {
+    exportToJSON(filtered, `whatsapp-logs-${Date.now()}.json`);
+    toast.success('Logs exported as JSON');
   };
 
-  const downloadMonthlyReport = () => {
-    if (logs.length === 0) { toast.error('No logs to export'); return; }
-    const now = new Date();
-    const monthLogs = logs.filter(log => {
-      const d = new Date(Number(log.sentAt) / 1_000_000);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    });
-
-    const delivered = monthLogs.filter(l => l.deliveryStatus === 'delivered').length;
-    const failed = monthLogs.filter(l => l.deliveryStatus === 'failed').length;
-    const byType: Record<string, number> = {};
-    monthLogs.forEach(l => { byType[l.messageType] = (byType[l.messageType] || 0) + 1; });
-
-    const report = `MONTHLY WHATSAPP COMMUNICATION REPORT
-Month: ${now.toLocaleString('default', { month: 'long', year: 'numeric' })}
-Generated: ${new Date().toLocaleString()}
-${'='.repeat(60)}
-
-SUMMARY
-Total Messages Sent: ${monthLogs.length}
-Successfully Delivered: ${delivered}
-Failed: ${failed}
-Delivery Rate: ${monthLogs.length > 0 ? ((delivered / monthLogs.length) * 100).toFixed(1) : 0}%
-
-MESSAGE TYPES
-${Object.entries(byType).map(([type, count]) => `${type}: ${count}`).join('\n')}
-
-${'='.repeat(60)}
-Generated by QuickBee AI Platform`;
-
-    downloadFile(report, `whatsapp_monthly_report_${getTimestamp()}.txt`, 'text/plain');
-    toast.success('Monthly report downloaded');
+  const stats = {
+    total: logs.length,
+    delivered: logs.filter(l => l.deliveryStatus === 'delivered' || l.deliveryStatus === 'read').length,
+    failed: logs.filter(l => l.deliveryStatus === 'failed').length,
+    pending: logs.filter(l => l.deliveryStatus === 'pending' || l.deliveryStatus === 'sent').length,
   };
-
-  // Stats
-  const delivered = logs.filter(l => l.deliveryStatus === 'delivered').length;
-  const failed = logs.filter(l => l.deliveryStatus === 'failed').length;
-  const deliveryRate = logs.length > 0 ? ((delivered / logs.length) * 100).toFixed(1) : '0';
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl gradient-teal flex items-center justify-center neon-glow-sm">
-            <MessageSquare className="w-6 h-6 text-[#0B0F14]" />
+    <div className="min-h-screen bg-background mesh-bg">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <MessageSquare className="w-6 h-6 text-primary" />
+            <h1 className="text-2xl font-bold font-heading text-foreground">WhatsApp Logs</h1>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold gradient-teal-text">WhatsApp Logs</h1>
-            <p className="text-sm text-[oklch(0.60_0.02_200)]">{logs.length} total messages</p>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={handleExportCSV} className="border-border text-xs">
+              <FileDown className="w-3.5 h-3.5 mr-1.5" />
+              CSV
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleExportJSON} className="border-border text-xs">
+              <FileDown className="w-3.5 h-3.5 mr-1.5" />
+              JSON
+            </Button>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={downloadCSV} variant="outline" size="sm"
-            className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
-            <FileSpreadsheet className="w-3 h-3 mr-1" /> CSV Log
-          </Button>
-          <Button onClick={downloadJSON} variant="outline" size="sm"
-            className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
-            <FileJson className="w-3 h-3 mr-1" /> JSON Status
-          </Button>
-          <Button onClick={downloadMonthlyReport} variant="outline" size="sm"
-            className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
-            <FileText className="w-3 h-3 mr-1" /> Monthly Report
-          </Button>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Sent', value: logs.length, color: 'text-[oklch(0.82_0.18_175)]' },
-          { label: 'Delivered', value: delivered, color: 'text-[oklch(0.72_0.17_155)]' },
-          { label: 'Failed', value: failed, color: 'text-[oklch(0.55_0.22_25)]' },
-          { label: 'Delivery Rate', value: `${deliveryRate}%`, color: 'text-[oklch(0.82_0.18_175)]' },
-        ].map(stat => (
-          <div key={stat.label} className="glass rounded-2xl p-4 border border-[oklch(0.82_0.18_175/0.15)]">
-            <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-            <div className="text-xs text-[oklch(0.55_0.02_200)] mt-1">{stat.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[oklch(0.50_0.02_200)]" />
-          <Input
-            placeholder="Search by phone or type..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-10 bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)] w-64"
-          />
-        </div>
-        <div className="flex items-center gap-1 flex-wrap">
-          {messageTypes.map(type => (
-            <button
-              key={type}
-              onClick={() => setTypeFilter(type)}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-                typeFilter === type
-                  ? "gradient-teal text-[#0B0F14]"
-                  : "glass border border-[oklch(0.82_0.18_175/0.15)] text-[oklch(0.65_0.02_200)] hover:text-[oklch(0.82_0.18_175)] hover:border-[oklch(0.82_0.18_175/0.3)]"
-              )}
-            >
-              {type === 'all' ? 'All Types' : type}
-            </button>
+        {/* Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {[
+            { label: 'Total', value: stats.total, color: 'text-foreground' },
+            { label: 'Delivered', value: stats.delivered, color: 'text-green-400' },
+            { label: 'Failed', value: stats.failed, color: 'text-red-400' },
+            { label: 'Pending', value: stats.pending, color: 'text-amber-400' },
+          ].map(s => (
+            <div key={s.label} className="card-glass rounded-xl p-3 text-center">
+              <div className={cn('text-xl font-bold', s.color)}>{s.value}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{s.label}</div>
+            </div>
           ))}
         </div>
-      </div>
 
-      {/* Table */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 animate-spin text-[oklch(0.82_0.18_175)]" />
+        {/* Search */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by phone, type, or status..."
+            className="pl-9 bg-input border-border text-foreground"
+          />
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="glass rounded-2xl p-12 border border-[oklch(0.82_0.18_175/0.1)] flex flex-col items-center justify-center gap-3 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[oklch(0.82_0.18_175/0.1)] flex items-center justify-center">
-            <MessageSquare className="w-8 h-8 text-[oklch(0.82_0.18_175/0.5)]" />
+
+        {/* Logs */}
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="card-glass rounded-xl p-4 animate-pulse h-16" />
+            ))}
           </div>
-          <p className="text-[oklch(0.60_0.02_200)]">No WhatsApp logs found</p>
-          <p className="text-sm text-[oklch(0.45_0.02_200)]">Logs appear here after WhatsApp automation sends messages</p>
-        </div>
-      ) : (
-        <div className="glass rounded-2xl border border-[oklch(0.82_0.18_175/0.15)] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-[oklch(0.82_0.18_175/0.1)] bg-[oklch(0.10_0.012_200)]">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-[oklch(0.50_0.02_200)] uppercase tracking-wider">Recipient</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-[oklch(0.50_0.02_200)] uppercase tracking-wider">Message Type</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-[oklch(0.50_0.02_200)] uppercase tracking-wider">Status</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-[oklch(0.50_0.02_200)] uppercase tracking-wider">Sent At</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[oklch(0.82_0.18_175/0.05)]">
-                {filtered.map((log, idx) => {
-                  const statusCfg = STATUS_CONFIG[log.deliveryStatus] ?? STATUS_CONFIG['pending'];
-                  const StatusIcon = statusCfg.icon;
-                  return (
-                    <tr key={idx} className="hover:bg-[oklch(0.82_0.18_175/0.03)] transition-colors">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg gradient-teal flex items-center justify-center shrink-0">
-                            <MessageSquare className="w-3 h-3 text-[#0B0F14]" />
-                          </div>
-                          <span className="text-sm font-mono text-[oklch(0.85_0.01_200)]">{log.recipientPhone}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="text-xs px-2 py-1 rounded-lg bg-[oklch(0.82_0.18_175/0.1)] text-[oklch(0.82_0.18_175)] border border-[oklch(0.82_0.18_175/0.2)]">
-                          {log.messageType}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium", statusCfg.bg, statusCfg.color)}>
-                          <StatusIcon className="w-3 h-3" />
-                          {log.deliveryStatus}
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-[oklch(0.65_0.01_200)]">
-                        {new Date(Number(log.sentAt) / 1_000_000).toLocaleString()}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16">
+            <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">No Logs Found</h3>
+            <p className="text-sm text-muted-foreground">
+              {search ? 'Try a different search term.' : 'WhatsApp message logs will appear here.'}
+            </p>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="space-y-3">
+            {filtered.map((log, i) => (
+              <div key={i} className="card-glass rounded-xl p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {statusIcon(log.deliveryStatus)}
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{log.recipientPhone}</p>
+                    <p className="text-xs text-muted-foreground">{log.messageType}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Badge variant="outline" className={cn('text-xs', statusColor(log.deliveryStatus))}>
+                    {log.deliveryStatus}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground hidden sm:block">
+                    {new Date(Number(log.sentAt) / 1_000_000).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

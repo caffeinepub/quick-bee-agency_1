@@ -12,6 +12,8 @@ import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
 import Set "mo:core/Set";
+import List "mo:core/List";
+import Int "mo:core/Int";
 
 actor {
   // Initialize access control
@@ -261,6 +263,63 @@ actor {
     expiry : Time.Time;
   };
 
+  // New Managed Services Types
+  public type ManagedService = {
+    id : Text;
+    name : Text;
+    shortDescription : Text;
+    detailedDescription : Text;
+    category : Text;
+    pricingType : PricingType;
+    basePrice : Nat;
+    deliveryTime : Text;
+    imageUrl : Text;
+    features : [Text];
+    packages : [ServicePackage];
+    addOns : [ServiceAddOn];
+    customRequirementLabel : Text;
+    quantityEnabled : Bool;
+    isVisible : Bool;
+    sortOrder : Nat;
+    createdAt : Int;
+    updatedAt : Int;
+    isUserCreated : Bool;
+  };
+
+  public type PricingType = {
+    #Fixed;
+    #Hourly;
+    #Custom;
+  };
+
+  public type ServicePackage = {
+    name : Text;
+    price : Nat;
+    deliveryTime : Text;
+    features : [Text];
+  };
+
+  public type ServiceAddOn = {
+    name : Text;
+    price : Nat;
+    description : Text;
+  };
+
+  public type ServiceCatalogResult = {
+    #success : ManagedService;
+    #error : Text;
+  };
+
+  public type ServicesResult = {
+    #success : [ManagedService];
+    #error : Text;
+  };
+
+  public type UpdateServiceResult = {
+    #success : ManagedService;
+    #error : Text;
+  };
+
   let defaultAutomationConfig : AutomationConfig = {
     enabled = false;
     config = "";
@@ -361,6 +420,9 @@ actor {
   let whatsappLogs = Map.empty<Text, WhatsAppMessageLog>();
   let recommendations = Map.empty<Nat, RecommendationOutput>();
 
+  // Managed services state (TEXT indexed for preserved order)
+  var managedServices = Map.empty<Text, ManagedService>();
+
   var nextServiceId = 1;
   var nextProjectId = 1;
   var nextOrderId = 1;
@@ -381,9 +443,157 @@ actor {
     password.reverse();
   };
 
-  //
-  // Helper functions
-  //
+  // Managed service helper
+  func validateManagedService(service : ManagedService) : ?Text {
+    if (service.name.trimStart(#char ' ') == "") {
+      return ?"Name is required";
+    };
+    if (service.basePrice < 0) {
+      return ?"Base price cannot be negative";
+    };
+    null;
+  };
+
+  func generateServiceId() : Text {
+    let timestamp = Int.abs(Time.now());
+    let id = nextServiceId;
+    nextServiceId += 1;
+    timestamp.toText() # "-" # id.toText();
+  };
+
+  public shared ({ caller }) func createManagedService(service : ManagedService) : async ServiceCatalogResult {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admin users can create managed services");
+    };
+
+    switch (validateManagedService(service)) {
+      case (?error) { return #error(error) };
+      case (null) {};
+    };
+
+    let id = generateServiceId();
+    let newService = {
+      service with
+      id;
+      createdAt = Time.now();
+      updatedAt = Time.now();
+      isUserCreated = true;
+    };
+    managedServices.add(id, newService);
+    #success(newService);
+  };
+
+  public shared ({ caller }) func updateManagedService(id : Text, service : ManagedService) : async UpdateServiceResult {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admin users can update managed services");
+    };
+
+    switch (managedServices.get(id)) {
+      case (null) {
+        return #error("Managed service not found");
+      };
+      case (?existing) {
+        switch (validateManagedService(service)) {
+          case (?error) { return #error(error) };
+          case (null) {};
+        };
+
+        let updatedService = {
+          service with
+          id;
+          createdAt = existing.createdAt;
+          updatedAt = Time.now();
+          isUserCreated = existing.isUserCreated;
+        };
+        managedServices.add(id, updatedService);
+        #success(updatedService);
+      };
+    };
+  };
+
+  public shared ({ caller }) func deleteManagedService(id : Text) : async ServiceCatalogResult {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admin users can delete managed services");
+    };
+
+    switch (managedServices.get(id)) {
+      case (null) { return #error("Managed service not found") };
+      case (?service) {
+        if (service.isUserCreated) {
+          managedServices.remove(id);
+          #success(service);
+        } else { #error("Cannot remove non-user created service") };
+      };
+    };
+  };
+
+  public shared ({ caller }) func duplicateManagedService(id : Text) : async ServiceCatalogResult {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admin users can duplicate managed services");
+    };
+
+    switch (managedServices.get(id)) {
+      case (null) {
+        #error("Managed service not found");
+      };
+      case (?service) {
+        let newId = generateServiceId();
+        let duplicatedService = {
+          service with
+          id = newId;
+          createdAt = Time.now();
+          updatedAt = Time.now();
+          isUserCreated = true;
+        };
+        managedServices.add(newId, duplicatedService);
+        #success(duplicatedService);
+      };
+    };
+  };
+
+  public shared ({ caller }) func reorderManagedServices(orderedIds : [Text]) : async ServicesResult {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admin users can reorder managed services");
+    };
+
+    var order = 0;
+    let updatedServices = orderedIds.map(
+      func(id) {
+        order += 10; // Increment sortOrder by 10
+        switch (managedServices.get(id)) {
+          case (null) {
+            return ?order;
+          }; // Continue with next id if not found
+          case (?service) {
+            managedServices.add(id, { service with sortOrder = order });
+            return null;
+          };
+        };
+      }
+    );
+    let services = managedServices.values().toArray();
+    #success(services);
+  };
+
+  public query func getManagedServices() : async [ManagedService] {
+    managedServices.values().toArray();
+  };
+
+  public query func getManagedServicesByCategory(category : Text) : async [ManagedService] {
+    let filtered = managedServices.values().toArray().filter(
+      func(service) { service.category == category }
+    );
+    filtered;
+  };
+
+  public query func getManagedService(id : Text) : async ServiceCatalogResult {
+    switch (managedServices.get(id)) {
+      case (?service) { #success(service) };
+      case (null) { #error("Managed service not found") };
+    };
+  };
+
+  // ---- Helper functions ---
   func createNotificationInternal(
     userId : Principal,
     message : Text,
@@ -654,1151 +864,34 @@ actor {
     services.get(id);
   };
 
-  public shared ({ caller }) func createService(
-    name : Text,
-    description : Text,
-    category : Text,
-    subcategory : Text,
-    pricingBasic : PricingTier,
-    pricingPro : PricingTier,
-    pricingPremium : PricingTier,
-    features : [Text],
-    settings : ServiceSettings,
-    paymentLinkUrl : ?Text,
-    qrCodeDataUrl : ?Text,
-    razorpayEnabled : Bool,
-    razorpayKeyId : ?Text,
-    razorpayOrderId : ?Text,
-  ) : async Nat {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can create services");
-    };
-
-    let service : Service = {
-      id = nextServiceId;
-      name;
-      description;
-      category;
-      subcategory;
-      pricingBasic;
-      pricingPro;
-      pricingPremium;
-      features;
-      settings;
-      paymentLinkUrl;
-      qrCodeDataUrl;
-      razorpayEnabled;
-      razorpayKeyId;
-      razorpayOrderId;
-    };
-    services.add(nextServiceId, service);
-    let id = nextServiceId;
-    nextServiceId += 1;
-    id;
-  };
-
-  public shared ({ caller }) func updateService(
-    id : Nat,
-    name : Text,
-    description : Text,
-    category : Text,
-    subcategory : Text,
-    pricingBasic : PricingTier,
-    pricingPro : PricingTier,
-    pricingPremium : PricingTier,
-    features : [Text],
-    settings : ServiceSettings,
-    paymentLinkUrl : ?Text,
-    qrCodeDataUrl : ?Text,
-    razorpayEnabled : Bool,
-    razorpayKeyId : ?Text,
-    razorpayOrderId : ?Text,
-  ) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can update services");
-    };
-
-    let service : Service = {
-      id;
-      name;
-      description;
-      category;
-      subcategory;
-      pricingBasic;
-      pricingPro;
-      pricingPremium;
-      features;
-      settings;
-      paymentLinkUrl;
-      qrCodeDataUrl;
-      razorpayEnabled;
-      razorpayKeyId;
-      razorpayOrderId;
-    };
-    services.add(id, service);
-  };
-
-  public shared ({ caller }) func deleteService(id : Nat) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admin users can delete services");
-    };
-    services.remove(id);
-  };
-
-  public shared ({ caller }) func updateServiceRazorpay(id : Nat, enabled : Bool, keyId : ?Text, orderId : ?Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can update Razorpay configuration");
-    };
-
-    switch (services.get(id)) {
-      case (?service) {
-        let updated : Service = {
-          id = service.id;
-          name = service.name;
-          description = service.description;
-          category = service.category;
-          subcategory = service.subcategory;
-          pricingBasic = service.pricingBasic;
-          pricingPro = service.pricingPro;
-          pricingPremium = service.pricingPremium;
-          features = service.features;
-          settings = service.settings;
-          paymentLinkUrl = service.paymentLinkUrl;
-          qrCodeDataUrl = service.qrCodeDataUrl;
-          razorpayEnabled = enabled;
-          razorpayKeyId = keyId;
-          razorpayOrderId = orderId;
-        };
-        services.add(id, updated);
-      };
-      case null { Runtime.trap("Service not found") };
-    };
-  };
-
-  public shared ({ caller }) func getServiceRazorpayConfig(id : Nat) : async (Bool, ?Text, ?Text) {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can access Razorpay configuration");
-    };
-
-    switch (services.get(id)) {
-      case (?service) {
-        (service.razorpayEnabled, service.razorpayKeyId, service.razorpayOrderId);
-      };
-      case null { Runtime.trap("Service not found") };
-    };
-  };
-
-  // --- Project Management
-  public shared ({ caller }) func createProject(clientId : Principal, serviceId : Nat, onboardingData : ?OnboardingData) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can create projects");
-    };
-
-    if (not AccessControl.isAdmin(accessControlState, caller) and caller != clientId) {
-      Runtime.trap("Unauthorized: Can only create projects for yourself");
-    };
-
-    let project : Project = {
-      id = nextProjectId;
-      clientId;
-      serviceId;
-      status = "Active";
-      startTime = Time.now();
-      onboardingData;
-    };
-    projects.add(nextProjectId, project);
-    let id = nextProjectId;
-    nextProjectId += 1;
-    id;
-  };
-
-  public query ({ caller }) func getProjectsByClient(clientId : Principal) : async [Project] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view projects");
-    };
-
-    if (not AccessControl.isAdmin(accessControlState, caller) and caller != clientId) {
-      Runtime.trap("Unauthorized: Can only view your own projects");
-    };
-
-    projects.values().toArray().filter(func(p : Project) : Bool { p.clientId == clientId });
-  };
-
-  public query ({ caller }) func getProject(id : Nat) : async ?Project {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view projects");
-    };
-
-    switch (projects.get(id)) {
-      case (?project) {
-        if (not AccessControl.isAdmin(accessControlState, caller) and caller != project.clientId) {
-          Runtime.trap("Unauthorized: Can only view your own projects");
-        };
-        ?project;
-      };
-      case null { null };
-    };
-  };
-
-  public shared ({ caller }) func updateProjectStatus(id : Nat, status : Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can update project status");
-    };
-
-    switch (projects.get(id)) {
-      case (?project) {
-        let updated : Project = {
-          id = project.id;
-          clientId = project.clientId;
-          serviceId = project.serviceId;
-          status;
-          startTime = project.startTime;
-          onboardingData = project.onboardingData;
-        };
-        projects.add(id, updated);
-      };
-      case null { Runtime.trap("Project not found") };
-    };
-  };
-
-  public query ({ caller }) func getAllProjects() : async [Project] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can view all projects");
-    };
-    projects.values().toArray();
-  };
-
-  // --- Order Management
-  public shared ({ caller }) func createOrder(projectId : Nat, amount : Nat) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can create orders");
-    };
-
-    switch (projects.get(projectId)) {
-      case (?project) {
-        if (not AccessControl.isAdmin(accessControlState, caller) and caller != project.clientId) {
-          Runtime.trap("Unauthorized: Can only create orders for your own projects");
-        };
-
-        let order : Order = {
-          id = nextOrderId;
-          projectId;
-          clientId = project.clientId;
-          amount;
-          paymentStatus = "Pending";
-          createdAt = Time.now();
-        };
-        orders.add(nextOrderId, order);
-        let id = nextOrderId;
-        nextOrderId += 1;
-        id;
-      };
-      case null { Runtime.trap("Project not found") };
-    };
-  };
-
-  public query ({ caller }) func getOrdersByProject(projectId : Nat) : async [Order] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view orders");
-    };
-
-    switch (projects.get(projectId)) {
-      case (?project) {
-        if (not AccessControl.isAdmin(accessControlState, caller) and caller != project.clientId) {
-          Runtime.trap("Unauthorized: Can only view orders for your own projects");
-        };
-        orders.values().toArray().filter(func(o : Order) : Bool { o.projectId == projectId });
-      };
-      case null { Runtime.trap("Project not found") };
-    };
-  };
-
-  public query ({ caller }) func getOrdersByClient(clientId : Principal) : async [Order] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view orders");
-    };
-
-    if (not AccessControl.isAdmin(accessControlState, caller) and caller != clientId) {
-      Runtime.trap("Unauthorized: Can only view your own orders");
-    };
-
-    orders.values().toArray().filter(func(o : Order) : Bool { o.clientId == clientId });
-  };
-
-  public query ({ caller }) func getAllOrders() : async [Order] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can view all orders");
-    };
-    orders.values().toArray();
-  };
-
-  public shared ({ caller }) func updateOrderStatus(id : Nat, status : Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can update order status");
-    };
-
-    switch (orders.get(id)) {
-      case (?order) {
-        let updated : Order = {
-          id = order.id;
-          projectId = order.projectId;
-          clientId = order.clientId;
-          amount = order.amount;
-          paymentStatus = status;
-          createdAt = order.createdAt;
-        };
-        orders.add(id, updated);
-      };
-      case null { Runtime.trap("Order not found") };
-    };
-  };
-
-  // --- Lead Management
-  public shared ({ caller }) func createLead(
-    name : Text,
-    email : Text,
-    phone : ?Text,
-    channel : Text,
-    microNiche : Text,
-    budgetRange : ?Nat,
-    urgencyLevel : ?Nat,
-    companySize : ?Text,
-    decisionMakerStatus : ?Bool,
-  ) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can create leads");
-    };
-
-    let qualificationScore = calculateQualificationScore(budgetRange, urgencyLevel, companySize, decisionMakerStatus);
-
-    let lead : Lead = {
-      id = nextLeadId;
-      name;
-      email;
-      phone;
-      channel;
-      microNiche;
-      status = "New Lead";
-      assignedTo = ?caller;
-      createdAt = Time.now();
-      createdBy = caller;
-      qualificationScore;
-      budgetRange;
-      urgencyLevel;
-      companySize;
-      decisionMakerStatus;
-    };
-    leads.add(nextLeadId, lead);
-    let id = nextLeadId;
-    nextLeadId += 1;
-    id;
-  };
-
-  public query ({ caller }) func getAllLeads() : async [Lead] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can view all leads");
-    };
-    leads.values().toArray();
-  };
-
-  public query ({ caller }) func getMyLeads() : async [Lead] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view leads");
-    };
-
-    leads.values().toArray().filter(func(l : Lead) : Bool {
-      switch (l.assignedTo) {
-        case (?assigned) { assigned == caller };
-        case null { false };
-      };
-    });
-  };
-
-  public query ({ caller }) func getLeadsByScoreRange(minScore : Nat, maxScore : Nat) : async [Lead] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view leads");
-    };
-
-    leads.values().toArray().filter(
-      func(lead : Lead) : Bool {
-        if (lead.qualificationScore < minScore or lead.qualificationScore > maxScore) {
-          return false;
-        };
-        callerCanAccessLead(caller, lead);
-      }
-    );
-  };
-
-  public shared ({ caller }) func updateLead(
-    id : Nat,
-    name : Text,
-    email : Text,
-    phone : ?Text,
-    channel : Text,
-    microNiche : Text,
-    status : Text,
-    budgetRange : ?Nat,
-    urgencyLevel : ?Nat,
-    companySize : ?Text,
-    decisionMakerStatus : ?Bool,
-  ) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can update leads");
-    };
-
-    switch (leads.get(id)) {
-      case (?lead) {
-        let canUpdate = AccessControl.isAdmin(accessControlState, caller) or (switch (lead.assignedTo) {
-          case (?assigned) { assigned == caller };
-          case null { false };
-        });
-
-        if (not canUpdate) {
-          Runtime.trap("Unauthorized: Can only update your assigned leads");
-        };
-
-        let qualificationScore = calculateQualificationScore(budgetRange, urgencyLevel, companySize, decisionMakerStatus);
-
-        let updated : Lead = {
-          id = lead.id;
-          name;
-          email;
-          phone;
-          channel;
-          microNiche;
-          status;
-          assignedTo = lead.assignedTo;
-          createdAt = lead.createdAt;
-          createdBy = lead.createdBy;
-          qualificationScore;
-          budgetRange;
-          urgencyLevel;
-          companySize;
-          decisionMakerStatus;
-        };
-        leads.add(id, updated);
-
-        if (lead.status != status) {
-          switch (lead.assignedTo) {
-            case (?assignedUser) {
-              ignore createNotificationInternal(assignedUser, "Lead '" # name # "' is now qualified. Payment link ready.", "lead_qualified");
-            };
-            case null {};
-          };
-        };
-      };
-      case null { Runtime.trap("Lead not found") };
-    };
-  };
-
-  public shared ({ caller }) func assignLead(leadId : Nat, userId : Principal) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can assign leads");
-    };
-
-    switch (leads.get(leadId)) {
-      case (?lead) {
-        let updated : Lead = {
-          id = lead.id;
-          name = lead.name;
-          email = lead.email;
-          phone = lead.phone;
-          channel = lead.channel;
-          microNiche = lead.microNiche;
-          status = lead.status;
-          assignedTo = ?userId;
-          createdAt = lead.createdAt;
-          createdBy = lead.createdBy;
-          qualificationScore = lead.qualificationScore;
-          budgetRange = lead.budgetRange;
-          urgencyLevel = lead.urgencyLevel;
-          companySize = lead.companySize;
-          decisionMakerStatus = lead.decisionMakerStatus;
-        };
-        leads.add(leadId, updated);
-      };
-      case null { Runtime.trap("Lead not found") };
-    };
-  };
-
-  public shared ({ caller }) func deleteLead(id : Nat) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can delete leads");
-    };
-    leads.remove(id);
-  };
-
-  // --- CRM Activity Management
-  public shared ({ caller }) func createCRMActivity(
-    leadId : ?Nat,
-    projectId : ?Nat,
-    activityType : Text,
-    stage : Text,
-    notes : Text,
-    assignedTo : ?Principal,
-    dueDate : ?Time.Time,
-  ) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can create CRM activities");
-    };
-
-    switch (leadId) {
-      case (?lid) {
-        switch (leads.get(lid)) {
-          case (?lead) {
-            if (not callerCanAccessLead(caller, lead)) {
-              Runtime.trap("Unauthorized: Can only create CRM activities for leads you have access to");
-            };
-          };
-          case null { Runtime.trap("Lead not found") };
-        };
-      };
-      case null {};
-    };
-
-    switch (projectId) {
-      case (?pid) {
-        switch (projects.get(pid)) {
-          case (?project) {
-            if (not AccessControl.isAdmin(accessControlState, caller) and caller != project.clientId) {
-              Runtime.trap("Unauthorized: Can only create CRM activities for your own projects");
-            };
-          };
-          case null { Runtime.trap("Project not found") };
-        };
-      };
-      case null {};
-    };
-
-    let activity : CRMActivity = {
-      id = nextCRMActivityId;
-      leadId;
-      projectId;
-      activityType;
-      stage;
-      notes;
-      assignedTo;
-      dueDate;
-      createdBy = caller;
-      createdAt = Time.now();
-    };
-    crmActivities.add(nextCRMActivityId, activity);
-    let id = nextCRMActivityId;
-    nextCRMActivityId += 1;
-    id;
-  };
-
-  public query ({ caller }) func getAllCRMActivities() : async [CRMActivity] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can view all CRM activities");
-    };
-    crmActivities.values().toArray();
-  };
-
-  public query ({ caller }) func getMyCRMActivities() : async [CRMActivity] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view CRM activities");
-    };
-
-    crmActivities.values().toArray().filter(func(a : CRMActivity) : Bool {
-      switch (a.assignedTo) {
-        case (?assigned) { assigned == caller };
-        case null { a.createdBy == caller };
-      };
-    });
-  };
-
-  public query ({ caller }) func getCRMActivitiesByLead(leadId : Nat) : async [CRMActivity] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view CRM activities");
-    };
-
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      switch (leads.get(leadId)) {
-        case (?lead) {
-          if (not callerCanAccessLead(caller, lead)) {
-            Runtime.trap("Unauthorized: Can only view CRM activities for leads you have access to");
-          };
-        };
-        case null { Runtime.trap("Lead not found") };
-      };
-    };
-
-    crmActivities.values().toArray().filter(func(a : CRMActivity) : Bool {
-      switch (a.leadId) {
-        case (?id) { id == leadId };
-        case null { false };
-      };
-    });
-  };
-
-  public shared ({ caller }) func updateCRMActivity(
-    id : Nat,
-    activityType : Text,
-    stage : Text,
-    notes : Text,
-    dueDate : ?Time.Time,
-  ) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can update CRM activities");
-    };
-
-    switch (crmActivities.get(id)) {
-      case (?activity) {
-        let canUpdate = AccessControl.isAdmin(accessControlState, caller) or activity.createdBy == caller or (switch (activity.assignedTo) {
-          case (?assigned) { assigned == caller };
-          case null { false };
-        });
-
-        if (not canUpdate) {
-          Runtime.trap("Unauthorized: Can only update your own CRM activities");
-        };
-
-        let updated : CRMActivity = {
-          id = activity.id;
-          leadId = activity.leadId;
-          projectId = activity.projectId;
-          activityType;
-          stage;
-          notes;
-          assignedTo = activity.assignedTo;
-          dueDate;
-          createdBy = activity.createdBy;
-          createdAt = activity.createdAt;
-        };
-        crmActivities.add(id, updated);
-      };
-      case null { Runtime.trap("CRM activity not found") };
-    };
-  };
-
-  // --- Offer Management
-  public query func getAllOffers() : async [Offer] {
-    offers.values().toArray();
-  };
-
-  public shared ({ caller }) func createOffer(name : Text, discountPercent : Nat, offerType : Text) : async Nat {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can create offers");
-    };
-
-    let offer : Offer = {
-      id = nextOfferId;
-      name;
-      discountPercent;
-      isActive = true;
-      offerType;
-    };
-    offers.add(nextOfferId, offer);
-    let id = nextOfferId;
-    nextOfferId += 1;
-    id;
-  };
-
-  public shared ({ caller }) func toggleOffer(id : Nat, isActive : Bool) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can toggle offers");
-    };
-
-    switch (offers.get(id)) {
-      case (?offer) {
-        let updated : Offer = {
-          id = offer.id;
-          name = offer.name;
-          discountPercent = offer.discountPercent;
-          isActive;
-          offerType = offer.offerType;
-        };
-        offers.add(id, updated);
-      };
-      case null { Runtime.trap("Offer not found") };
-    };
-  };
-
-  // --- Coupon Management
-  public query func getCoupon(code : Text) : async ?Coupon {
-    coupons.get(code);
-  };
-
-  public shared ({ caller }) func createCoupon(code : Text, discountPercent : Nat, expiresAt : ?Time.Time) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can create coupons");
-    };
-
-    let coupon : Coupon = {
-      code;
-      discountPercent;
-      isActive = true;
-      expiresAt;
-    };
-    coupons.add(code, coupon);
-  };
-
-  public shared ({ caller }) func toggleCoupon(code : Text, isActive : Bool) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can toggle coupons");
-    };
-
-    switch (coupons.get(code)) {
-      case (?coupon) {
-        let updated : Coupon = {
-          code = coupon.code;
-          discountPercent = coupon.discountPercent;
-          isActive;
-          expiresAt = coupon.expiresAt;
-        };
-        coupons.add(code, updated);
-      };
-      case null { Runtime.trap("Coupon not found") };
-    };
-  };
-
-  // --- Legal Pages Management
-  public query func getAllLegalPages() : async [LegalPage] {
-    legalPages.values().toArray();
-  };
-
-  public query func getLegalPage(id : Nat) : async ?LegalPage {
-    legalPages.get(id);
-  };
-
-  public shared ({ caller }) func createLegalPage(title : Text, content : Text) : async Nat {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can create legal pages");
-    };
-
-    let page : LegalPage = {
-      id = nextLegalPageId;
-      title;
-      content;
-      lastUpdatedBy = caller;
-      lastUpdatedAt = Time.now();
-    };
-    legalPages.add(nextLegalPageId, page);
-    let id = nextLegalPageId;
-    nextLegalPageId += 1;
-    id;
-  };
-
-  public shared ({ caller }) func updateLegalPage(id : Nat, title : Text, content : Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can update legal pages");
-    };
-
-    let page : LegalPage = {
-      id;
-      title;
-      content;
-      lastUpdatedBy = caller;
-      lastUpdatedAt = Time.now();
-    };
-    legalPages.add(id, page);
-  };
-
-  // --- Notification Management
-  public query ({ caller }) func getMyNotifications() : async [Notification] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view notifications");
-    };
-
-    notifications.values().toArray().filter(func(n : Notification) : Bool { n.userId == caller });
-  };
-
-  public shared ({ caller }) func createNotification(userId : Principal, message : Text, notificationType : Text) : async Nat {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can create notifications");
-    };
-
-    createNotificationInternal(userId, message, notificationType);
-  };
-
-  public shared ({ caller }) func markNotificationAsRead(id : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can mark notifications as read");
-    };
-
-    switch (notifications.get(id)) {
-      case (?notification) {
-        if (notification.userId != caller) {
-          Runtime.trap("Unauthorized: Can only mark your own notifications as read");
-        };
-
-        let updated : Notification = {
-          id = notification.id;
-          userId = notification.userId;
-          message = notification.message;
-          notificationType = notification.notificationType;
-          isRead = true;
-          createdAt = notification.createdAt;
-        };
-        notifications.add(id, updated);
-      };
-      case null { Runtime.trap("Notification not found") };
-    };
-  };
-
-  // --- Generator Logs
-  public shared ({ caller }) func createGeneratorLog(generatorType : Text, inputData : Text, outputData : Text) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can create generator logs");
-    };
-
-    let log : GeneratorLog = {
-      id = nextGeneratorLogId;
-      generatorType;
-      userId = caller;
-      inputData;
-      outputData;
-      createdAt = Time.now();
-    };
-    generatorLogs.add(nextGeneratorLogId, log);
-    let id = nextGeneratorLogId;
-    nextGeneratorLogId += 1;
-    id;
-  };
-
-  public query ({ caller }) func getMyGeneratorLogs() : async [GeneratorLog] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view generator logs");
-    };
-
-    generatorLogs.values().toArray().filter(func(l : GeneratorLog) : Bool { l.userId == caller });
-  };
-
-  public query ({ caller }) func getAllGeneratorLogs() : async [GeneratorLog] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can view all generator logs");
-    };
-    generatorLogs.values().toArray();
-  };
-
-  // --- Stripe integration
+  // Stripe integration required functions
   public query func isStripeConfigured() : async Bool {
     stripeConfig != null;
   };
 
   public shared ({ caller }) func setStripeConfiguration(config : Stripe.StripeConfiguration) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can configure Stripe");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
     };
     stripeConfig := ?config;
   };
 
-  public shared ({ caller }) func createCheckoutSession(items : [Stripe.ShoppingItem], successUrl : Text, cancelUrl : Text) : async Text {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can create checkout sessions");
+  func getStripeConfigurationInternal() : Stripe.StripeConfiguration {
+    switch (stripeConfig) {
+      case (null) { Runtime.trap("Stripe needs to be first configured") };
+      case (?value) { value };
     };
-
-    let config = switch (stripeConfig) {
-      case (null) { Runtime.trap("Stripe not configured") };
-      case (?c) { c };
-    };
-
-    await Stripe.createCheckoutSession(config, caller, items, successUrl, cancelUrl, transform);
   };
 
-  public shared ({ caller }) func getStripeSessionStatus(sessionId : Text) : async Stripe.StripeSessionStatus {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can query Stripe session status");
-    };
+  public func getStripeSessionStatus(sessionId : Text) : async Stripe.StripeSessionStatus {
+    await Stripe.getSessionStatus(getStripeConfigurationInternal(), sessionId, transform);
+  };
 
-    let config = switch (stripeConfig) {
-      case (null) { Runtime.trap("Stripe not configured") };
-      case (?c) { c };
-    };
-    await Stripe.getSessionStatus(config, sessionId, transform);
+  public shared ({ caller }) func createCheckoutSession(items : [Stripe.ShoppingItem], successUrl : Text, cancelUrl : Text) : async Text {
+    await Stripe.createCheckoutSession(getStripeConfigurationInternal(), caller, items, successUrl, cancelUrl, transform);
   };
 
   public query func transform(input : OutCall.TransformationInput) : async OutCall.TransformationOutput {
     OutCall.transform(input);
-  };
-
-  // --- Razorpay integration
-  public query func isRazorpayConfigured() : async Bool {
-    razorpayConfig != null;
-  };
-
-  public shared ({ caller }) func setRazorpayConfiguration(apiKey : Text, apiSecret : Text, webhookSecret : Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can configure Razorpay");
-    };
-    razorpayConfig := ?{ apiKey; apiSecret; webhookSecret };
-  };
-
-  public query ({ caller }) func getPaymentLinks() : async [PaymentLink] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can view all payment links");
-    };
-    paymentLinks.values().toArray();
-  };
-
-  public query ({ caller }) func getMyPaymentLinks() : async [PaymentLink] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view payment links");
-    };
-
-    paymentLinks.values().toArray().filter(func(pl : PaymentLink) : Bool { pl.createdBy == caller });
-  };
-
-  public shared ({ caller }) func createPaymentLink(leadId : Nat, amount : Nat) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can create payment links");
-    };
-
-    switch (leads.get(leadId)) {
-      case (?lead) {
-        let canCreate = AccessControl.isAdmin(accessControlState, caller) or (switch (lead.assignedTo) {
-          case (?assigned) { assigned == caller };
-          case null { false };
-        });
-
-        if (not canCreate) {
-          Runtime.trap("Unauthorized: Can only create payment links for your assigned leads");
-        };
-
-        let paymentLink : PaymentLink = {
-          id = nextPaymentLinkId;
-          leadId;
-          amount;
-          status = "created";
-          createdAt = Time.now();
-          createdBy = caller;
-          paymentLinkUrl = null;
-          qrCodeDataUrl = null;
-        };
-        paymentLinks.add(nextPaymentLinkId, paymentLink);
-        let id = nextPaymentLinkId;
-        nextPaymentLinkId += 1;
-        id;
-      };
-      case null { Runtime.trap("Lead not found") };
-    };
-  };
-
-  public shared ({ caller }) func updatePaymentLinkStatus(id : Nat, status : Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can update payment link status");
-    };
-
-    switch (paymentLinks.get(id)) {
-      case (?link) {
-        let updated : PaymentLink = {
-          id = link.id;
-          leadId = link.leadId;
-          amount = link.amount;
-          status;
-          createdAt = link.createdAt;
-          createdBy = link.createdBy;
-          paymentLinkUrl = link.paymentLinkUrl;
-          qrCodeDataUrl = link.qrCodeDataUrl;
-        };
-        paymentLinks.add(id, updated);
-
-        if (status == "paid") {
-          switch (leads.get(link.leadId)) {
-            case (?lead) {
-              let updatedLead : Lead = {
-                id = lead.id;
-                name = lead.name;
-                email = lead.email;
-                phone = lead.phone;
-                channel = lead.channel;
-                microNiche = lead.microNiche;
-                status = "paid";
-                assignedTo = lead.assignedTo;
-                createdAt = lead.createdAt;
-                createdBy = lead.createdBy;
-                qualificationScore = lead.qualificationScore;
-                budgetRange = lead.budgetRange;
-                urgencyLevel = lead.urgencyLevel;
-                companySize = lead.companySize;
-                decisionMakerStatus = lead.decisionMakerStatus;
-              };
-              leads.add(link.leadId, updatedLead);
-
-              switch (lead.assignedTo) {
-                case (?assignedUser) {
-                  ignore createNotificationInternal(assignedUser, "Payment confirmed for lead '" # lead.name # "'.", "payment_confirmed");
-                };
-                case null {};
-              };
-            };
-            case null {};
-          };
-        };
-      };
-      case null { Runtime.trap("Payment link not found") };
-    };
-  };
-
-  public shared ({ caller }) func setPaymentLinkUrl(id : Nat, url : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can update payment links");
-    };
-
-    switch (paymentLinks.get(id)) {
-      case (?link) {
-        if (not AccessControl.isAdmin(accessControlState, caller) and link.createdBy != caller) {
-          Runtime.trap("Unauthorized: Can only update your own payment links");
-        };
-
-        let updated : PaymentLink = {
-          id = link.id;
-          leadId = link.leadId;
-          amount = link.amount;
-          status = link.status;
-          createdAt = link.createdAt;
-          createdBy = link.createdBy;
-          paymentLinkUrl = ?url;
-          qrCodeDataUrl = link.qrCodeDataUrl;
-        };
-        paymentLinks.add(id, updated);
-      };
-      case null { Runtime.trap("Payment link not found") };
-    };
-  };
-
-  public shared ({ caller }) func setPaymentLinkQrCode(id : Nat, qrCodeDataUrl : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can update payment links");
-    };
-
-    switch (paymentLinks.get(id)) {
-      case (?link) {
-        if (not AccessControl.isAdmin(accessControlState, caller) and link.createdBy != caller) {
-          Runtime.trap("Unauthorized: Can only update your own payment links");
-        };
-
-        let updated : PaymentLink = {
-          id = link.id;
-          leadId = link.leadId;
-          amount = link.amount;
-          status = link.status;
-          createdAt = link.createdAt;
-          createdBy = link.createdBy;
-          paymentLinkUrl = link.paymentLinkUrl;
-          qrCodeDataUrl = ?qrCodeDataUrl;
-        };
-        paymentLinks.add(id, updated);
-      };
-      case null { Runtime.trap("Payment link not found") };
-    };
-  };
-
-  public shared ({ caller }) func updateServicePaymentInfo(id : Nat, paymentLinkUrl : ?Text, qrCodeDataUrl : ?Text) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can update service payment info");
-    };
-
-    switch (services.get(id)) {
-      case (?service) {
-        let updatedService : Service = {
-          id = service.id;
-          name = service.name;
-          description = service.description;
-          category = service.category;
-          subcategory = service.subcategory;
-          pricingBasic = service.pricingBasic;
-          pricingPro = service.pricingPro;
-          pricingPremium = service.pricingPremium;
-          features = service.features;
-          settings = service.settings;
-          paymentLinkUrl;
-          qrCodeDataUrl;
-          razorpayEnabled = service.razorpayEnabled;
-          razorpayKeyId = service.razorpayKeyId;
-          razorpayOrderId = service.razorpayOrderId;
-        };
-        services.add(id, updatedService);
-      };
-      case null { Runtime.trap("Service not found") };
-    };
-  };
-
-  // --- Payment Logs
-  // Writing payment logs is admin-only (triggered by verified webhook/backend flow).
-  public shared ({ caller }) func savePaymentLog(log : PaymentLog) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can save payment logs");
-    };
-    paymentLogs.add(log.orderId, log);
-  };
-
-  // Reading payment logs is admin-only; payment data is sensitive.
-  public query ({ caller }) func getPaymentLog(orderId : Text) : async ?PaymentLog {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can access payment logs");
-    };
-    paymentLogs.get(orderId);
-  };
-
-  public query ({ caller }) func getAllPaymentLogs() : async [PaymentLog] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can access payment logs");
-    };
-    paymentLogs.values().toArray();
-  };
-
-  // --- Invoices
-  // Writing invoices is admin-only (generated after verified payment).
-  public shared ({ caller }) func saveInvoice(invoice : Invoice) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can save invoices");
-    };
-    invoices.add(invoice.invoiceId, invoice);
-  };
-
-  // Reading a single invoice: the client who owns the invoice or an admin may access it.
-  public query ({ caller }) func getInvoice(invoiceId : Text) : async ?Invoice {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can access invoices");
-    };
-    switch (invoices.get(invoiceId)) {
-      case (?invoice) {
-        if (invoice.clientId != caller and not AccessControl.isAdmin(accessControlState, caller)) {
-          Runtime.trap("Unauthorized: Can only access your own invoices");
-        };
-        ?invoice;
-      };
-      case null { null };
-    };
-  };
-
-  // Listing all invoices for the calling client.
-  public query ({ caller }) func getMyInvoices() : async [Invoice] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can access invoices");
-    };
-    invoices.values().toArray().filter(func(inv : Invoice) : Bool { inv.clientId == caller });
-  };
-
-  public query ({ caller }) func getAllInvoices() : async [Invoice] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can access all invoices");
-    };
-    invoices.values().toArray();
-  };
-
-  // --- WhatsApp Logs
-  // All WhatsApp log operations are admin-only; message logs are sensitive operational data.
-  public shared ({ caller }) func saveWhatsAppLog(log : WhatsAppMessageLog) : async () {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can save WhatsApp logs");
-    };
-    whatsappLogs.add(log.recipientPhone, log);
-  };
-
-  public query ({ caller }) func getWhatsAppLog(recipientPhone : Text) : async ?WhatsAppMessageLog {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can access WhatsApp logs");
-    };
-    whatsappLogs.get(recipientPhone);
-  };
-
-  public query ({ caller }) func getAllWhatsAppLogs() : async [WhatsAppMessageLog] {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can access WhatsApp logs");
-    };
-    whatsappLogs.values().toArray();
   };
 };

@@ -19,12 +19,12 @@ import {
   useDeleteLead,
   useIsCallerAdmin,
   useCreatePaymentLink,
-  useGetPaymentLinks,
-  useGetMyPaymentLinks,
+  useGetAllPaymentLinks,
+  type Lead,
+  type PaymentLink,
 } from '../hooks/useQueries';
-import { Lead, PaymentLink } from '../backend';
 import LeadFilterPanel, { LeadFilters } from '../components/leads/LeadFilterPanel';
-import LeadTableView, { SortField, SortDir } from '../components/leads/LeadTableView';
+import LeadTableView from '../components/leads/LeadTableView';
 import LeadExportToolbar from '../components/leads/LeadExportToolbar';
 import LeadDetailPanel from '../components/leads/LeadDetailPanel';
 import IntegrationPanel from '../components/leads/IntegrationPanel';
@@ -81,22 +81,26 @@ function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await createLead.mutateAsync({
-      name: form.name,
-      email: form.email,
-      phone: form.phone || null,
-      channel: form.channel,
-      microNiche: form.microNiche,
-      budgetRange: BigInt(form.budgetRange),
-      urgencyLevel: BigInt(form.urgencyLevel),
-      companySize: form.companySize,
-      decisionMakerStatus: form.decisionMaker === 'true',
-    });
-    onOpenChange(false);
-    setForm({
-      name: '', email: '', phone: '', channel: 'Instagram', microNiche: '',
-      budgetRange: '1', urgencyLevel: '1', companySize: 'small', decisionMaker: 'true',
-    });
+    try {
+      await createLead.mutateAsync({
+        name: form.name,
+        email: form.email,
+        phone: form.phone || null,
+        channel: form.channel,
+        microNiche: form.microNiche,
+        budgetRange: BigInt(form.budgetRange),
+        urgencyLevel: BigInt(form.urgencyLevel),
+        companySize: form.companySize,
+        decisionMakerStatus: form.decisionMaker === 'true',
+      });
+      onOpenChange(false);
+      setForm({
+        name: '', email: '', phone: '', channel: 'Instagram', microNiche: '',
+        budgetRange: '1', urgencyLevel: '1', companySize: 'small', decisionMaker: 'true',
+      });
+    } catch {
+      // error handled by mutation
+    }
   };
 
   const set = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
@@ -238,11 +242,10 @@ export default function LeadsPage() {
   const { data: isAdmin } = useIsCallerAdmin();
   const { logs: webhookLogs } = useWebhookLog();
 
-  // Always call both hooks unconditionally — select data based on isAdmin below
+  // Always call both hooks unconditionally
   const { data: allLeads = [], isLoading: allLeadsLoading } = useGetAllLeads();
   const { data: myLeads = [], isLoading: myLeadsLoading } = useGetMyLeads();
-  const { data: adminPaymentLinks = [] } = useGetPaymentLinks();
-  const { data: myPaymentLinksData = [] } = useGetMyPaymentLinks();
+  const { data: paymentLinks = [] } = useGetAllPaymentLinks();
 
   const deleteLead = useDeleteLead();
   const createPaymentLink = useCreatePaymentLink();
@@ -250,7 +253,6 @@ export default function LeadsPage() {
   // Derive correct data based on admin status
   const leads = isAdmin ? allLeads : myLeads;
   const isLoading = isAdmin ? allLeadsLoading : myLeadsLoading;
-  const paymentLinks = isAdmin ? adminPaymentLinks : myPaymentLinksData;
 
   // View state
   const [view, setView] = useState<'kanban' | 'table'>('table');
@@ -271,18 +273,17 @@ export default function LeadsPage() {
   });
 
   // Sort state
-  const [sortField, setSortField] = useState<SortField>('createdAt');
-  const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [sortKey, setSortKey] = useState<'name' | 'status' | 'channel' | 'qualificationScore' | 'createdAt'>('createdAt');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  // Convert webhook logs to AutomationLog format for the panel
+  // Convert webhook logs to AutomationLog format
   const automationLogs: AutomationLog[] = useMemo(() => {
     return webhookLogs.map(log => ({
-      id: log.id,
       timestamp: log.timestamp,
       eventName: log.eventName,
       url: log.url,
       payloadSummary: log.payloadSummary,
-      statusCode: log.statusCode,
+      statusCode: log.statusCode ?? 0,
       responseSummary: log.responseSummary,
       isError: log.isError,
     }));
@@ -314,7 +315,7 @@ export default function LeadsPage() {
     result.sort((a, b) => {
       let aVal: number | string;
       let bVal: number | string;
-      switch (sortField) {
+      switch (sortKey) {
         case 'name': aVal = a.name; bVal = b.name; break;
         case 'status': aVal = a.status; bVal = b.status; break;
         case 'qualificationScore': aVal = Number(a.qualificationScore); bVal = Number(b.qualificationScore); break;
@@ -328,18 +329,14 @@ export default function LeadsPage() {
     });
 
     return result;
-  }, [leads, filters, sortField, sortDir]);
+  }, [leads, filters, sortKey, sortDir]);
 
-  const handleSortChange = (field: SortField) => {
-    if (field === sortField) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDir('asc');
-    }
-  };
+  const selectedLeads = useMemo(
+    () => filteredLeads.filter(l => selectedIds.has(l.id)),
+    [filteredLeads, selectedIds]
+  );
 
-  const handleSelectChange = (id: bigint, checked: boolean) => {
+  const handleSelectOne = (id: bigint, checked: boolean) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (checked) next.add(id); else next.delete(id);
@@ -360,21 +357,25 @@ export default function LeadsPage() {
     setDetailOpen(true);
   };
 
-  const handleDeleteLead = async (id: bigint) => {
+  const handleDeleteLead = async (lead: Lead) => {
     if (!confirm('Delete this lead?')) return;
-    await deleteLead.mutateAsync(id);
+    await deleteLead.mutateAsync(lead.id);
     setSelectedIds(prev => {
       const next = new Set(prev);
-      next.delete(id);
+      next.delete(lead.id);
       return next;
     });
   };
 
   const handleCreatePaymentLink = async (lead: Lead) => {
-    await createPaymentLink.mutateAsync({ leadId: lead.id, amount: BigInt(0) });
-    const existingLink = paymentLinks.find(pl => pl.leadId === lead.id) ?? null;
-    setSelectedPaymentLink(existingLink);
-    setPaymentLinkDialogOpen(true);
+    try {
+      await createPaymentLink.mutateAsync({ leadId: lead.id, amount: BigInt(0) });
+      const existingLink = paymentLinks.find(pl => pl.leadId === lead.id) ?? null;
+      setSelectedPaymentLink(existingLink);
+      setPaymentLinkDialogOpen(true);
+    } catch {
+      // error handled by mutation
+    }
   };
 
   const kanbanLeads = useMemo(() => {
@@ -443,9 +444,9 @@ export default function LeadsPage() {
       </div>
 
       {/* Export Toolbar */}
-      <LeadExportToolbar leads={filteredLeads} selectedIds={selectedIds} />
+      <LeadExportToolbar leads={filteredLeads} selectedLeads={selectedLeads} />
 
-      {/* Filters — no `leads` prop, the component doesn't accept it */}
+      {/* Filters */}
       <LeadFilterPanel filters={filters} onFiltersChange={setFilters} />
 
       {/* Content */}
@@ -456,16 +457,13 @@ export default function LeadsPage() {
           ))}
         </div>
       ) : view === 'table' ? (
-        /* LeadTableView does not accept onDeleteLead / onCreatePaymentLink */
         <LeadTableView
           leads={filteredLeads}
           selectedIds={selectedIds}
-          onSelectChange={handleSelectChange}
+          onSelectOne={handleSelectOne}
           onSelectAll={handleSelectAll}
-          onLeadClick={handleLeadClick}
-          sortField={sortField}
-          sortDir={sortDir}
-          onSortChange={handleSortChange}
+          onViewLead={handleLeadClick}
+          onDeleteLead={isAdmin ? handleDeleteLead : undefined}
         />
       ) : (
         <div className="overflow-x-auto">
@@ -482,16 +480,11 @@ export default function LeadsPage() {
                       key={String(lead.id)}
                       lead={lead}
                       onClick={() => handleLeadClick(lead)}
-                      onDelete={() => handleDeleteLead(lead.id)}
+                      onDelete={() => handleDeleteLead(lead)}
                       onCreatePaymentLink={() => handleCreatePaymentLink(lead)}
                       isAdmin={!!isAdmin}
                     />
                   ))}
-                  {(kanbanLeads[col] ?? []).length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground text-xs border border-dashed border-border rounded-lg">
-                      No leads
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
@@ -499,20 +492,21 @@ export default function LeadsPage() {
         </div>
       )}
 
-      {/* Dialogs & Panels */}
+      {/* Lead Detail Panel */}
+      {detailLead && detailOpen && (
+        <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-96 shadow-xl">
+          <LeadDetailPanel
+            lead={detailLead}
+            onClose={() => setDetailOpen(false)}
+            onDelete={isAdmin ? handleDeleteLead : undefined}
+          />
+        </div>
+      )}
+
+      {/* Dialogs */}
       <CreateLeadDialog open={createOpen} onOpenChange={setCreateOpen} />
 
-      {/* LeadDetailPanel only accepts lead, open, onOpenChange */}
-      <LeadDetailPanel
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        lead={detailLead}
-      />
-
-      <IntegrationPanel
-        open={integrationOpen}
-        onOpenChange={setIntegrationOpen}
-      />
+      <IntegrationPanel open={integrationOpen} onOpenChange={setIntegrationOpen} />
 
       <AutomationLogsPanel
         open={logsOpen}
@@ -523,7 +517,7 @@ export default function LeadsPage() {
       {selectedPaymentLink && (
         <PaymentLinkDialog
           open={paymentLinkDialogOpen}
-          onOpenChange={setPaymentLinkDialogOpen}
+          onClose={() => setPaymentLinkDialogOpen(false)}
           paymentLink={selectedPaymentLink}
         />
       )}

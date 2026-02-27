@@ -23,20 +23,47 @@ export interface TransformationOutput {
     headers: Array<http_header>;
 }
 export type Time = bigint;
-export interface PaymentLog {
-    status: string;
-    signature: string;
-    orderId: string;
-    paymentId: string;
-    timestamp: Time;
-    amount: bigint;
-}
 export interface IntegrationSettings {
     stripeEnabled: boolean;
     razorpayEnabled: boolean;
     automations: AutomationSettings;
     webhookUrl?: string;
 }
+export type ServicesResult = {
+    __kind__: "error";
+    error: string;
+} | {
+    __kind__: "success";
+    success: Array<ManagedService>;
+};
+export interface ManagedService {
+    id: string;
+    features: Array<string>;
+    pricingType: PricingType;
+    packages: Array<ServicePackage>;
+    sortOrder: bigint;
+    name: string;
+    createdAt: bigint;
+    customRequirementLabel: string;
+    deliveryTime: string;
+    updatedAt: bigint;
+    imageUrl: string;
+    shortDescription: string;
+    quantityEnabled: boolean;
+    addOns: Array<ServiceAddOn>;
+    isVisible: boolean;
+    category: string;
+    detailedDescription: string;
+    basePrice: bigint;
+    isUserCreated: boolean;
+}
+export type UpdateServiceResult = {
+    __kind__: "error";
+    error: string;
+} | {
+    __kind__: "success";
+    success: ManagedService;
+};
 export interface SalesSystemConfig {
     description: string;
     systemSettings: string;
@@ -45,41 +72,10 @@ export interface SalesSystemConfig {
     apiKey: string;
     systemName: string;
 }
-export interface LegalPage {
-    id: bigint;
-    title: string;
-    content: string;
-    lastUpdatedAt: Time;
-    lastUpdatedBy: Principal;
-}
-export interface Lead {
-    id: bigint;
-    status: string;
-    urgencyLevel?: bigint;
-    assignedTo?: Principal;
+export interface ServiceAddOn {
     name: string;
-    createdAt: Time;
-    createdBy: Principal;
-    email: string;
-    microNiche: string;
-    companySize?: string;
-    qualificationScore: bigint;
-    phone?: string;
-    channel: string;
-    budgetRange?: bigint;
-    decisionMakerStatus?: boolean;
-}
-export interface CRMActivity {
-    id: bigint;
-    activityType: string;
-    assignedTo?: Principal;
-    createdAt: Time;
-    createdBy: Principal;
-    dueDate?: Time;
-    stage: string;
-    projectId?: bigint;
-    leadId?: bigint;
-    notes: string;
+    description: string;
+    price: bigint;
 }
 export interface TransformationInput {
     context: Uint8Array;
@@ -106,43 +102,13 @@ export interface StripeConfiguration {
     allowedCountries: Array<string>;
     secretKey: string;
 }
-export interface PaymentLink {
-    id: bigint;
-    qrCodeDataUrl?: string;
-    status: string;
-    createdAt: Time;
-    createdBy: Principal;
-    leadId: bigint;
-    amount: bigint;
-    paymentLinkUrl?: string;
-}
-export interface GeneratorLog {
-    id: bigint;
-    inputData: string;
-    userId: Principal;
-    createdAt: Time;
-    outputData: string;
-    generatorType: string;
-}
-export interface OnboardingData {
-    businessName: string;
-    goals: string;
-    niche: string;
-    budget: bigint;
-    timeline: string;
-}
-export interface WhatsAppMessageLog {
-    recipientPhone: string;
-    deliveryStatus: string;
-    sentAt: Time;
-    messageType: string;
-}
-export interface Coupon {
-    expiresAt?: Time;
-    code: string;
-    discountPercent: bigint;
-    isActive: boolean;
-}
+export type ServiceCatalogResult = {
+    __kind__: "error";
+    error: string;
+} | {
+    __kind__: "success";
+    success: ManagedService;
+};
 export interface Service {
     id: bigint;
     qrCodeDataUrl?: string;
@@ -167,13 +133,11 @@ export type PasswordAuthResult = {
     __kind__: "error";
     error: string;
 };
-export interface Invoice {
-    clientId: Principal;
-    createdAt: Time;
-    invoiceId: string;
-    totalPaid: bigint;
-    gstAmount: bigint;
-    serviceBreakdown: string;
+export interface ServicePackage {
+    features: Array<string>;
+    name: string;
+    deliveryTime: string;
+    price: bigint;
 }
 export interface AutomationSettings {
     projectOnboarding: AutomationConfig;
@@ -182,13 +146,9 @@ export interface AutomationSettings {
     autoWhatsAppReplies: AutomationConfig;
     proposalAutoSend: AutomationConfig;
 }
-export interface Order {
-    id: bigint;
-    clientId: Principal;
-    paymentStatus: string;
-    createdAt: Time;
-    projectId: bigint;
-    amount: bigint;
+export interface AutomationConfig {
+    enabled: boolean;
+    config: string;
 }
 export interface http_header {
     value: string;
@@ -198,10 +158,6 @@ export interface http_request_result {
     status: bigint;
     body: Uint8Array;
     headers: Array<http_header>;
-}
-export interface AutomationConfig {
-    enabled: boolean;
-    config: string;
 }
 export interface ShoppingItem {
     productName: string;
@@ -216,33 +172,15 @@ export interface ServiceSettings {
     isFeatured: boolean;
     isVisible: boolean;
 }
-export interface Offer {
-    id: bigint;
-    offerType: string;
-    name: string;
-    discountPercent: bigint;
-    isActive: boolean;
-}
-export interface Notification {
-    id: bigint;
-    userId: Principal;
-    notificationType: string;
-    createdAt: Time;
-    isRead: boolean;
-    message: string;
-}
-export interface Project {
-    id: bigint;
-    startTime: Time;
-    status: string;
-    clientId: Principal;
-    onboardingData?: OnboardingData;
-    serviceId: bigint;
-}
 export interface UserProfile {
     name: string;
     businessName?: string;
     email: string;
+}
+export enum PricingType {
+    Hourly = "Hourly",
+    Custom = "Custom",
+    Fixed = "Fixed"
 }
 export enum UserRole {
     admin = "admin",
@@ -251,89 +189,35 @@ export enum UserRole {
 }
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    assignLead(leadId: bigint, userId: Principal): Promise<void>;
-    createCRMActivity(leadId: bigint | null, projectId: bigint | null, activityType: string, stage: string, notes: string, assignedTo: Principal | null, dueDate: Time | null): Promise<bigint>;
     createCheckoutSession(items: Array<ShoppingItem>, successUrl: string, cancelUrl: string): Promise<string>;
-    createCoupon(code: string, discountPercent: bigint, expiresAt: Time | null): Promise<void>;
-    createGeneratorLog(generatorType: string, inputData: string, outputData: string): Promise<bigint>;
-    createLead(name: string, email: string, phone: string | null, channel: string, microNiche: string, budgetRange: bigint | null, urgencyLevel: bigint | null, companySize: string | null, decisionMakerStatus: boolean | null): Promise<bigint>;
-    createLegalPage(title: string, content: string): Promise<bigint>;
-    createNotification(userId: Principal, message: string, notificationType: string): Promise<bigint>;
-    createOffer(name: string, discountPercent: bigint, offerType: string): Promise<bigint>;
-    createOrder(projectId: bigint, amount: bigint): Promise<bigint>;
-    createPaymentLink(leadId: bigint, amount: bigint): Promise<bigint>;
-    createProject(clientId: Principal, serviceId: bigint, onboardingData: OnboardingData | null): Promise<bigint>;
+    createManagedService(service: ManagedService): Promise<ServiceCatalogResult>;
     createRecommendation(recommendation: RecommendationOutput): Promise<bigint>;
-    createService(name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings, paymentLinkUrl: string | null, qrCodeDataUrl: string | null, razorpayEnabled: boolean, razorpayKeyId: string | null, razorpayOrderId: string | null): Promise<bigint>;
-    deleteLead(id: bigint): Promise<void>;
+    deleteManagedService(id: string): Promise<ServiceCatalogResult>;
     deleteRecommendation(id: bigint): Promise<void>;
-    deleteService(id: bigint): Promise<void>;
-    getAllCRMActivities(): Promise<Array<CRMActivity>>;
-    getAllGeneratorLogs(): Promise<Array<GeneratorLog>>;
-    getAllInvoices(): Promise<Array<Invoice>>;
-    getAllLeads(): Promise<Array<Lead>>;
-    getAllLegalPages(): Promise<Array<LegalPage>>;
-    getAllOffers(): Promise<Array<Offer>>;
-    getAllOrders(): Promise<Array<Order>>;
-    getAllPaymentLogs(): Promise<Array<PaymentLog>>;
-    getAllProjects(): Promise<Array<Project>>;
+    duplicateManagedService(id: string): Promise<ServiceCatalogResult>;
     getAllRecommendations(): Promise<Array<RecommendationOutput>>;
     getAllServices(): Promise<Array<Service>>;
-    getAllWhatsAppLogs(): Promise<Array<WhatsAppMessageLog>>;
-    getCRMActivitiesByLead(leadId: bigint): Promise<Array<CRMActivity>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
-    getCoupon(code: string): Promise<Coupon | null>;
     getIntegrationSettings(userId: Principal): Promise<IntegrationSettings | null>;
-    getInvoice(invoiceId: string): Promise<Invoice | null>;
-    getLeadsByScoreRange(minScore: bigint, maxScore: bigint): Promise<Array<Lead>>;
-    getLegalPage(id: bigint): Promise<LegalPage | null>;
-    getMyCRMActivities(): Promise<Array<CRMActivity>>;
-    getMyGeneratorLogs(): Promise<Array<GeneratorLog>>;
-    getMyInvoices(): Promise<Array<Invoice>>;
-    getMyLeads(): Promise<Array<Lead>>;
-    getMyNotifications(): Promise<Array<Notification>>;
-    getMyPaymentLinks(): Promise<Array<PaymentLink>>;
-    getOrdersByClient(clientId: Principal): Promise<Array<Order>>;
-    getOrdersByProject(projectId: bigint): Promise<Array<Order>>;
-    getPaymentLinks(): Promise<Array<PaymentLink>>;
-    getPaymentLog(orderId: string): Promise<PaymentLog | null>;
-    getProject(id: bigint): Promise<Project | null>;
-    getProjectsByClient(clientId: Principal): Promise<Array<Project>>;
+    getManagedService(id: string): Promise<ServiceCatalogResult>;
+    getManagedServices(): Promise<Array<ManagedService>>;
+    getManagedServicesByCategory(category: string): Promise<Array<ManagedService>>;
     getRecommendation(id: bigint): Promise<RecommendationOutput | null>;
     getSalesSystemConfig(userId: Principal): Promise<SalesSystemConfig | null>;
     getService(id: bigint): Promise<Service | null>;
-    getServiceRazorpayConfig(id: bigint): Promise<[boolean, string | null, string | null]>;
     getStripeSessionStatus(sessionId: string): Promise<StripeSessionStatus>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
-    getWhatsAppLog(recipientPhone: string): Promise<WhatsAppMessageLog | null>;
     isCallerAdmin(): Promise<boolean>;
-    isRazorpayConfigured(): Promise<boolean>;
     isStripeConfigured(): Promise<boolean>;
     login(email: string, password: string): Promise<PasswordAuthResult>;
-    markNotificationAsRead(id: bigint): Promise<void>;
     register(email: string, password: string, initialRole: UserRole): Promise<PasswordAuthResult>;
+    reorderManagedServices(orderedIds: Array<string>): Promise<ServicesResult>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     saveIntegrationSettings(settings: IntegrationSettings): Promise<void>;
-    saveInvoice(invoice: Invoice): Promise<void>;
-    savePaymentLog(log: PaymentLog): Promise<void>;
     saveSalesSystemConfig(config: SalesSystemConfig): Promise<void>;
-    saveWhatsAppLog(log: WhatsAppMessageLog): Promise<void>;
-    setPaymentLinkQrCode(id: bigint, qrCodeDataUrl: string): Promise<void>;
-    setPaymentLinkUrl(id: bigint, url: string): Promise<void>;
-    setRazorpayConfiguration(apiKey: string, apiSecret: string, webhookSecret: string): Promise<void>;
     setStripeConfiguration(config: StripeConfiguration): Promise<void>;
-    toggleCoupon(code: string, isActive: boolean): Promise<void>;
-    toggleOffer(id: bigint, isActive: boolean): Promise<void>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
-    updateCRMActivity(id: bigint, activityType: string, stage: string, notes: string, dueDate: Time | null): Promise<void>;
-    updateLead(id: bigint, name: string, email: string, phone: string | null, channel: string, microNiche: string, status: string, budgetRange: bigint | null, urgencyLevel: bigint | null, companySize: string | null, decisionMakerStatus: boolean | null): Promise<void>;
-    updateLegalPage(id: bigint, title: string, content: string): Promise<void>;
-    updateOrderStatus(id: bigint, status: string): Promise<void>;
-    updatePaymentLinkStatus(id: bigint, status: string): Promise<void>;
-    updateProjectStatus(id: bigint, status: string): Promise<void>;
+    updateManagedService(id: string, service: ManagedService): Promise<UpdateServiceResult>;
     updateRecommendation(id: bigint, recommendation: RecommendationOutput): Promise<void>;
-    updateService(id: bigint, name: string, description: string, category: string, subcategory: string, pricingBasic: PricingTier, pricingPro: PricingTier, pricingPremium: PricingTier, features: Array<string>, settings: ServiceSettings, paymentLinkUrl: string | null, qrCodeDataUrl: string | null, razorpayEnabled: boolean, razorpayKeyId: string | null, razorpayOrderId: string | null): Promise<void>;
-    updateServicePaymentInfo(id: bigint, paymentLinkUrl: string | null, qrCodeDataUrl: string | null): Promise<void>;
-    updateServiceRazorpay(id: bigint, enabled: boolean, keyId: string | null, orderId: string | null): Promise<void>;
 }

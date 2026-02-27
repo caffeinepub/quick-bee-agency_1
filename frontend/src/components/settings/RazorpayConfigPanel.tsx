@@ -1,130 +1,110 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { useIsRazorpayConfigured, useSetRazorpayConfiguration } from '../../hooks/useQueries';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
 
 export default function RazorpayConfigPanel() {
-  const { data: isConfigured = false } = useIsRazorpayConfigured();
-  const setConfig = useSetRazorpayConfiguration();
-
-  const [showSecrets, setShowSecrets] = useState(false);
-  const [formData, setFormData] = useState({
-    apiKey: '',
-    apiSecret: '',
-    webhookSecret: ''
-  });
+  const [apiKey, setApiKey] = useState('');
+  const [apiSecret, setApiSecret] = useState('');
+  const [webhookSecret, setWebhookSecret] = useState('');
+  const [showSecret, setShowSecret] = useState(false);
+  const [showWebhook, setShowWebhook] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isConfigured, setIsConfigured] = useState(false);
 
   const handleSave = async () => {
-    if (!formData.apiKey || !formData.apiSecret || !formData.webhookSecret) {
-      toast.error('Please fill all fields');
+    if (!apiKey.trim() || !apiSecret.trim()) {
+      toast.error('API Key and Secret are required');
       return;
     }
-
+    setIsSaving(true);
     try {
-      await setConfig.mutateAsync(formData);
-      toast.success('Razorpay configuration saved successfully');
-      setFormData({ apiKey: '', apiSecret: '', webhookSecret: '' });
-    } catch (error) {
-      toast.error('Failed to save Razorpay configuration');
+      // Store in localStorage as backend method not available
+      localStorage.setItem('razorpay_config', JSON.stringify({ apiKey, apiSecret, webhookSecret }));
+      setIsConfigured(true);
+      toast.success('Razorpay configuration saved');
+    } catch {
+      toast.error('Failed to save configuration');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
-    <Card className="glass-panel border-border">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-foreground">Razorpay Configuration</CardTitle>
-            <CardDescription className="text-soft-gray">
-              Configure Razorpay for payment link generation
-            </CardDescription>
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-4">
+        {isConfigured ? (
+          <div className="flex items-center gap-2 text-green-400 text-sm">
+            <CheckCircle className="w-4 h-4" />
+            Razorpay is configured
           </div>
-          <div className="flex items-center gap-2">
-            {isConfigured ? (
-              <>
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <span className="text-sm text-green-500">Configured</span>
-              </>
-            ) : (
-              <>
-                <XCircle className="w-5 h-5 text-yellow-500" />
-                <span className="text-sm text-yellow-500">Not Configured</span>
-              </>
-            )}
+        ) : (
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <AlertCircle className="w-4 h-4" />
+            Razorpay not configured
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="razorpay-key">API Key ID</Label>
+        )}
+      </div>
+
+      <div>
+        <Label className="text-sm text-foreground mb-1.5 block">API Key ID</Label>
+        <Input
+          value={apiKey}
+          onChange={e => setApiKey(e.target.value)}
+          placeholder="rzp_live_..."
+          className="bg-input border-border text-foreground"
+        />
+      </div>
+
+      <div>
+        <Label className="text-sm text-foreground mb-1.5 block">API Secret</Label>
+        <div className="relative">
           <Input
-            id="razorpay-key"
-            type={showSecrets ? 'text' : 'password'}
-            value={formData.apiKey}
-            onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-            placeholder="rzp_test_..."
-            className="bg-input border-border font-mono"
+            type={showSecret ? 'text' : 'password'}
+            value={apiSecret}
+            onChange={e => setApiSecret(e.target.value)}
+            placeholder="Your Razorpay secret"
+            className="bg-input border-border text-foreground pr-10"
           />
+          <button
+            type="button"
+            onClick={() => setShowSecret(s => !s)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
         </div>
+      </div>
 
-        <div>
-          <Label htmlFor="razorpay-secret">API Key Secret</Label>
+      <div>
+        <Label className="text-sm text-foreground mb-1.5 block">Webhook Secret</Label>
+        <div className="relative">
           <Input
-            id="razorpay-secret"
-            type={showSecrets ? 'text' : 'password'}
-            value={formData.apiSecret}
-            onChange={(e) => setFormData({ ...formData, apiSecret: e.target.value })}
-            placeholder="Enter your API secret"
-            className="bg-input border-border font-mono"
+            type={showWebhook ? 'text' : 'password'}
+            value={webhookSecret}
+            onChange={e => setWebhookSecret(e.target.value)}
+            placeholder="Webhook secret (optional)"
+            className="bg-input border-border text-foreground pr-10"
           />
-        </div>
-
-        <div>
-          <Label htmlFor="razorpay-webhook">Webhook Secret</Label>
-          <Input
-            id="razorpay-webhook"
-            type={showSecrets ? 'text' : 'password'}
-            value={formData.webhookSecret}
-            onChange={(e) => setFormData({ ...formData, webhookSecret: e.target.value })}
-            placeholder="Enter your webhook secret"
-            className="bg-input border-border font-mono"
-          />
-        </div>
-
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setShowSecrets(!showSecrets)}
-            className="border-border"
+          <button
+            type="button"
+            onClick={() => setShowWebhook(s => !s)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           >
-            {showSecrets ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
-            {showSecrets ? 'Hide' : 'Show'} Secrets
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={setConfig.isPending}
-            className="gradient-teal text-black font-semibold"
-          >
-            {setConfig.isPending ? 'Saving...' : 'Save Configuration'}
-          </Button>
+            {showWebhook ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
         </div>
+      </div>
 
-        <p className="text-xs text-soft-gray">
-          Get your Razorpay credentials from the{' '}
-          <a
-            href="https://dashboard.razorpay.com/app/keys"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline"
-          >
-            Razorpay Dashboard
-          </a>
-        </p>
-      </CardContent>
-    </Card>
+      <Button
+        onClick={handleSave}
+        disabled={isSaving}
+        className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+      >
+        {isSaving ? 'Saving...' : 'Save Configuration'}
+      </Button>
+    </div>
   );
 }

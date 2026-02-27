@@ -1,149 +1,97 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Copy, Check, ExternalLink, Download, Edit } from 'lucide-react';
+import React, { useState } from 'react';
+import type { PaymentLink } from '../../hooks/useQueries';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Copy, Download, Edit2, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
-import type { PaymentLink } from '../../backend';
 import EditPaymentLinkDialog from './EditPaymentLinkDialog';
 
-interface PaymentLinkDialogProps {
+interface Props {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  paymentLink: PaymentLink | null;
+  onClose: () => void;
+  paymentLink: PaymentLink;
 }
 
-export default function PaymentLinkDialog({
-  open,
-  onOpenChange,
-  paymentLink
-}: PaymentLinkDialogProps) {
-  const [copied, setCopied] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+export default function PaymentLinkDialog({ open, onClose, paymentLink }: Props) {
+  const [editOpen, setEditOpen] = useState(false);
 
-  const handleCopy = () => {
-    if (paymentLink) {
-      const url = paymentLink.paymentLinkUrl || `https://razorpay.com/payment-links/${paymentLink.id}`;
-      navigator.clipboard.writeText(url);
-      setCopied(true);
-      toast.success('Payment link copied to clipboard');
-      setTimeout(() => setCopied(false), 2000);
-    }
+  const copyUrl = () => {
+    const url = paymentLink.paymentLinkUrl ?? '';
+    if (!url) { toast.error('No URL to copy'); return; }
+    navigator.clipboard.writeText(url);
+    toast.success('URL copied to clipboard');
   };
 
-  const handleDownloadQR = () => {
-    if (paymentLink?.qrCodeDataUrl) {
-      const link = document.createElement('a');
-      link.href = paymentLink.qrCodeDataUrl;
-      link.download = `payment-qr-${paymentLink.id}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      toast.success('QR code downloaded');
-    }
+  const downloadQR = () => {
+    const qr = paymentLink.qrCodeDataUrl ?? '';
+    if (!qr) { toast.error('No QR code available'); return; }
+    const a = document.createElement('a');
+    a.href = qr;
+    a.download = `payment-link-${paymentLink.id}-qr.png`;
+    a.click();
   };
-
-  if (!paymentLink) return null;
-
-  const amountInRupees = Number(paymentLink.amount) / 100;
-  const displayUrl = paymentLink.paymentLinkUrl || `https://razorpay.com/payment-links/${paymentLink.id}`;
 
   return (
     <>
-      <Dialog open={open && !editDialogOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="glass-panel border-border">
+      <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
+        <DialogContent className="bg-card border-border max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Payment Link Generated</DialogTitle>
+            <DialogTitle className="text-foreground">Payment Link</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
-              <p className="text-sm text-soft-gray mb-1">Amount</p>
-              <p className="text-2xl font-bold text-primary">₹{amountInRupees.toLocaleString()}</p>
-            </div>
-
+          <div className="py-4 space-y-4">
             <div>
-              <Label htmlFor="payment-url">Payment Link</Label>
-              <div className="flex gap-2 mt-1">
-                <Input
-                  id="payment-url"
-                  value={displayUrl}
-                  readOnly
-                  className="bg-input border-border font-mono text-sm"
-                />
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={handleCopy}
-                  className="border-border shrink-0"
-                >
-                  {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                </Button>
-              </div>
+              <p className="text-xs text-muted-foreground mb-1">Amount</p>
+              <p className="text-foreground font-semibold">₹{Number(paymentLink.amount).toLocaleString('en-IN')}</p>
             </div>
-
-            {paymentLink.qrCodeDataUrl && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Status</p>
+              <p className="text-foreground">{paymentLink.status}</p>
+            </div>
+            {paymentLink.paymentLinkUrl && (
               <div>
-                <Label>QR Code</Label>
-                <div className="mt-2 flex justify-center p-4 bg-secondary/30 rounded-lg border border-border">
-                  <img 
-                    src={paymentLink.qrCodeDataUrl} 
-                    alt="Payment QR Code" 
-                    className="w-48 h-48 border-2 border-border rounded"
-                  />
+                <p className="text-xs text-muted-foreground mb-1">Payment URL</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-foreground text-sm truncate flex-1">{paymentLink.paymentLinkUrl}</p>
+                  <Button size="sm" variant="ghost" onClick={copyUrl} className="h-7 w-7 p-0">
+                    <Copy className="w-3.5 h-3.5" />
+                  </Button>
+                  <a href={paymentLink.paymentLinkUrl} target="_blank" rel="noopener noreferrer">
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </Button>
+                  </a>
                 </div>
               </div>
             )}
-
-            <div className="flex gap-2">
-              <Button
-                onClick={handleCopy}
-                variant="outline"
-                className="flex-1 border-border"
-              >
-                <Copy className="w-4 h-4 mr-2" />
-                Copy Link
-              </Button>
-              <Button
-                onClick={() => window.open(displayUrl, '_blank')}
-                variant="outline"
-                className="flex-1 border-border"
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Open Link
-              </Button>
-            </div>
-
             {paymentLink.qrCodeDataUrl && (
-              <Button
-                onClick={handleDownloadQR}
-                variant="outline"
-                className="w-full border-border"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download QR Code
-              </Button>
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">QR Code</p>
+                <img src={paymentLink.qrCodeDataUrl} alt="QR Code" className="w-32 h-32 rounded-lg border border-border" />
+                <Button size="sm" variant="outline" onClick={downloadQR} className="mt-2 border-border text-xs">
+                  <Download className="w-3 h-3 mr-1" />
+                  Download QR
+                </Button>
+              </div>
             )}
-
-            <Button
-              onClick={() => setEditDialogOpen(true)}
-              className="w-full gradient-teal text-black font-semibold"
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Payment Link
+          </div>
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => setEditOpen(true)} className="border-border text-sm">
+              <Edit2 className="w-3.5 h-3.5 mr-1.5" />
+              Edit
             </Button>
-
-            <p className="text-xs text-soft-gray text-center">
-              Share this link or QR code with the lead to complete payment
-            </p>
+            <Button variant="outline" onClick={onClose} className="border-border">Close</Button>
           </div>
         </DialogContent>
       </Dialog>
-
-      {editDialogOpen && (
+      {editOpen && (
         <EditPaymentLinkDialog
-          open={editDialogOpen}
-          onOpenChange={setEditDialogOpen}
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
           paymentLink={paymentLink}
         />
       )}
