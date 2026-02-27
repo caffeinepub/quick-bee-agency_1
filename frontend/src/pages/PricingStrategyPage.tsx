@@ -1,377 +1,342 @@
-import { useState } from 'react';
-import { DollarSign, Download, Sparkles, TrendingUp, FileText, FileJson, FileSpreadsheet } from 'lucide-react';
+import React, { useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
+import { ArrowLeft, DollarSign, TrendingUp, Download, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAIConfig } from '@/contexts/AIConfigContext';
+import { useWebhookPost } from '@/hooks/useWebhookPost';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { exportObjectsToCSV } from '../utils/exportUtils';
 
-interface PricingResult {
-  basePrice: number;
-  urgencyMultiplier: number;
-  complexityMultiplier: number;
-  addonsTotal: number;
-  finalPrice: number;
-  psychologicalPrice: number;
-  profitMargin: number;
-  pricingSuggestion: string;
-  timestamp: string;
-}
-
-const ADDONS = [
-  { id: 'rush', label: 'Rush Delivery', price: 500 },
-  { id: 'support', label: '3-Month Support', price: 300 },
-  { id: 'revisions', label: 'Unlimited Revisions', price: 200 },
-  { id: 'analytics', label: 'Analytics Dashboard', price: 400 },
-  { id: 'training', label: 'Team Training', price: 350 },
-  { id: 'seo', label: 'SEO Optimization', price: 250 },
+const addOns = [
+  { id: 'rush', label: 'Rush Delivery (+25%)', multiplier: 0.25 },
+  { id: 'support', label: 'Priority Support (+15%)', multiplier: 0.15 },
+  { id: 'revisions', label: 'Unlimited Revisions (+20%)', multiplier: 0.20 },
+  { id: 'reporting', label: 'Monthly Reporting (+10%)', multiplier: 0.10 },
 ];
 
-function downloadFile(content: string, filename: string, mimeType: string) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-function getTimestamp() {
-  return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + 'Z';
-}
-
-function getPsychologicalPrice(price: number): number {
-  if (price < 100) return Math.floor(price) - 0.01;
-  if (price < 1000) return Math.floor(price / 10) * 10 - 5;
-  if (price < 10000) return Math.floor(price / 100) * 100 - 1;
-  return Math.floor(price / 1000) * 1000 - 1;
-}
-
 export default function PricingStrategyPage() {
-  const [basePrice, setBasePrice] = useState('');
-  const [urgency, setUrgency] = useState([1.0]);
-  const [complexity, setComplexity] = useState([1.0]);
-  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
-  const [result, setResult] = useState<PricingResult | null>(null);
-  const [animating, setAnimating] = useState(false);
+  const navigate = useNavigate();
+  const { config, isFieldConfigured } = useAIConfig();
+  const webhookPost = useWebhookPost();
 
-  const toggleAddon = (id: string) => {
-    setSelectedAddons(prev =>
-      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
-    );
+  const [serviceType, setServiceType] = useState('');
+  const [baseCost, setBaseCost] = useState('');
+  const [urgency, setUrgency] = useState([1]);
+  const [complexity, setComplexity] = useState([1]);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+
+  const [loading, setLoading] = useState(false);
+  const [aiResult, setAiResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [calculated, setCalculated] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const webhookConfigured = isFieldConfigured('webhookUrl') || isFieldConfigured('automationWebhookUrl');
+  const apiConfigured = isFieldConfigured('apiEndpoint') && isFieldConfigured('apiKey');
+
+  const toggleAddOn = (id: string) => {
+    setSelectedAddOns(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]);
   };
 
-  const handleCalculate = async () => {
-    const base = parseFloat(basePrice);
-    if (!base || base <= 0) {
-      toast.error('Please enter a valid base price');
+  const urgencyLabels = ['Low', 'Medium', 'High', 'Critical'];
+  const complexityLabels = ['Simple', 'Moderate', 'Complex', 'Enterprise'];
+
+  const addOnMultiplier = selectedAddOns.reduce((sum, id) => {
+    const addon = addOns.find(a => a.id === id);
+    return sum + (addon?.multiplier || 0);
+  }, 0);
+
+  const urgencyMultiplier = 1 + (urgency[0] - 1) * 0.15;
+  const complexityMultiplier = 1 + (complexity[0] - 1) * 0.2;
+  const base = parseFloat(baseCost) || 0;
+  const calculatedPrice = Math.round(base * urgencyMultiplier * complexityMultiplier * (1 + addOnMultiplier));
+  const psychologicalPrice = calculatedPrice > 0 ? calculatedPrice - 1 : 0;
+
+  const handleCalculate = () => {
+    if (!baseCost || parseFloat(baseCost) <= 0) {
+      setError('Please enter a valid base cost.');
+      return;
+    }
+    setError(null);
+    setCalculated(true);
+  };
+
+  const handleGetAISuggestions = async () => {
+    if (!calculated || calculatedPrice <= 0) {
+      setError('Please calculate the price first.');
       return;
     }
 
-    setAnimating(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
+    setLoading(true);
+    setError(null);
+    setAiResult(null);
 
-    const addonsTotal = ADDONS.filter(a => selectedAddons.includes(a.id)).reduce((sum, a) => sum + a.price, 0);
-    const finalPrice = base * urgency[0] * complexity[0] + addonsTotal;
-    const psychologicalPrice = getPsychologicalPrice(finalPrice);
-    const costEstimate = base * 0.4;
-    const profitMargin = ((finalPrice - costEstimate) / finalPrice) * 100;
-
-    let pricingSuggestion = '';
-    if (urgency[0] >= 1.5 && complexity[0] >= 1.5) {
-      pricingSuggestion = `Premium positioning recommended. Use $${psychologicalPrice.toLocaleString()} as your anchor price. Offer a "Standard" tier at $${(psychologicalPrice * 0.7).toFixed(0)} to make the premium feel justified.`;
-    } else if (urgency[0] >= 1.3) {
-      pricingSuggestion = `Urgency-based pricing is effective here. Present as "Limited availability" at $${psychologicalPrice.toLocaleString()}. Add a countdown timer to increase conversion by up to 30%.`;
-    } else if (complexity[0] >= 1.3) {
-      pricingSuggestion = `Complexity justifies premium pricing. Position at $${psychologicalPrice.toLocaleString()} and emphasize the expertise required. Bundle with a guarantee to reduce buyer hesitation.`;
-    } else {
-      pricingSuggestion = `Standard market pricing at $${psychologicalPrice.toLocaleString()}. Consider offering a payment plan (3x monthly) to increase accessibility and close rate.`;
-    }
-
-    const newResult: PricingResult = {
-      basePrice: base,
-      urgencyMultiplier: urgency[0],
-      complexityMultiplier: complexity[0],
-      addonsTotal,
-      finalPrice,
+    const formData = {
+      serviceName: serviceType || 'General Service',
+      baseCost: Number(baseCost),
+      urgency: urgencyLabels[urgency[0] - 1],
+      complexity: complexityLabels[complexity[0] - 1],
+      addOns: selectedAddOns.map(id => addOns.find(a => a.id === id)?.label).filter(Boolean),
+      calculatedPrice,
       psychologicalPrice,
-      profitMargin,
-      pricingSuggestion,
-      timestamp: new Date().toISOString(),
     };
 
-    setResult(newResult);
-    setAnimating(false);
-    toast.success('Pricing strategy calculated!');
+    // Send to webhook
+    if (webhookConfigured) {
+      try {
+        await webhookPost.mutateAsync({ toolName: 'Pricing Strategy', formData });
+      } catch (err) {
+        toast.error(`Webhook POST failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      }
+    }
+
+    if (apiConfigured) {
+      const prompt = `You are a pricing strategy expert. Analyze the following service pricing and provide strategic recommendations.
+
+Service Type: ${serviceType || 'General Service'}
+Base Cost: $${baseCost}
+Urgency Level: ${urgencyLabels[urgency[0] - 1]}
+Complexity Level: ${complexityLabels[complexity[0] - 1]}
+Add-ons Selected: ${selectedAddOns.length > 0 ? selectedAddOns.map(id => addOns.find(a => a.id === id)?.label).join(', ') : 'None'}
+Calculated Price: $${calculatedPrice}
+Psychological Price Point: $${psychologicalPrice}
+
+Please provide:
+1. Pricing Strategy Assessment
+2. Psychological Pricing Recommendations
+3. Value Anchoring Suggestions
+4. Upsell/Bundle Opportunities
+5. Competitive Positioning`;
+
+      try {
+        const response = await fetch(config.apiEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${config.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.7,
+          }),
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`API error ${response.status}: ${errText}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        if (!content) throw new Error('No content in API response');
+        setAiResult(content);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to get AI suggestions.';
+        setError(msg);
+      }
+    } else {
+      setAiResult(`PRICING STRATEGY ASSESSMENT
+Your calculated price of $${calculatedPrice} reflects a ${Math.round((urgencyMultiplier * complexityMultiplier - 1) * 100)}% premium over base cost.
+
+PSYCHOLOGICAL PRICING
+Consider pricing at $${psychologicalPrice} (just below the round number) to improve conversion rates.
+
+VALUE ANCHORING
+Present the full package value first, then reveal the price to anchor perception.
+
+UPSELL OPPORTUNITIES
+1. Bundle with maintenance package for recurring revenue
+2. Offer a premium tier with faster delivery
+3. Add a results guarantee to justify premium pricing
+
+COMPETITIVE POSITIONING
+Your pricing is competitive for ${complexityLabels[complexity[0] - 1]} complexity work. Emphasize quality and ROI over price.`);
+    }
+
+    setLoading(false);
   };
 
-  const downloadPDF = () => {
-    if (!result) return;
-    const content = `PRICING STRATEGY REPORT
-Generated: ${new Date(result.timestamp).toLocaleString()}
-${'='.repeat(60)}
-
-INPUTS
-Base Price: $${result.basePrice.toLocaleString()}
-Urgency Multiplier: ${result.urgencyMultiplier}x
-Complexity Multiplier: ${result.complexityMultiplier}x
-Add-ons Total: $${result.addonsTotal.toLocaleString()}
-
-${'='.repeat(60)}
-RESULTS
-Final Recommended Price: $${result.finalPrice.toFixed(2)}
-Psychological Price: $${result.psychologicalPrice.toLocaleString()}
-Profit Margin: ${result.profitMargin.toFixed(1)}%
-
-PRICING SUGGESTION
-${result.pricingSuggestion}
-${'='.repeat(60)}
-Generated by QuickBee AI Platform`;
-    downloadFile(content, `pricing_${getTimestamp()}.txt`, 'text/plain');
-    toast.success('PDF downloaded');
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      exportObjectsToCSV([{
+        'Service Name': serviceType || 'General Service',
+        'Base Cost': baseCost,
+        'Final Price': calculatedPrice,
+        'Psychological Price': psychologicalPrice,
+        'Urgency': urgencyLabels[urgency[0] - 1],
+        'Complexity': complexityLabels[complexity[0] - 1],
+        'Add-Ons': selectedAddOns.map(id => addOns.find(a => a.id === id)?.label).join('; ') || 'None',
+        'AI Suggestion': aiResult ? aiResult.slice(0, 200) : '',
+      }], `pricing-strategy-${Date.now()}.csv`);
+      toast.success('Pricing strategy exported!');
+    } catch (err) {
+      toast.error(`Export failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsExporting(false);
+    }
   };
-
-  const downloadExcel = () => {
-    if (!result) return;
-    const rows = [
-      'Field\tValue',
-      `Base Price\t$${result.basePrice}`,
-      `Urgency Multiplier\t${result.urgencyMultiplier}x`,
-      `Complexity Multiplier\t${result.complexityMultiplier}x`,
-      `Add-ons Total\t$${result.addonsTotal}`,
-      `Final Price\t$${result.finalPrice.toFixed(2)}`,
-      `Psychological Price\t$${result.psychologicalPrice}`,
-      `Profit Margin\t${result.profitMargin.toFixed(1)}%`,
-      `Pricing Suggestion\t${result.pricingSuggestion}`,
-    ];
-    downloadFile(rows.join('\n'), `pricing_${getTimestamp()}.csv`, 'text/csv');
-    toast.success('Excel downloaded');
-  };
-
-  const downloadCSV = () => {
-    if (!result) return;
-    const csv = `Field,Value\nBase Price,$${result.basePrice}\nUrgency Multiplier,${result.urgencyMultiplier}x\nComplexity Multiplier,${result.complexityMultiplier}x\nAdd-ons Total,$${result.addonsTotal}\nFinal Price,$${result.finalPrice.toFixed(2)}\nPsychological Price,$${result.psychologicalPrice}\nProfit Margin,${result.profitMargin.toFixed(1)}%\nTimestamp,${result.timestamp}`;
-    downloadFile(csv, `pricing_${getTimestamp()}.csv`, 'text/csv');
-    toast.success('CSV downloaded');
-  };
-
-  const downloadJSON = () => {
-    if (!result) return;
-    downloadFile(JSON.stringify(result, null, 2), `pricing_${getTimestamp()}.json`, 'application/json');
-    toast.success('JSON downloaded');
-  };
-
-  const addonsTotal = ADDONS.filter(a => selectedAddons.includes(a.id)).reduce((sum, a) => sum + a.price, 0);
-  const previewPrice = basePrice ? parseFloat(basePrice) * urgency[0] * complexity[0] + addonsTotal : 0;
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl gradient-teal flex items-center justify-center neon-glow-sm">
-          <DollarSign className="w-6 h-6 text-[#0B0F14]" />
-        </div>
+    <div className="p-6 max-w-5xl mx-auto">
+      <div className="flex items-center gap-3 mb-6">
+        <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/authenticated/generators' })}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <div>
-          <h1 className="text-2xl font-bold gradient-teal-text">Dynamic Pricing Strategy</h1>
-          <p className="text-sm text-[oklch(0.60_0.02_200)]">Calculate optimal pricing with AI-powered suggestions</p>
+          <h1 className="text-2xl font-bold text-foreground">Smart Pricing Strategy</h1>
+          <p className="text-muted-foreground text-sm">Dynamic pricing with AI-powered recommendations</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Input Form */}
-        <div className="glass rounded-2xl p-6 border border-[oklch(0.82_0.18_175/0.15)] space-y-6">
-          <h2 className="text-lg font-semibold text-[oklch(0.90_0.01_200)]">Pricing Inputs</h2>
+      {!webhookConfigured && !apiConfigured && (
+        <Alert className="mb-4 border-amber-200 bg-amber-50 dark:bg-amber-900/10">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800 dark:text-amber-200">
+            Webhook URL not configured. Please{' '}
+            <button
+              className="underline font-medium"
+              onClick={() => navigate({ to: '/authenticated/settings/sales-system-config' })}
+            >
+              configure in Sales System Config
+            </button>{' '}
+            to send data to Make.com.
+          </AlertDescription>
+        </Alert>
+      )}
 
-          {/* Base Price */}
-          <div>
-            <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Base Price (USD)</Label>
-            <Input
-              type="number"
-              placeholder="e.g. 2000"
-              value={basePrice}
-              onChange={e => setBasePrice(e.target.value)}
-              className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]"
-            />
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-primary" />
+                Pricing Inputs
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Service Type</Label>
+                <Input value={serviceType} onChange={e => setServiceType(e.target.value)} placeholder="e.g. Website Development" />
+              </div>
 
-          {/* Urgency Multiplier */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <Label className="text-[oklch(0.75_0.01_200)]">Urgency Multiplier</Label>
-              <span className="text-sm font-bold gradient-teal-text">{urgency[0].toFixed(1)}x</span>
-            </div>
-            <Slider
-              value={urgency}
-              onValueChange={setUrgency}
-              min={1.0}
-              max={2.5}
-              step={0.1}
-              className="[&_[role=slider]]:bg-[oklch(0.82_0.18_175)] [&_[role=slider]]:border-[oklch(0.82_0.18_175)] [&_.relative]:bg-[oklch(0.20_0.02_200)]"
-            />
-            <div className="flex justify-between text-xs text-[oklch(0.50_0.02_200)] mt-1">
-              <span>Normal (1x)</span>
-              <span>Urgent (1.5x)</span>
-              <span>Critical (2.5x)</span>
-            </div>
-          </div>
+              <div className="space-y-1.5">
+                <Label>Base Cost ($) *</Label>
+                <Input type="number" value={baseCost} onChange={e => setBaseCost(e.target.value)} placeholder="e.g. 2000" />
+              </div>
 
-          {/* Complexity Multiplier */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <Label className="text-[oklch(0.75_0.01_200)]">Complexity Multiplier</Label>
-              <span className="text-sm font-bold gradient-teal-text">{complexity[0].toFixed(1)}x</span>
-            </div>
-            <Slider
-              value={complexity}
-              onValueChange={setComplexity}
-              min={1.0}
-              max={3.0}
-              step={0.1}
-              className="[&_[role=slider]]:bg-[oklch(0.82_0.18_175)] [&_[role=slider]]:border-[oklch(0.82_0.18_175)] [&_.relative]:bg-[oklch(0.20_0.02_200)]"
-            />
-            <div className="flex justify-between text-xs text-[oklch(0.50_0.02_200)] mt-1">
-              <span>Simple (1x)</span>
-              <span>Medium (2x)</span>
-              <span>Complex (3x)</span>
-            </div>
-          </div>
+              <div className="space-y-2">
+                <Label>Urgency: <span className="text-primary font-semibold">{urgencyLabels[urgency[0] - 1]}</span></Label>
+                <Slider value={urgency} onValueChange={setUrgency} min={1} max={4} step={1} />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  {urgencyLabels.map(l => <span key={l}>{l}</span>)}
+                </div>
+              </div>
 
-          {/* Add-ons */}
-          <div>
-            <Label className="text-[oklch(0.75_0.01_200)] mb-3 block">Add-ons</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {ADDONS.map(addon => (
-                <label
-                  key={addon.id}
-                  className={cn(
-                    "flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all",
-                    selectedAddons.includes(addon.id)
-                      ? "border-[oklch(0.82_0.18_175/0.5)] bg-[oklch(0.82_0.18_175/0.1)]"
-                      : "border-[oklch(0.20_0.02_200)] hover:border-[oklch(0.82_0.18_175/0.3)]"
-                  )}
-                >
-                  <Checkbox
-                    checked={selectedAddons.includes(addon.id)}
-                    onCheckedChange={() => toggleAddon(addon.id)}
-                    className="border-[oklch(0.82_0.18_175/0.5)] data-[state=checked]:bg-[oklch(0.82_0.18_175)] data-[state=checked]:border-[oklch(0.82_0.18_175)]"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-[oklch(0.85_0.01_200)] truncate">{addon.label}</p>
-                    <p className="text-xs text-[oklch(0.82_0.18_175)]">+${addon.price}</p>
+              <div className="space-y-2">
+                <Label>Complexity: <span className="text-primary font-semibold">{complexityLabels[complexity[0] - 1]}</span></Label>
+                <Slider value={complexity} onValueChange={setComplexity} min={1} max={4} step={1} />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  {complexityLabels.map(l => <span key={l}>{l}</span>)}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Add-ons</Label>
+                {addOns.map(addon => (
+                  <div key={addon.id} className="flex items-center gap-2">
+                    <Checkbox
+                      id={addon.id}
+                      checked={selectedAddOns.includes(addon.id)}
+                      onCheckedChange={() => toggleAddOn(addon.id)}
+                    />
+                    <label htmlFor={addon.id} className="text-sm text-foreground cursor-pointer">{addon.label}</label>
                   </div>
-                </label>
-              ))}
-            </div>
-          </div>
+                ))}
+              </div>
 
-          {/* Live Preview */}
-          {previewPrice > 0 && (
-            <div className="glass rounded-xl p-3 border border-[oklch(0.82_0.18_175/0.2)] flex items-center justify-between">
-              <span className="text-sm text-[oklch(0.65_0.02_200)]">Live Preview</span>
-              <span className="text-lg font-bold gradient-teal-text">${previewPrice.toFixed(2)}</span>
-            </div>
-          )}
+              {error && (
+                <div className="rounded-md bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
 
-          <Button
-            onClick={handleCalculate}
-            disabled={animating}
-            className="w-full gradient-teal text-[#0B0F14] font-bold rounded-xl py-3 hover:opacity-90 transition-all neon-glow-sm disabled:opacity-50"
-          >
-            {animating ? (
-              <><span className="animate-spin mr-2">⚡</span>Calculating...</>
-            ) : (
-              <><Sparkles className="w-4 h-4 mr-2" />Calculate Optimal Price</>
-            )}
-          </Button>
+              <Button onClick={handleCalculate} className="w-full" variant="outline">
+                <TrendingUp className="h-4 w-4 mr-2" /> Calculate Price
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Results */}
         <div className="space-y-4">
-          {result && !animating ? (
-            <div className="space-y-4 animate-price-reveal">
-              {/* Main Price Card */}
-              <div className="glass rounded-2xl p-6 border border-[oklch(0.82_0.18_175/0.4)] neon-glow text-center">
-                <p className="text-sm text-[oklch(0.60_0.02_200)] mb-2">Recommended Price</p>
-                <div className="text-5xl font-bold gradient-teal-text mb-1">
-                  ${result.psychologicalPrice.toLocaleString()}
+          {calculated && calculatedPrice > 0 && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardHeader>
+                <CardTitle className="text-base">Calculated Pricing</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground text-sm">Recommended Price</span>
+                  <span className="text-2xl font-bold text-primary">${calculatedPrice.toLocaleString()}</span>
                 </div>
-                <p className="text-xs text-[oklch(0.55_0.02_200)]">
-                  Calculated: ${result.finalPrice.toFixed(2)} → Psychological: ${result.psychologicalPrice.toLocaleString()}
-                </p>
-              </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground text-sm">Psychological Price</span>
+                  <span className="text-xl font-semibold text-foreground">${psychologicalPrice.toLocaleString()}</span>
+                </div>
+                <div className="text-xs text-muted-foreground pt-2 border-t border-border">
+                  Urgency ×{urgencyMultiplier.toFixed(2)} · Complexity ×{complexityMultiplier.toFixed(2)} · Add-ons +{Math.round(addOnMultiplier * 100)}%
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button size="sm" onClick={handleGetAISuggestions} disabled={loading} className="flex-1">
+                    {loading ? (
+                      <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Analyzing...</>
+                    ) : (
+                      <><Sparkles className="h-3 w-3 mr-1" />AI Suggestions</>
+                    )}
+                  </Button>
+                  {(aiResult || calculated) && (
+                    <Button size="sm" variant="outline" onClick={handleExport} disabled={isExporting}>
+                      {isExporting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Download className="h-3 w-3 mr-1" />}
+                      Export CSV
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-              {/* Breakdown */}
-              <div className="glass rounded-2xl p-5 border border-[oklch(0.82_0.18_175/0.15)] space-y-3">
-                <h3 className="font-semibold text-[oklch(0.82_0.18_175)] text-sm">Price Breakdown</h3>
-                <div className="space-y-2">
-                  {[
-                    { label: 'Base Price', value: `$${result.basePrice.toLocaleString()}` },
-                    { label: `Urgency (${result.urgencyMultiplier}x)`, value: `+$${(result.basePrice * (result.urgencyMultiplier - 1)).toFixed(2)}` },
-                    { label: `Complexity (${result.complexityMultiplier}x)`, value: `+$${(result.basePrice * result.urgencyMultiplier * (result.complexityMultiplier - 1)).toFixed(2)}` },
-                    { label: 'Add-ons', value: `+$${result.addonsTotal.toLocaleString()}` },
-                  ].map(row => (
-                    <div key={row.label} className="flex justify-between text-sm">
-                      <span className="text-[oklch(0.65_0.02_200)]">{row.label}</span>
-                      <span className="text-[oklch(0.85_0.01_200)]">{row.value}</span>
-                    </div>
-                  ))}
-                  <div className="border-t border-[oklch(0.82_0.18_175/0.2)] pt-2 flex justify-between">
-                    <span className="font-semibold text-[oklch(0.85_0.01_200)]">Profit Margin</span>
-                    <span className="font-bold gradient-teal-text">{result.profitMargin.toFixed(1)}%</span>
-                  </div>
+          {aiResult && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  AI Pricing Recommendations
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-muted/30 rounded-lg p-4 max-h-[400px] overflow-y-auto">
+                  <pre className="text-sm text-foreground whitespace-pre-wrap font-sans leading-relaxed">
+                    {aiResult}
+                  </pre>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
+          )}
 
-              {/* Strategy */}
-              <div className="glass rounded-2xl p-5 border border-[oklch(0.78_0.18_75/0.3)]">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-7 h-7 rounded-lg bg-[oklch(0.78_0.18_75/0.2)] flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 text-[oklch(0.85_0.18_75)]" />
-                  </div>
-                  <h3 className="font-semibold text-[oklch(0.85_0.18_75)] text-sm">Psychological Pricing Strategy</h3>
-                </div>
-                <p className="text-sm text-[oklch(0.80_0.01_200)] leading-relaxed">{result.pricingSuggestion}</p>
-              </div>
-
-              {/* Download Buttons */}
-              <div className="glass rounded-2xl p-4 border border-[oklch(0.82_0.18_175/0.15)]">
-                <h3 className="font-semibold text-[oklch(0.75_0.01_200)] mb-3 flex items-center gap-2">
-                  <Download className="w-4 h-4 text-[oklch(0.82_0.18_175)]" />
-                  Export Pricing Report
-                </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={downloadPDF} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
-                    <FileText className="w-3 h-3 mr-1" /> PDF
-                  </Button>
-                  <Button onClick={downloadExcel} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
-                    <FileSpreadsheet className="w-3 h-3 mr-1" /> Excel
-                  </Button>
-                  <Button onClick={downloadCSV} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
-                    <FileSpreadsheet className="w-3 h-3 mr-1" /> CSV
-                  </Button>
-                  <Button onClick={downloadJSON} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
-                    <FileJson className="w-3 h-3 mr-1" /> JSON
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : animating ? (
-            <div className="glass rounded-2xl p-8 border border-[oklch(0.82_0.18_175/0.3)] flex flex-col items-center justify-center gap-4 animate-glow-pulse min-h-64">
-              <div className="text-5xl animate-bounce">⚡</div>
-              <p className="text-[oklch(0.82_0.18_175)] font-semibold">Calculating optimal price...</p>
-            </div>
-          ) : (
-            <div className="glass rounded-2xl p-8 border border-[oklch(0.82_0.18_175/0.1)] flex flex-col items-center justify-center gap-3 text-center min-h-64">
-              <div className="w-16 h-16 rounded-2xl bg-[oklch(0.82_0.18_175/0.1)] flex items-center justify-center">
-                <DollarSign className="w-8 h-8 text-[oklch(0.82_0.18_175/0.5)]" />
-              </div>
-              <p className="text-[oklch(0.60_0.02_200)] text-sm">Enter your pricing inputs and click Calculate to get AI-powered pricing recommendations</p>
-            </div>
+          {!calculated && (
+            <Card className="min-h-[200px] flex items-center justify-center border-dashed">
+              <CardContent className="text-center py-8">
+                <DollarSign className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">Enter your pricing inputs and click "Calculate Price"</p>
+              </CardContent>
+            </Card>
           )}
         </div>
       </div>

@@ -1,77 +1,71 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T14:54:09.866Z",
-  "summary": "The diff only modifies project_state.json, which is a metadata/tracking file that records feature requests as 'pending'. No actual frontend implementation files were added or modified. All 8 requirements (REQ-1 through REQ-8) remain unimplemented — none of the required React components, context stores, webhook functions, toggle logic, AI modules, export functions, or connection status indicators have been built.",
+  "generatedAt": "2026-02-27T06:02:42.178Z",
+  "summary": "The diff implements most of the requested requirements: a full service catalog with 7 categories (REQ-25), 30 individual packages (REQ-26), maintenance plans (REQ-27), agency plans with color badges (REQ-28), Buy Now buttons with tier selectors and cart integration (REQ-29), and LoginPage updates (REQ-30). However, several specific acceptance criteria are only partially or potentially not met based on the evidence available, particularly around the LoginPage fix, Razorpay direct flow in REQ-29, and some display details.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "Fix the API settings configuration form so that all fields are properly persisted to state/storage and included in all outgoing requests using a centralized config store.",
-      "reason": "No frontend source files were added or modified. The project_state.json only records this as a pending task (AR-8). No React context, localStorage hooks, or settings form components were created.",
+      "id": "REQ-30",
+      "requirement": "Fix the Sign In button on the LoginPage so that clicking it correctly triggers the Internet Identity authentication flow, shows a loading/spinner state, redirects on success, and shows an error message on failure/cancellation.",
+      "reason": "The file-diff summary for frontend/src/pages/LoginPage.tsx only states 'Login page with QuickBee logo, feature highlights grid, Internet Identity sign-in button, and first-time profile setup dialog.' There is no diff content showing the actual code changes to the LoginPage — no loading state, error handling, redirect logic, or click handler fix is visible in the diff. The requirement may not have been implemented.",
       "evidence": [
-        "project_state.json"
+        "frontend/src/pages/LoginPage.tsx",
+        "frontend-file-summaries.txt"
       ]
     },
     {
-      "id": "REQ-2",
-      "requirement": "Fix all webhook trigger functions to correctly send HTTP POST requests with proper JSON body and headers.",
-      "reason": "No frontend source files were added or modified. The project_state.json only records this as a pending task (AR-9). No webhook trigger functions were implemented.",
+      "id": "REQ-29",
+      "requirement": "If Razorpay is configured in the centralized config store, initiate a Razorpay payment flow directly for the selected item's price.",
+      "reason": "The useDirectPurchase hook only adds to cart and navigates to checkout — it does not check if Razorpay is configured or initiate a Razorpay payment flow directly. The CheckoutPage has a Razorpay option but only shows a toast saying 'coming soon'. The acceptance criterion requiring direct Razorpay payment initiation when configured is not fulfilled.",
       "evidence": [
-        "project_state.json"
+        "frontend/src/hooks/useDirectPurchase.ts",
+        "frontend/src/pages/CheckoutPage.tsx"
       ]
     },
     {
-      "id": "REQ-3",
-      "requirement": "Add comprehensive error handling, logging, and response status validation to all webhook and API calls, including a visible Webhook Log panel.",
-      "reason": "No frontend source files were added or modified. The project_state.json only records this as a pending task (AR-10). No error handling, logging infrastructure, or Webhook Log panel component was created.",
+      "id": "REQ-26",
+      "requirement": "Cards are sorted by price ascending by default.",
+      "reason": "The ServicesPage.tsx diff is truncated and does not confirm that individual package cards are sorted by price ascending by default. The data file lists packages in order but explicit sort logic in the page is not visible.",
       "evidence": [
-        "project_state.json"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "requirement": "Fix automation toggles on the Automation Page so each one truly enables or disables its corresponding feature, with persisted toggle state.",
-      "reason": "No frontend source files were added or modified. The project_state.json records this as a pending task (AR-4). No toggle state management or persistence logic was implemented.",
-      "evidence": [
-        "project_state.json"
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "requirement": "Fix the AI Smart Systems modules so that AI responses from OpenRouter/OpenAI are correctly fetched and displayed in the dashboard.",
-      "reason": "No frontend source files were added or modified. The project_state.json records this as a pending task (AR-5). No AI module request/response handling was implemented.",
-      "evidence": [
-        "project_state.json"
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "requirement": "Fix Razorpay payment webhook handling and WhatsApp auto-reply triggers with proper validation and payload structure.",
-      "reason": "No frontend source files were added or modified. The project_state.json records this as a pending task (AR-6). No Razorpay or WhatsApp trigger logic was implemented.",
-      "evidence": [
-        "project_state.json"
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "requirement": "Ensure PDF and CSV exports work correctly across all dashboard modules including Leads, AI Smart Systems results, WhatsApp Logs, Invoices, and the Data Export Center.",
-      "reason": "No frontend source files were added or modified. The project_state.json records this as a pending task (AR-7). No export functionality was implemented.",
-      "evidence": [
-        "project_state.json"
-      ]
-    },
-    {
-      "id": "REQ-8",
-      "requirement": "Add a real-time connection status indicator for each configured integration with Test Connection buttons for CRM and Automation Webhook URLs.",
-      "reason": "No frontend source files were added or modified. The project_state.json does not record REQ-8 with a distinct AR entry linked to it. No status indicator or test connection UI was implemented.",
-      "evidence": [
-        "project_state.json"
+        "frontend/src/pages/ServicesPage.tsx",
+        "frontend/src/data/individualPackages.ts"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.98,
+  "hallucinated_features": [
+    {
+      "description": "GST (18%) calculation added to CartPage and CheckoutPage order summaries.",
+      "reason": "The build request does not mention adding GST calculation or tax display to cart or checkout pages. Both CartPage.tsx and CheckoutPage.tsx now compute and display an 18% GST line item and a final total including GST, which was not requested.",
+      "evidence": [
+        "frontend/src/pages/CartPage.tsx",
+        "frontend/src/pages/CheckoutPage.tsx"
+      ]
+    },
+    {
+      "description": "formatPriceRange utility duplicated in both utils/formatCurrency.ts and data/maintenancePlans.ts.",
+      "reason": "The build request did not specify creating a duplicate formatPriceRange export in maintenancePlans.ts. The utility was already defined in formatCurrency.ts and re-defined in maintenancePlans.ts, creating unrequested redundancy.",
+      "evidence": [
+        "frontend/src/utils/formatCurrency.ts",
+        "frontend/src/data/maintenancePlans.ts"
+      ]
+    }
+  ],
+  "confidence": 0.72,
   "changed_files": [
+    "frontend-file-summaries.txt",
+    "frontend/src/cart/useCart.ts",
+    "frontend/src/components/services/BuyNowButton.tsx",
+    "frontend/src/components/services/TierSelector.tsx",
+    "frontend/src/data/agencyPlans.ts",
+    "frontend/src/data/individualPackages.ts",
+    "frontend/src/data/maintenancePlans.ts",
+    "frontend/src/data/masterServiceCatalog.ts",
+    "frontend/src/hooks/useDirectPurchase.ts",
+    "frontend/src/pages/CartPage.tsx",
+    "frontend/src/pages/CheckoutPage.tsx",
+    "frontend/src/pages/ServiceDetailPage.tsx",
+    "frontend/src/pages/ServicesPage.tsx",
+    "frontend/src/utils/formatCurrency.ts",
     "project_state.json"
   ]
 }

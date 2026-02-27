@@ -4,6 +4,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { useNavigate } from '@tanstack/react-router';
 import { Trash2, ShoppingBag } from 'lucide-react';
+import formatINR from '../utils/formatCurrency';
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, total, clearCart } = useCart();
@@ -17,13 +18,16 @@ export default function CartPage() {
         <p className="text-muted-foreground mb-6">Browse our services to get started</p>
         <Button
           onClick={() => navigate({ to: '/authenticated/services' })}
-          className="gradient-teal text-dark-500 font-semibold"
+          className="font-semibold"
         >
           Browse Services
         </Button>
       </div>
     );
   }
+
+  const gst = total * 0.18;
+  const finalTotal = total + gst;
 
   return (
     <div className="space-y-6">
@@ -37,14 +41,16 @@ export default function CartPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
           {items.map((item) => (
-            <Card key={`${item.serviceId}-${item.tier}`} className="glass-card border-border">
+            <Card key={item.id} className="border-border">
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-foreground">{item.serviceName}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{item.tier} Plan</p>
+                    <h3 className="font-semibold text-foreground">{item.name}</h3>
+                    {item.tierLabel && (
+                      <p className="text-sm text-muted-foreground mt-1">{item.tierLabel} Plan</p>
+                    )}
                     <p className="text-lg font-bold text-primary mt-2">
-                      ₹{(item.price / 100).toLocaleString()}
+                      {formatINR(item.price)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -52,13 +58,13 @@ export default function CartPage() {
                       type="number"
                       min="1"
                       value={item.quantity}
-                      onChange={(e) => updateQuantity(item.serviceId, item.tier, parseInt(e.target.value) || 1)}
+                      onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
                       className="w-20 bg-input border-border"
                     />
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => removeItem(item.serviceId, item.tier)}
+                      onClick={() => removeItem(item.id)}
                       className="text-destructive"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -71,28 +77,28 @@ export default function CartPage() {
         </div>
 
         <div>
-          <Card className="glass-card border-border sticky top-6">
+          <Card className="border-border sticky top-6">
             <CardHeader>
               <CardTitle className="text-foreground">Order Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between text-muted-foreground">
                 <span>Subtotal</span>
-                <span>₹{(total / 100).toLocaleString()}</span>
+                <span>{formatINR(total)}</span>
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <span>Tax (18% GST)</span>
-                <span>₹{((total * 0.18) / 100).toLocaleString()}</span>
+                <span>{formatINR(gst)}</span>
               </div>
               <div className="border-t border-border pt-4">
                 <div className="flex justify-between text-lg font-bold text-foreground">
                   <span>Total</span>
-                  <span>₹{((total * 1.18) / 100).toLocaleString()}</span>
+                  <span>{formatINR(finalTotal)}</span>
                 </div>
               </div>
               <Button
                 onClick={() => navigate({ to: '/authenticated/checkout' })}
-                className="w-full gradient-teal text-dark-500 font-semibold"
+                className="w-full font-semibold"
               >
                 Proceed to Checkout
               </Button>

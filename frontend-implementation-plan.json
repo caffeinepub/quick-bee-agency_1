@@ -1,332 +1,168 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Debug and Fix API Settings, Automation Toggles, and Webhook Connections in Sales System Dashboard",
+  "title": "Add Full Quick Bee Agency Service Catalog with Direct Payment & Fix Login Sign In Button",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Fix API settings form to persist all configuration fields (API Endpoint, API Key, WhatsApp Token, Razorpay Keys, Email API Key, CRM Webhook URL, Automation Webhook URL) using a centralized config store accessible across all modules",
+      "id": "REQ-25",
+      "summary": "Populate the Services page with the complete Quick Bee Agency 2026 Master Service Price List organized into 7 categories with pricing tiers, features, and Indian Rupee formatting",
       "acceptanceCriteria": [
-        "Entering and saving any API field persists the value and it remains after navigating away and returning",
-        "All API field values are accessible by webhook trigger functions and automation modules",
-        "Saved values are pre-populated in the form on re-open",
-        "A 'Saved successfully' toast/confirmation appears after saving"
+        "All 7 service categories are displayed with their correct services and INR tier prices",
+        "A category filter tab bar allows browsing by individual category",
+        "Each service card shows name, category, all pricing tiers, and the 16 features list",
+        "Prices are formatted in Indian Rupee notation with correct comma separators"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/contexts/ApiConfigContext.tsx",
+          "path": "frontend/src/data/masterServiceCatalog.ts",
           "operation": "create",
-          "description": "Create a React context and provider for centralized API configuration storage. Define ApiConfig type including apiEndpoint, apiKey, whatsAppToken, razorpayKeyId, razorpaySecret, emailApiKey, crmWebhookUrl, and automationWebhookUrl fields. Use localStorage to persist config across sessions. Expose useApiConfig hook for consuming components. Include methods to update individual fields or the entire config object."
+          "description": "Create a TypeScript data file exporting the complete Quick Bee Agency 2026 Master Service Price List. Define types for ServiceCategory, PricingTierInfo (with tierName, priceINR as number, and features as string array), and MasterService (with name, category, subcategory, description, tiers array, and features array). Export 7 category arrays: webDevelopmentServices (12 services), appDevelopmentServices (8 services), aiAutomationServices (8 services), digitalMarketingServices (8 services), brandingCreativeServices (7 services), saasAdvancedTechServices (8 services), and businessSetupServices (6 services). Each service must include all three pricing tiers (Student/Business/Premium or Starter/Growth/Enterprise) with INR prices as numbers and 16 features where applicable. Also export a SERVICE_CATEGORIES constant array defining category metadata with id, name, emoji, and description for each of the 7 categories."
         },
         {
-          "path": "frontend/src/main.tsx",
+          "path": "frontend/src/pages/ServicesPage.tsx",
           "operation": "modify",
-          "description": "Wrap the App component with ApiConfigProvider to make the centralized config store available throughout the application tree."
+          "description": "Replace the current service listing implementation with a comprehensive master catalog view. Import the masterServiceCatalog data. Add state for activeCategory filter (default 'all'). Render a horizontal scrollable category filter tab bar at the top showing all 7 categories plus an 'All Services' option with emoji indicators matching the source data. Filter the displayed services based on activeCategory. For each service, render a card showing: service name, category badge, subcategory, and all three pricing tiers in a horizontal layout. Each tier must display the tier name (e.g., Student/Business/Premium), the price formatted in Indian Rupee notation using Intl.NumberFormat with locale 'en-IN' and currency 'INR' (e.g., ₹1,20,000), and an expandable/collapsible features list (show first 3 features by default with 'Show all 16 features' toggle). Keep existing admin controls (create/edit/delete dialogs) but ensure they don't interfere with the catalog view. Use Tailwind CSS for responsive grid layout (1 column mobile, 2 tablet, 3 desktop). Add category count badges to each filter tab."
         },
         {
-          "path": "frontend/src/components/settings/ApiSettingsPanel.tsx",
+          "path": "frontend/src/utils/formatCurrency.ts",
           "operation": "create",
-          "description": "Create a settings panel component for the API configuration form. Include text inputs for all eight fields (API Endpoint, API Key, WhatsApp Token, Razorpay Key ID, Razorpay Secret, Email API Key, CRM Webhook URL, Automation Webhook URL). Consume useApiConfig hook to load current values and update them. Add a Save button that persists changes and shows a success toast. Include password-type inputs with show/hide toggle for sensitive fields."
-        },
-        {
-          "path": "frontend/src/pages/SettingsPage.tsx",
-          "operation": "modify",
-          "description": "Add the ApiSettingsPanel component to the SettingsPage, positioned above or alongside the existing RazorpayConfigPanel. Ensure the panel is visible to admin users only."
+          "description": "Create a utility function formatINR(amount: number): string that formats a number as Indian Rupee currency using Intl.NumberFormat with options { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }. This ensures proper comma separators in Indian notation (e.g., ₹1,20,000 instead of ₹120,000). Export as default function."
         }
       ]
     },
     {
-      "id": "REQ-2",
-      "summary": "Fix webhook trigger functions (form submission, lead qualification, payment success, project creation) to send correct HTTP POST requests with proper JSON body, headers (Content-Type, Authorization), using saved URLs from config store",
+      "id": "REQ-26",
+      "summary": "Add 30 individual service packages with flat INR pricing to the Services page as a separate 'Individual Packages' section or tab",
       "acceptanceCriteria": [
-        "Each webhook trigger fires a fetch/axios POST request to the correct URL from saved config",
-        "Request headers include Content-Type: application/json and any required auth headers",
-        "Request body is a valid JSON object containing event-specific data (lead details, payment info, etc.)",
-        "Webhook trigger functions do not fire when the corresponding automation toggle is disabled"
+        "All 30 individual packages appear on the Services page under an 'Individual Packages' section or tab",
+        "Each card displays the flat price, category, sub-category, and 16 features",
+        "Features list is expandable/collapsible on the card",
+        "Cards are sorted by price ascending by default"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/utils/webhookTriggers.ts",
+          "path": "frontend/src/data/individualPackages.ts",
           "operation": "create",
-          "description": "Create utility functions for each webhook trigger type: triggerFormSubmissionWebhook, triggerLeadQualificationWebhook, triggerPaymentSuccessWebhook, and triggerProjectCreationWebhook. Each function must: (1) accept event-specific payload data and automation toggle state, (2) check if the toggle is enabled before proceeding, (3) retrieve the appropriate webhook URL (CRM or Automation) from useApiConfig, (4) validate URL is configured, (5) construct a fetch POST request with Content-Type: application/json header, (6) include Authorization: Bearer <apiKey> header if apiKey is configured, (7) send a structured JSON body relevant to the event type, (8) return a promise with status and response data. Do not execute if toggle is disabled or URL is empty."
+          "description": "Create a TypeScript data file defining the IndividualPackage type with fields: id (string), name (string), priceINR (number), category (string), subcategory (string), description (string), and features (string array of 16 items). Export an array of 30 individual packages sorted by price ascending: Website Development (₹999), Sales Funnel Setup (₹1,099), WhatsApp Automation (₹1,199), AI Chatbot Setup (₹1,299), Landing Pages (₹1,399), SEO Setup (₹1,499), Social Media Management (₹1,599), Instagram Growth System (₹1,699), Lead Generation System (₹1,799), Branding Kit (₹1,899), Logo Design (₹1,999), Video Editing (₹2,099), AI Content Creation (₹2,199), Email Marketing Setup (₹2,299), LinkedIn Outreach System (₹2,399), E-commerce Store Setup (₹2,499), No-Code App Development (₹2,599), Automation Setup (₹2,699), CRM Setup (₹2,799), AI Proposal Generator (₹2,899), Pricing Strategy Consulting (₹2,999), Funnel Optimization (₹3,099), Copywriting Service (₹3,199), Reels Script Creation (₹3,299), AI Image Generation (₹3,399), T-Shirt POD Setup (₹3,499), Etsy Automation (₹3,599), Affiliate Marketing System (₹3,699), Notion Dashboard Setup (₹3,799), Analytics Dashboard Setup (₹3,899). Each package must include its 16 listed features from the source data, assigned to appropriate category and subcategory strings."
         },
         {
-          "path": "frontend/src/pages/LeadsPage.tsx",
+          "path": "frontend/src/pages/ServicesPage.tsx",
           "operation": "modify",
-          "description": "Wire the triggerFormSubmissionWebhook and triggerLeadQualificationWebhook functions into the lead creation and lead status update flows. After successfully creating a lead via the mutation, call triggerFormSubmissionWebhook with the lead data. When a lead's qualification score or status changes to 'Qualified', call triggerLeadQualificationWebhook with the lead details. Check automation settings from the context before triggering. Handle promise resolution and log results."
+          "description": "Add a top-level view mode toggle (Tabs component from shadcn/ui) with three options: 'Service Catalog', 'Individual Packages', and 'Maintenance Plans'. Import individualPackages data. When 'Individual Packages' tab is active, render a responsive card grid displaying all 30 packages sorted by price ascending. Each card must show: package name as heading, flat price formatted with formatINR utility, category and subcategory badges, and a collapsible features section (initially collapsed, expand on click to show all 16 features as a bulleted list). Add a sort control dropdown allowing users to sort by price (ascending/descending) or name (A-Z). Use consistent card styling with the master catalog view. Ensure proper spacing and responsive breakpoints."
+        }
+      ]
+    },
+    {
+      "id": "REQ-27",
+      "summary": "Add Monthly Maintenance & Subscription plans to the Services page as a dedicated 'Maintenance Plans' section with 5 plan categories and price ranges",
+      "acceptanceCriteria": [
+        "All maintenance plan categories and tiers are displayed with monthly price ranges",
+        "Each plan card lists its included features",
+        "Plans are grouped clearly under their respective categories",
+        "A 'Maintenance Plans' section or tab is accessible from the Services page navigation"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/data/maintenancePlans.ts",
+          "operation": "create",
+          "description": "Create a TypeScript data file defining MaintenancePlanTier type with fields: tierName (string), minPriceINR (number), maxPriceINR (number), features (string array), and description (string). Define MaintenancePlanCategory type with fields: categoryId (string), categoryName (string), icon (string), tiers (MaintenancePlanTier array). Export an array of 5 maintenance plan categories: (1) Website Maintenance with tiers Basic (₹999–₹2,999/mo), Business (₹3,999–₹7,999/mo), Premium/AI/3D (₹10,000–₹35,000/mo); (2) App Maintenance with tiers Basic (₹2,999–₹6,999/mo), Growth (₹8,000–₹20,000/mo), Enterprise (₹25,000–₹75,000/mo); (3) AI Automation Maintenance with tiers Basic (₹2,999–₹7,999/mo), Advanced (₹10,000–₹30,000/mo); (4) Marketing & Growth Retainer with tiers Starter (₹4,999–₹12,000/mo), Growth (₹15,000–₹40,000/mo), Premium (₹50,000–₹1,50,000/mo); (5) SaaS & Backend Retainer with tiers Business (₹15,000–₹35,000/mo), Enterprise (₹40,000–₹1,20,000/mo). Each tier must include its full list of included features from the user's source data. Add a helper function formatPriceRange(min: number, max: number): string that returns formatted range like '₹2,999–₹7,999/mo' using the formatINR utility."
+        },
+        {
+          "path": "frontend/src/pages/ServicesPage.tsx",
+          "operation": "modify",
+          "description": "Extend the view mode Tabs to include the 'Maintenance Plans' option. Import maintenancePlans data and formatPriceRange helper. When 'Maintenance Plans' tab is active, render the 5 plan categories in a vertical layout. For each category, display: category name with icon, a grid of tier cards within that category. Each tier card must show: tier name, monthly price range formatted with formatPriceRange, and a bulleted list of all included features. Use Accordion component from shadcn/ui to allow collapsing/expanding each category section for better space management. Style tier cards with distinct background colors or borders to differentiate Basic/Growth/Enterprise tiers. Ensure responsive layout adapts from single column on mobile to multi-column on desktop."
+        }
+      ]
+    },
+    {
+      "id": "REQ-28",
+      "summary": "Add 3 Master Agency Plans (Spark, Surge, Titan) to the Services page as a prominently styled 'Agency Plans' section with color-coded badges",
+      "acceptanceCriteria": [
+        "Three master agency plan cards appear in an 'Agency Plans' section with the correct price ranges and tier descriptions",
+        "Spark card has a green badge, Surge has blue, Titan has purple",
+        "Plans are visually prominent and distinct from individual service cards"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/data/agencyPlans.ts",
+          "operation": "create",
+          "description": "Create a TypeScript data file defining AgencyPlan type with fields: planId (string), planName (string), emoji (string), minPriceINR (number), maxPriceINR (number or null for unlimited), targetAudience (string), description (string), features (string array), badgeColor ('green' | 'blue' | 'purple'). Export an array of 3 master agency plans: (1) Spark Plan with emoji 🟢, minPrice ₹4,999, maxPrice ₹25,000, targetAudience 'Student/Beginner/Idea Stage', badgeColor 'green', and features list from source data; (2) Surge Plan with emoji 🔵, minPrice ₹30,000, maxPrice ₹1,20,000, targetAudience 'Local & National Business Growth', badgeColor 'blue', and features; (3) Titan Plan with emoji 🟣, minPrice ₹1,50,000, maxPrice ₹5,00,000 (or null for unlimited/+ notation), targetAudience 'National/Global/Enterprise Clients', badgeColor 'purple', and features. Include detailed descriptions and comprehensive feature lists for each plan."
+        },
+        {
+          "path": "frontend/src/pages/ServicesPage.tsx",
+          "operation": "modify",
+          "description": "Add a fourth tab option 'Agency Plans' to the view mode Tabs. Import agencyPlans data. When 'Agency Plans' tab is active, render a hero section with heading 'Master Agency Plans' and subtitle explaining the tiered approach. Display the 3 plans in a horizontal layout (stacked on mobile). Each plan card must be prominently styled with: large emoji indicator at top, plan name as heading, color-coded badge (green for Spark using bg-green-500, blue for Surge using bg-blue-500, purple for Titan using bg-purple-500) positioned at top-right corner of card, price range formatted with formatINR and displayed prominently, target audience description in italic, and bulleted feature list. Apply distinct card styling with larger padding, shadow effects, and hover animations to make these plans stand out from regular service cards. Use Card component from shadcn/ui with custom Tailwind classes for the badge positioning and color theming."
+        }
+      ]
+    },
+    {
+      "id": "REQ-29",
+      "summary": "Add direct 'Buy Now' or 'Select & Pay' buttons to all service, package, plan, and maintenance cards with tier selection and cart/checkout integration",
+      "acceptanceCriteria": [
+        "Every service/package/plan card has a 'Buy Now' or 'Select & Pay' button",
+        "Tiered service cards show a tier selector (Student/Business/Premium or equivalent) before the button",
+        "Clicking the button adds the item at the selected tier price to the cart and navigates to checkout",
+        "If Razorpay is configured, the Razorpay payment flow is initiated directly",
+        "Selected tier label and price are correctly passed to cart/checkout"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/services/TierSelector.tsx",
+          "operation": "create",
+          "description": "Create a reusable TierSelector component that accepts props: tiers (array of {tierName: string, priceINR: number}), selectedTier (string), onTierChange (callback). Render a segmented control or radio button group (using RadioGroup from shadcn/ui) displaying all tier options with their names and formatted prices. Highlight the selected tier. Use responsive design to stack vertically on mobile and horizontally on desktop. Export as default component."
+        },
+        {
+          "path": "frontend/src/components/services/BuyNowButton.tsx",
+          "operation": "create",
+          "description": "Create a BuyNowButton component accepting props: itemName (string), itemPrice (number), tierLabel (string | undefined), onBuyNow (callback), disabled (boolean), isLoading (boolean). Render a prominent Button from shadcn/ui with text 'Buy Now' or 'Select & Pay'. Show a loading spinner icon when isLoading is true. Disable the button when disabled prop is true. On click, invoke the onBuyNow callback. Style with primary button colors and larger size for prominence. Export as default component."
+        },
+        {
+          "path": "frontend/src/hooks/useDirectPurchase.ts",
+          "operation": "create",
+          "description": "Create a custom hook useDirectPurchase that encapsulates the purchase flow logic. The hook should: (1) import useCart hook and useNavigate from TanStack Router; (2) import useIsRazorpayConfigured query hook; (3) expose a handlePurchase function that accepts itemName, itemPrice, tierLabel (optional); (4) inside handlePurchase, add the item to cart using cart.addItem with a generated unique ID, itemName, itemPrice as unit price, quantity 1, and tierLabel in metadata if provided; (5) check if Razorpay is configured using the query result; (6) if Razorpay is configured, implement a direct Razorpay checkout flow (script loading, order creation via backend if needed, and Razorpay modal); (7) if Razorpay is not configured, navigate to '/checkout' using router navigation; (8) handle loading states and errors with toast notifications. Return { handlePurchase, isProcessing } from the hook. This hook abstracts the payment method decision logic."
+        },
+        {
+          "path": "frontend/src/pages/ServicesPage.tsx",
+          "operation": "modify",
+          "description": "Import TierSelector, BuyNowButton, and useDirectPurchase hook. For each service card in the Service Catalog view: add state to track selectedTier (default to first tier). Render TierSelector component below the service description, passing the service's tiers array and selectedTier state. Below TierSelector, render BuyNowButton passing the service name, selected tier price, selected tier label, and handlePurchase callback from useDirectPurchase hook. For Individual Packages view: each package card should render BuyNowButton directly (no tier selector needed) with package name, flat price, undefined tier label. For Maintenance Plans view: each tier card should render BuyNowButton with tier name, midpoint of price range as itemPrice, and tier name as tierLabel. For Agency Plans view: each plan card should render BuyNowButton with plan name, minPrice as itemPrice, and plan targetAudience as tierLabel. Ensure all buttons are consistently styled and positioned at the bottom of each card."
+        },
+        {
+          "path": "frontend/src/cart/useCart.ts",
+          "operation": "modify",
+          "description": "Extend the CartItem type to include an optional tierLabel field (string | undefined) for storing the selected pricing tier information. Update the addItem function to accept and store tierLabel in the cart item metadata. Ensure tierLabel is persisted in localStorage along with other cart data. Update any cart display logic to show the tierLabel alongside item name if present (e.g., 'Website Development - Business Tier'). Maintain backward compatibility with existing cart items that don't have tierLabel."
         },
         {
           "path": "frontend/src/pages/CheckoutPage.tsx",
           "operation": "modify",
-          "description": "Wire the triggerPaymentSuccessWebhook function into the payment success flow. After a successful Stripe or Razorpay payment session completes, call triggerPaymentSuccessWebhook with payment details (amount, orderId, paymentId, timestamp). Verify the payment confirmation automation is enabled before firing. Log the webhook result."
-        },
-        {
-          "path": "frontend/src/pages/ProjectsPage.tsx",
-          "operation": "modify",
-          "description": "Wire the triggerProjectCreationWebhook function into the project creation flow. When a new project is created (via mutation or after payment success), call triggerProjectCreationWebhook with project details (clientId, serviceId, onboarding data). Check that project onboarding automation is enabled before triggering. Handle response and log outcome."
+          "description": "Update the order summary display to show tierLabel for each cart item if it exists. Format as 'Item Name (Tier Label)' or 'Item Name - Tier Label' for clarity. Ensure the tierLabel is visible in the itemized list before the price. Maintain existing Stripe and Razorpay integration logic without modification, ensuring cart items with tierLabel are correctly passed to the payment backend functions."
         }
       ]
     },
     {
-      "id": "REQ-3",
-      "summary": "Add comprehensive error handling, logging, and response validation to all webhook and API calls, including a visible Webhook Log panel on the Automation page showing timestamped entries with status, URL, and response code",
+      "id": "REQ-30",
+      "summary": "Fix the Sign In button on the LoginPage to correctly trigger Internet Identity authentication with loading state and error handling",
       "acceptanceCriteria": [
-        "A Webhook Log panel or drawer on the Automation page shows timestamped entries for each outgoing webhook attempt with status (success/error), URL, and response code",
-        "Failed requests show a red error toast with the webhook name and HTTP status or network error message",
-        "Successful requests (2xx) show a green success toast or status indicator",
-        "Network-level errors (no response) display a meaningful message distinguishing them from HTTP errors"
+        "Clicking the Sign In button on the login screen triggers the Internet Identity login flow",
+        "A loading/spinner state is shown on the button while authentication is in progress",
+        "After successful authentication, the user is redirected to their dashboard",
+        "If authentication fails or is cancelled, a visible error message is shown",
+        "The button is fully functional and not disabled by default"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/contexts/WebhookLogContext.tsx",
-          "operation": "create",
-          "description": "Create a React context and provider to manage webhook log state. Define WebhookLogEntry type with fields: id, timestamp, webhookType, url, status (success/error), httpStatus, requestPayload, responseBody, errorMessage. Store log entries in state (max 100 entries) and persist to localStorage. Expose useWebhookLog hook with addLogEntry method. Provide methods to filter logs by type, status, or date range."
-        },
-        {
-          "path": "frontend/src/main.tsx",
+          "path": "frontend/src/pages/LoginPage.tsx",
           "operation": "modify",
-          "description": "Wrap the App component with WebhookLogProvider to enable logging across the application."
+          "description": "Review and fix the Sign In button implementation. Ensure the button's onClick handler correctly calls the login() function from useInternetIdentity hook. Add local state isAuthenticating (boolean) that is set to true when login() is called and false when it completes or errors. Wrap the login() call in try-catch to handle errors. On error, display a toast notification using toast.error() from sonner with the error message. While isAuthenticating is true, disable the button and show a Loader2 spinner icon (from lucide-react) with spin animation alongside or replacing the button text. Update button text to 'Signing In...' during authentication. After successful login (no error thrown), the existing useEffect watching identity changes should handle navigation to dashboard. Remove any premature disabled={true} attributes on the button. Ensure the button has proper aria-label and is keyboard accessible. Test that the button responds immediately to clicks without any delay."
         },
         {
-          "path": "frontend/src/utils/webhookTriggers.ts",
+          "path": "frontend/src/hooks/useInternetIdentity.ts",
           "operation": "modify",
-          "description": "Update all webhook trigger functions to include comprehensive error handling and logging. Wrap fetch calls in try-catch blocks. On success (2xx response), log the entry with status 'success', HTTP status code, and response body. On HTTP error (non-2xx), log 'error' status with status code and response text. On network error (no response), log 'error' with a network failure message. Show a toast notification for each outcome: green success toast for 2xx, red error toast with webhook name and status/error for failures. Use the addLogEntry method from useWebhookLog context to record each attempt."
-        },
-        {
-          "path": "frontend/src/components/automation/WebhookLogPanel.tsx",
-          "operation": "create",
-          "description": "Create a slide-out sheet panel component (similar to AutomationLogsPanel) that displays the webhook log entries from useWebhookLog context. Show a table or list with columns: timestamp, webhook type, URL, status badge (green for success, red for error), HTTP status code, and an expand icon to view full request/response details. Include filter dropdowns for webhook type and status, a search input for URL, and a date range picker. Add a Clear Logs button and an Export to CSV button. Use the Sheet component from shadcn/ui for the panel layout."
-        },
-        {
-          "path": "frontend/src/pages/AutomationPage.tsx",
-          "operation": "modify",
-          "description": "Add a 'View Webhook Logs' button near the automation toggles section that opens the WebhookLogPanel. Position the button prominently so users can easily access the log to debug webhook issues."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Fix automation toggles on the Automation Page so each toggle truly enables or disables its feature (WhatsApp Auto-Reply, Proposal Auto-Send, Lead Follow-Up Sequences, Payment Confirmation, Project Onboarding), with state persisting across sessions",
-      "acceptanceCriteria": [
-        "Each toggle's enabled/disabled state is persisted (localStorage or backend) and restored on page reload",
-        "When a toggle is OFF, all related webhook calls, API calls, and UI triggers for that automation are blocked",
-        "When a toggle is turned ON, the automation activates for subsequent triggering events",
-        "Toggle state change is confirmed with a toast notification"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/contexts/AutomationConfigContext.tsx",
-          "operation": "create",
-          "description": "Create a React context and provider to manage automation toggle states. Define AutomationToggles type with boolean fields: whatsAppAutoReply, proposalAutoSend, leadFollowUpSequences, paymentConfirmation, projectOnboarding. Load initial state from localStorage and persist changes on update. Expose useAutomationConfig hook with methods to toggle individual automations and retrieve their enabled status. Show a toast notification on each toggle change."
-        },
-        {
-          "path": "frontend/src/main.tsx",
-          "operation": "modify",
-          "description": "Wrap the App component with AutomationConfigProvider to make toggle states available throughout the app."
-        },
-        {
-          "path": "frontend/src/pages/AutomationPage.tsx",
-          "operation": "modify",
-          "description": "Replace the existing automation settings logic with the useAutomationConfig hook. Bind each toggle switch to the corresponding automation field from the context. When a toggle is changed, call the update method from the context to persist the new state and show a confirmation toast. Ensure the UI reflects the current enabled/disabled state on page load."
-        },
-        {
-          "path": "frontend/src/utils/webhookTriggers.ts",
-          "operation": "modify",
-          "description": "Update all webhook trigger functions to check the corresponding automation toggle state from useAutomationConfig before executing. For example, triggerPaymentSuccessWebhook should check if paymentConfirmation is enabled; if not, return early without making the HTTP call. Similarly guard triggerProjectCreationWebhook with projectOnboarding check, and triggerLeadQualificationWebhook or WhatsApp triggers with their respective toggles."
-        },
-        {
-          "path": "frontend/src/pages/LeadsPage.tsx",
-          "operation": "modify",
-          "description": "Before calling any lead-related webhook (form submission, qualification, WhatsApp auto-reply), check the relevant toggle state from useAutomationConfig. If the toggle is OFF, skip the webhook call silently or show a debug message in the console."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Fix AI Smart Systems modules (Service Recommendation, Proposal Generator, Pricing Strategy, Closing Scripts, Follow-Up Messages, Lead Qualification) to correctly fetch and display AI responses from OpenRouter/OpenAI using saved API Endpoint and API Key",
-      "acceptanceCriteria": [
-        "Submitting a form in any AI module sends a POST request to the saved API Endpoint with proper Authorization: Bearer <API Key> header",
-        "The response text from the AI is extracted and rendered in the result section of the respective page",
-        "A loading spinner is shown while the AI request is in-flight",
-        "If the AI request fails, an error message is shown within the module's result area"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/utils/aiClient.ts",
-          "operation": "create",
-          "description": "Create a utility function callOpenAI that accepts a prompt string and returns a promise with the AI-generated text. Inside the function: (1) retrieve apiEndpoint and apiKey from useApiConfig context, (2) validate both are configured, (3) construct a fetch POST request to the apiEndpoint with headers Content-Type: application/json and Authorization: Bearer <apiKey>, (4) send an OpenAI-compatible JSON body with model, messages array containing the user prompt, and temperature/max_tokens parameters, (5) parse the JSON response and extract the generated text from response.choices[0].message.content, (6) handle errors with descriptive messages for missing config, network failures, and API errors, (7) return the extracted text or throw an error."
-        },
-        {
-          "path": "frontend/src/pages/ServiceRecommendationPage.tsx",
-          "operation": "modify",
-          "description": "Replace the existing AI recommendation logic with a call to callOpenAI. On form submission, construct a prompt from the business type, budget, and goals inputs, then call callOpenAI with the prompt. Show a loading spinner while the request is in-flight. On success, parse and render the AI response in the result section. On error, display the error message in the result area. Ensure the submit button is disabled during loading."
-        },
-        {
-          "path": "frontend/src/pages/ProposalGeneratorPage.tsx",
-          "operation": "modify",
-          "description": "Replace the proposal generation logic with callOpenAI. Build a detailed prompt from the client and project details form fields, call callOpenAI, and display the generated proposal text in the result section. Show a spinner during generation and an error message on failure. Keep the download buttons available only after a successful generation."
-        },
-        {
-          "path": "frontend/src/pages/PricingStrategyPage.tsx",
-          "operation": "modify",
-          "description": "Integrate callOpenAI for the psychological pricing suggestions feature. After the user adjusts the pricing multipliers and base price, generate a prompt asking for pricing strategy recommendations, call callOpenAI, and display the AI suggestions below the calculated price. Handle loading and error states within the pricing result section."
-        },
-        {
-          "path": "frontend/src/pages/generators/ClosingScriptsPage.tsx",
-          "operation": "create",
-          "description": "Create a new page for the Closing Scripts AI generator. Include a form to input lead/client context (e.g., service interest, budget, objections). On submission, construct a prompt for generating closing script suggestions and call callOpenAI. Display the generated scripts in a formatted result area with copy-to-clipboard functionality. Show loading spinner and error handling."
-        },
-        {
-          "path": "frontend/src/pages/generators/FollowUpMessagesPage.tsx",
-          "operation": "create",
-          "description": "Create a new page for the Follow-Up Messages AI generator. Provide a form to enter lead details and follow-up context. On form submit, build a prompt and call callOpenAI to generate follow-up message templates. Render the AI-generated messages in the result section with options to copy or export. Include loading and error states."
-        },
-        {
-          "path": "frontend/src/pages/generators/LeadQualificationPage.tsx",
-          "operation": "create",
-          "description": "Create a new page for the Lead Qualification AI module. Accept lead profile inputs (company size, budget, decision maker status, urgency). Construct a qualification prompt and call callOpenAI to get a qualification recommendation and score. Display the result with a qualification badge and explanation. Show spinner during processing and error message on failure."
+          "description": "Review the login() function implementation to ensure it properly throws errors when authentication fails or is cancelled by the user. Currently the hook may silently fail. Add explicit error throwing: if AuthClient.login() is cancelled by user (rejected promise), throw new Error('Authentication cancelled by user'). If AuthClient.login() fails for any other reason, throw the underlying error with a descriptive message. Ensure the loginStatus state correctly transitions through 'idle' -> 'logging-in' -> 'success' or 'error' states. Add error state management so consuming components can display appropriate feedback. Maintain existing identity persistence logic in localStorage and onSuccess callback behavior."
         },
         {
           "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Register routes for the three new AI generator pages: /generators/closing-scripts to ClosingScriptsPage, /generators/follow-up-messages to FollowUpMessagesPage, and /generators/lead-qualification to LeadQualificationPage. Ensure these routes are nested under the authenticated shell and accessible to authorized users."
-        }
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "summary": "Fix Razorpay payment webhook handling and WhatsApp auto-reply triggers to send structured payloads to the Automation Webhook URL, validating configuration before attempting",
-      "acceptanceCriteria": [
-        "Payment success event fires the Automation Webhook URL with payment data payload",
-        "WhatsApp Auto-Reply fires a POST to the Automation Webhook URL with WhatsApp message payload when toggle is ON",
-        "If WhatsApp Token or Automation Webhook URL is not configured, a warning is shown instead of a silent failure",
-        "Both flows appear in the Webhook Log panel with their status"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/utils/razorpayWebhookHandler.ts",
-          "operation": "create",
-          "description": "Create a function handleRazorpayPaymentSuccess that accepts payment event data (orderId, paymentId, amount, signature). Inside the function: (1) retrieve automationWebhookUrl and apiKey from useApiConfig, (2) check if paymentConfirmation toggle is enabled via useAutomationConfig, (3) validate automationWebhookUrl is configured; if not, show a warning toast and return early, (4) construct a JSON payload with payment details, (5) send a POST request to automationWebhookUrl with proper headers and payload, (6) log the result via useWebhookLog context, (7) show success or error toast. This function will be called from the checkout or payment success flow."
-        },
-        {
-          "path": "frontend/src/pages/PaymentSuccessPage.tsx",
-          "operation": "modify",
-          "description": "After confirming payment success, call handleRazorpayPaymentSuccess with the payment details extracted from URL params or session storage. Ensure the webhook is triggered before clearing the cart or showing the success message. If the webhook call fails, still show success to the user but log the webhook error."
-        },
-        {
-          "path": "frontend/src/utils/whatsAppAutoReply.ts",
-          "operation": "create",
-          "description": "Create a function triggerWhatsAppAutoReply that accepts lead data (name, phone, email). Inside: (1) check if whatsAppAutoReply toggle is enabled via useAutomationConfig; if not, return early, (2) retrieve automationWebhookUrl and whatsAppToken from useApiConfig, (3) validate both are configured; if not, show a warning toast ('WhatsApp Auto-Reply is enabled but configuration is missing') and log a warning entry, (4) construct a JSON payload with lead info and a WhatsApp message template, (5) send POST to automationWebhookUrl with Authorization: Bearer <whatsAppToken> header and the payload, (6) log the attempt via useWebhookLog, (7) show success or error toast."
-        },
-        {
-          "path": "frontend/src/pages/LeadsPage.tsx",
-          "operation": "modify",
-          "description": "After successfully creating or updating a lead (especially new leads or status changes to 'Hot' or 'Qualified'), call triggerWhatsAppAutoReply with the lead's contact details. The function will internally check the toggle and config before proceeding. Do not block the lead creation/update on webhook success."
-        }
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "summary": "Ensure PDF and CSV exports work correctly across Leads, AI Smart Systems results, WhatsApp Logs, Invoices, and Data Export Center, with loading states and error handling",
-      "acceptanceCriteria": [
-        "CSV export buttons produce a downloadable .csv file with correct headers and data rows",
-        "PDF export buttons produce a downloadable .pdf file with formatted content",
-        "Export buttons show a loading/processing state while the file is being generated",
-        "Failed exports show an error toast with a descriptive message",
-        "Exports are available in: Leads page, AI generator result pages, WhatsApp Logs page, Invoice History page, and Data Export Center"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/utils/exportUtils.ts",
-          "operation": "modify",
-          "description": "Review and fix existing CSV and PDF export functions. Ensure exportLeadsToCSV and exportLeadsToPDF properly format lead data including all fields (name, email, phone, status, score, etc.) with headers. Add error handling for empty data sets. Ensure browser download is triggered correctly. Add similar functions for exporting AI generator results (exportAIResultToCSV, exportAIResultToPDF), WhatsApp logs (exportWhatsAppLogsToCSV, exportWhatsAppLogsToPDF), and invoices if not already present. Each export function should accept data array, format it, generate the file content, create a Blob, and trigger download with a timestamped filename."
-        },
-        {
-          "path": "frontend/src/pages/LeadsPage.tsx",
-          "operation": "modify",
-          "description": "Verify the LeadExportToolbar component export buttons are wired correctly. Wrap export function calls in try-catch blocks and show loading state on the button (disable + spinner) during export. On success, show a success toast; on error, show an error toast with the message. Ensure both 'Export All Leads' and 'Export Selected Leads' CSV buttons work, as well as the 'Export All Leads PDF' button."
-        },
-        {
-          "path": "frontend/src/pages/ServiceRecommendationPage.tsx",
-          "operation": "modify",
-          "description": "Add CSV and PDF export buttons for the AI-generated recommendation result. When clicked, the buttons should: (1) show loading state, (2) call the appropriate export function with the recommendation data, (3) handle errors with a toast, (4) reset loading state. Place buttons in the result section, visible only after a successful generation."
-        },
-        {
-          "path": "frontend/src/pages/ProposalGeneratorPage.tsx",
-          "operation": "modify",
-          "description": "Ensure the existing download buttons (HTML/JSON) work correctly. Add CSV and PDF export options for the generated proposal. Implement error handling and loading states for each export button. Show error toasts if export fails."
-        },
-        {
-          "path": "frontend/src/pages/PricingStrategyPage.tsx",
-          "operation": "modify",
-          "description": "Verify or add export functionality for the pricing strategy result. Provide CSV and PDF export buttons that include the calculated price, multipliers, and AI suggestions. Implement loading states and error handling."
-        },
-        {
-          "path": "frontend/src/pages/WhatsAppLogsPage.tsx",
-          "operation": "modify",
-          "description": "Check the existing export buttons (CSV, JSON, monthly report) for WhatsApp logs. Ensure they correctly fetch all logs data, format it, and trigger download. Add loading states to the buttons and error toasts for failures. If PDF export is missing, add a PDF export button using a new exportWhatsAppLogsToPDF function."
-        },
-        {
-          "path": "frontend/src/pages/InvoiceHistoryPage.tsx",
-          "operation": "modify",
-          "description": "Ensure individual invoice download buttons work correctly. For the 'Export All Invoices' CSV/JSON buttons, verify they fetch all invoices, format correctly, and handle errors with toasts. Add loading state during export. If PDF export for all invoices is missing, add it using exportInvoicesToPDF."
-        },
-        {
-          "path": "frontend/src/pages/DataExportCenterPage.tsx",
-          "operation": "modify",
-          "description": "Review all export module buttons in the Data Export Center. Ensure each module's CSV and JSON export correctly calls the backend actor method, formats the data, and triggers download. Add loading spinners to buttons during fetch and export. Show error toasts for failed fetches or exports. Ensure the exported files have proper headers and all relevant fields."
-        }
-      ]
-    },
-    {
-      "id": "REQ-8",
-      "summary": "Add real-time connection status indicators for each integration (API Endpoint, CRM Webhook URL, Automation Webhook URL, WhatsApp, Razorpay) with green/red/grey badges and a 'Test Connection' button for webhook URLs",
-      "acceptanceCriteria": [
-        "Each integration shows a colored status badge: green (Connected), red (Error), grey (Not Configured)",
-        "CRM Webhook URL and Automation Webhook URL have a 'Test Connection' button that fires a test POST and updates the badge",
-        "Status badge updates immediately after a test or live call result",
-        "Test connection sends a minimal valid JSON payload and checks for 2xx response"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/contexts/ConnectionStatusContext.tsx",
-          "operation": "create",
-          "description": "Create a React context and provider to track connection status for each integration. Define ConnectionStatus type with fields: integration name (apiEndpoint, crmWebhookUrl, automationWebhookUrl, whatsApp, razorpay), status ('connected' | 'error' | 'not-configured'), lastChecked timestamp, errorMessage. Store state in context and provide methods to update status for a specific integration. Initialize status to 'not-configured' for all. Expose useConnectionStatus hook."
-        },
-        {
-          "path": "frontend/src/main.tsx",
-          "operation": "modify",
-          "description": "Wrap the App component with ConnectionStatusProvider to make connection status available throughout the app."
-        },
-        {
-          "path": "frontend/src/components/settings/ConnectionStatusIndicator.tsx",
-          "operation": "create",
-          "description": "Create a reusable component that displays a status badge for a given integration. Accept props: integrationName, status, lastChecked. Render a badge with conditional color: green background for 'connected', red for 'error', grey for 'not-configured'. Include the status text and optionally the last checked timestamp. Add an info icon that shows error message on hover if status is 'error'."
-        },
-        {
-          "path": "frontend/src/components/settings/TestConnectionButton.tsx",
-          "operation": "create",
-          "description": "Create a button component for testing webhook connections. Accept props: webhookUrl, integrationType ('crm' | 'automation'). On click, send a POST request to the webhookUrl with a minimal test payload (e.g., {\"test\": true, \"timestamp\": Date.now()}), proper headers (Content-Type, Authorization if apiKey is available). Check if the response status is 2xx. If success, update the connection status to 'connected' via useConnectionStatus. If error (non-2xx or network failure), update to 'error' with the error message. Show loading state during the request. Display a toast with the test result."
-        },
-        {
-          "path": "frontend/src/components/settings/ApiSettingsPanel.tsx",
-          "operation": "modify",
-          "description": "Integrate ConnectionStatusIndicator components next to each API field in the settings form. Show the current status badge for API Endpoint, WhatsApp Token, and Razorpay fields based on useConnectionStatus context. Add TestConnectionButton components next to the CRM Webhook URL and Automation Webhook URL input fields. Update the connection status to 'connected' or 'error' based on the test result. When a field value is changed and saved, reset its status to 'not-configured' until the next test or live call."
-        },
-        {
-          "path": "frontend/src/utils/webhookTriggers.ts",
-          "operation": "modify",
-          "description": "After each webhook trigger function completes (success or error), update the corresponding connection status via useConnectionStatus context. For CRM webhooks, update 'crmWebhookUrl' status. For Automation webhooks, update 'automationWebhookUrl' status. Set to 'connected' on 2xx response, 'error' on failure, including the error message and timestamp."
-        },
-        {
-          "path": "frontend/src/utils/aiClient.ts",
-          "operation": "modify",
-          "description": "After each callOpenAI request completes, update the 'apiEndpoint' connection status via useConnectionStatus. Set to 'connected' on successful AI response, 'error' on failure with the error message. This provides real-time feedback on the AI API connection health."
-        },
-        {
-          "path": "frontend/src/pages/AutomationPage.tsx",
-          "operation": "modify",
-          "description": "Display connection status indicators for Automation Webhook URL and WhatsApp Token near the relevant automation toggles. Show the current status badge and a Test Connection button for the Automation Webhook URL. This helps users verify integrations are working before enabling automations."
+          "description": "Verify that the route configuration correctly redirects authenticated users away from /login. Review the authentication redirect logic: if a user is already authenticated (identity exists) and navigates to /login, they should be automatically redirected to their appropriate dashboard route (/admin-dashboard, /manager-dashboard, or /client-dashboard based on role). Add a beforeLoad hook to the /login route that checks authentication status and role, then redirects accordingly using throw redirect(). This prevents authenticated users from seeing the login page and ensures successful authentication immediately navigates to the correct destination. Do not modify core routing structure, only add navigation guards."
         }
       ]
     }

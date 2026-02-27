@@ -1,177 +1,151 @@
 {
   "kind": "build_request",
-  "title": "Debug and Fix API Settings, Automation Toggles, and Webhook Connections in Sales System Dashboard",
-  "projectName": "QuickBee Sales Engine",
+  "title": "Add Full Quick Bee Agency Service Catalog with Direct Payment & Fix Login Sign In Button",
+  "projectName": "Quick Bee Agency",
   "priority": "high",
   "requirements": [
     {
-      "id": "REQ-1",
-      "text": "Fix the API settings configuration form so that all fields — API Endpoint, API Key, WhatsApp Token, Razorpay Key ID, Razorpay Secret, Email API Key, CRM Webhook URL, and Automation Webhook URL — are properly persisted to state/storage and included in all outgoing requests. Values must survive component re-renders and page navigation. Use a centralized config store (e.g., React context or persistent state via localStorage) so every module can read and use these values reliably.",
+      "id": "REQ-25",
+      "text": "Populate the Services page with the complete Quick Bee Agency 2026 Master Service Price List. Organise all entries into 7 categories: (1) Web Development Services — 12 services with Student/Business/Premium tiers; (2) App Development Services — 8 services with Student/Business/Premium tiers; (3) AI Automation Services — 8 services with Starter/Growth/Enterprise tiers; (4) Digital Marketing & Growth — 8 services with Student/Business/Premium tiers; (5) Branding & Creative Services — 7 services with Starter/Business/Premium tiers; (6) SaaS & Advanced Tech — 8 services with Business/Advanced/Enterprise tiers; (7) Business Setup & Systems — 6 services with Starter/Growth/Premium tiers. Each service card must display the service name, category, all three pricing tiers with their INR (₹) prices, and the list of 16 features where provided in the user's input. The page must include a category filter/tab bar so users can browse by category. Prices must be formatted in Indian Rupee notation (e.g., ₹1,20,000).",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-1"
         ],
         "quotes": [
-          "Make sure all API fields (API Endpoint, API Key, WhatsApp Token, Razorpay Keys, Email API Key, CRM Webhook URL, Automation Webhook URL) are properly saved and sent in requests"
+          "💻 1. Web Development Services",
+          "📱 2. App Development Services",
+          "🤖 3. AI Automation Services",
+          "📊 4. Digital Marketing & Growth",
+          "🎨 5. Branding & Creative Services",
+          "💼 6. SaaS & Advanced Tech",
+          "🛠 7. Business Setup & Systems"
         ]
       },
       "acceptanceCriteria": [
-        "Entering and saving any API field persists the value and it remains after navigating away and returning",
-        "All API field values are accessible by webhook trigger functions and automation modules",
-        "Saved values are pre-populated in the form on re-open",
-        "A 'Saved successfully' toast/confirmation appears after saving"
+        "All 7 service categories are displayed with their correct services and INR tier prices",
+        "A category filter tab bar allows browsing by individual category",
+        "Each service card shows name, category, all pricing tiers, and the 16 features list",
+        "Prices are formatted in Indian Rupee notation with correct comma separators"
       ]
     },
     {
-      "id": "REQ-2",
-      "text": "Fix all webhook trigger functions (form submission, lead qualification, payment success, project creation) to correctly send HTTP POST requests with proper JSON body and headers. Each trigger must include: Content-Type: application/json header, Authorization header using the saved API Key where required, and a structured JSON payload relevant to the event type. Use the saved CRM Webhook URL for CRM events and Automation Webhook URL for automation events from the API settings store.",
+      "id": "REQ-26",
+      "text": "Add the 30 individual service packages (Website Development ₹999, Sales Funnel Setup ₹1,099, WhatsApp Automation ₹1,199, AI Chatbot Setup ₹1,299, Landing Pages ₹1,399, SEO Setup ₹1,499, Social Media Management ₹1,599, Instagram Growth System ₹1,699, Lead Generation System ₹1,799, Branding Kit ₹1,899, Logo Design ₹1,999, Video Editing ₹2,099, AI Content Creation ₹2,199, Email Marketing Setup ₹2,299, LinkedIn Outreach System ₹2,399, E-commerce Store Setup ₹2,499, No-Code App Development ₹2,599, Automation Setup ₹2,699, CRM Setup ₹2,799, AI Proposal Generator ₹2,899, Pricing Strategy Consulting ₹2,999, Funnel Optimization ₹3,099, Copywriting Service ₹3,199, Reels Script Creation ₹3,299, AI Image Generation ₹3,399, T-Shirt POD Setup ₹3,499, Etsy Automation ₹3,599, Affiliate Marketing System ₹3,699, Notion Dashboard Setup ₹3,799, Analytics Dashboard Setup ₹3,899) to the Services page as a separate 'Individual Packages' section or tab. Each package card must show: package name, flat INR price, category, sub-category, and its 16 listed features as a bullet list expandable on click.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-1"
         ],
         "quotes": [
-          "Ensure every webhook trigger (form submission, lead qualification, payment success, project creation) sends data correctly using POST method with proper JSON format and headers"
+          "1️⃣ Website Development – ₹999",
+          "2️⃣ Sales Funnel Setup – ₹1,099",
+          "1️⃣2️⃣ Analytics Dashboard Setup – ₹3,899"
         ]
       },
       "acceptanceCriteria": [
-        "Each webhook trigger fires a fetch/axios POST request to the correct URL from saved config",
-        "Request headers include Content-Type: application/json and any required auth headers",
-        "Request body is a valid JSON object containing event-specific data (lead details, payment info, etc.)",
-        "Webhook trigger functions do not fire when the corresponding automation toggle is disabled"
+        "All 30 individual packages appear on the Services page under an 'Individual Packages' section or tab",
+        "Each card displays the flat price, category, sub-category, and 16 features",
+        "Features list is expandable/collapsible on the card",
+        "Cards are sorted by price ascending by default"
       ]
     },
     {
-      "id": "REQ-3",
-      "text": "Add comprehensive error handling, logging, and response status validation to all webhook and API calls. For every outgoing request: catch network errors and show a user-visible error message specifying which webhook/API failed, log request details (URL, payload, timestamp) and response details (status, body) to a visible in-dashboard Webhook Log panel, confirm HTTP 200/2xx as success and display a success indicator, show a distinct error state for non-2xx responses including the status code and response message.",
+      "id": "REQ-27",
+      "text": "Add the Monthly Maintenance & Subscription plans to the Services page as a dedicated 'Maintenance Plans' section or tab. Include all five plan categories: (1) Website Maintenance — Basic (₹999–₹2,999/mo), Business (₹3,999–₹7,999/mo), Premium/AI/3D (₹10,000–₹35,000/mo); (2) App Maintenance — Basic (₹2,999–₹6,999/mo), Growth (₹8,000–₹20,000/mo), Enterprise (₹25,000–₹75,000/mo); (3) AI Automation Maintenance — Basic (₹2,999–₹7,999/mo), Advanced (₹10,000–₹30,000/mo); (4) Marketing & Growth Retainer — Starter (₹4,999–₹12,000/mo), Growth (₹15,000–₹40,000/mo), Premium (₹50,000–₹1,50,000/mo); (5) SaaS & Backend Retainer — Business (₹15,000–₹35,000/mo), Enterprise (₹40,000–₹1,20,000/mo). Each plan card must list its included features as provided in the user's input.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-1"
         ],
         "quotes": [
-          "Add error messages, logging, and response status checks (confirm 200 success response)",
-          "Verify Make.com webhook URLs receive data correctly and return responses properly"
+          "🔁 Monthly Maintenance & Subscription (2026 Specific Model)",
+          "💻 1. Website Maintenance Plans",
+          "📱 2. App Maintenance Plans",
+          "🤖 3. AI Automation Maintenance",
+          "📊 4. Marketing & Growth Retainer",
+          "💼 5. SaaS & Backend Retainer"
         ]
       },
       "acceptanceCriteria": [
-        "A Webhook Log panel or drawer on the Automation page shows timestamped entries for each outgoing webhook attempt with status (success/error), URL, and response code",
-        "Failed requests show a red error toast with the webhook name and HTTP status or network error message",
-        "Successful requests (2xx) show a green success toast or status indicator",
-        "Network-level errors (no response) display a meaningful message distinguishing them from HTTP errors"
+        "All maintenance plan categories and tiers are displayed with monthly price ranges",
+        "Each plan card lists its included features",
+        "Plans are grouped clearly under their respective categories",
+        "A 'Maintenance Plans' section or tab is accessible from the Services page navigation"
       ]
     },
     {
-      "id": "REQ-4",
-      "text": "Fix automation toggles on the Automation Page so each one truly enables or disables its corresponding feature. When a toggle is OFF, its automation must not fire (no webhook calls, no API calls, no UI triggers). When ON, the automation must be active. The following toggles must be fixed: WhatsApp Auto-Reply, Proposal Auto-Send (when lead is qualified), Lead Follow-Up Sequences, Payment Confirmation via Razorpay webhook, and Project Onboarding after payment success. Toggle state must persist across sessions.",
+      "id": "REQ-28",
+      "text": "Add the 3 Master Agency Plans (Spark, Surge, Titan) to the Services page as a prominently styled 'Agency Plans' section or tab. Display: Spark Plan (₹4,999–₹25,000, Student/Beginner/Idea Stage), Surge Plan (₹30,000–₹1,20,000, Local & National Business Growth), Titan Plan (₹1,50,000–₹5,00,000+, National/Global/Enterprise Clients). Style each plan as a highlighted pricing card with a distinct colour badge (green for Spark, blue for Surge, purple for Titan) matching the emoji indicators in the source data.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-1"
         ],
         "quotes": [
-          "Make sure automation toggles truly turn features ON and OFF"
+          "💎 3 MASTER AGENCY PLANS (Positioned for Sales)",
+          "🟢 Spark Plan",
+          "🔵 Surge Plan",
+          "🟣 Titan Plan"
         ]
       },
       "acceptanceCriteria": [
-        "Each toggle's enabled/disabled state is persisted (localStorage or backend) and restored on page reload",
-        "When a toggle is OFF, all related webhook calls, API calls, and UI triggers for that automation are blocked",
-        "When a toggle is turned ON, the automation activates for subsequent triggering events",
-        "Toggle state change is confirmed with a toast notification"
+        "Three master agency plan cards appear in an 'Agency Plans' section with the correct price ranges and tier descriptions",
+        "Spark card has a green badge, Surge has blue, Titan has purple",
+        "Plans are visually prominent and distinct from individual service cards"
       ]
     },
     {
-      "id": "REQ-5",
-      "text": "Fix the AI Smart Systems modules (Service Recommendation, Proposal Generator, Pricing Strategy, Closing Scripts, Follow-Up Messages, Lead Qualification) so that AI responses from OpenRouter/OpenAI are correctly fetched and displayed in the dashboard. Each module must: build the correct API request using the saved API Endpoint and API Key, send the prompt with proper OpenAI-compatible JSON body format, handle the response and extract the generated text, and render the AI response in the relevant result area of the page.",
+      "id": "REQ-29",
+      "text": "On every service card, pricing tier card, maintenance plan card, individual package card, and agency plan card on the Services page, add a direct 'Buy Now' or 'Select & Pay' button. When clicked, this button must: (1) add the selected service/plan at the chosen price tier to the cart (using the existing useCart hook), then navigate to the CheckoutPage; OR (2) if Razorpay is configured in the centralized config store, initiate a Razorpay payment flow directly for the selected item's price. For tiered services (Student/Business/Premium), display a tier selector (radio buttons or segmented control) on the card so the user can choose which tier price to purchase before clicking the button. The selected tier and price must be passed through to the cart/checkout.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-1"
         ],
         "quotes": [
-          "Confirm AI responses (OpenRouter/OpenAI) display correctly in the dashboard"
+          "give all the options need & to pay by selecting directly"
         ]
       },
       "acceptanceCriteria": [
-        "Submitting a form in any AI module sends a POST request to the saved API Endpoint with proper Authorization: Bearer <API Key> header",
-        "The response text from the AI is extracted and rendered in the result section of the respective page",
-        "A loading spinner is shown while the AI request is in-flight",
-        "If the AI request fails, an error message is shown within the module's result area"
+        "Every service/package/plan card has a 'Buy Now' or 'Select & Pay' button",
+        "Tiered service cards show a tier selector (Student/Business/Premium or equivalent) before the button",
+        "Clicking the button adds the item at the selected tier price to the cart and navigates to checkout",
+        "If Razorpay is configured, the Razorpay payment flow is initiated directly",
+        "Selected tier label and price are correctly passed to cart/checkout"
       ]
     },
     {
-      "id": "REQ-6",
-      "text": "Fix Razorpay payment webhook handling and WhatsApp auto-reply triggers. For Razorpay: when a payment success event occurs (or is simulated), fire the Automation Webhook URL with a structured payment payload and update the lead/project status accordingly. For WhatsApp Auto-Reply: when the WhatsApp Auto-Reply toggle is ON and a lead is created or updated, send a POST request to the saved Automation Webhook URL with WhatsApp message payload (using the saved WhatsApp Token as authorization). Both flows must validate the webhook URL is configured before attempting.",
+      "id": "REQ-30",
+      "text": "Fix the Sign In button on the LoginPage (frontend/src/pages/LoginPage.tsx) so that clicking it correctly triggers the Internet Identity authentication flow, waits for authentication to complete, and then redirects the authenticated user to the appropriate dashboard route. The button must show a loading/spinner state while the authentication is in progress. If authentication fails or is cancelled, display a user-visible error message. Ensure the button is not disabled or unbound from its click handler.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-1"
         ],
         "quotes": [
-          "Validate Razorpay payment webhooks and WhatsApp auto-reply triggers"
+          "the sign in button is not working on login screen , fix it"
         ]
       },
       "acceptanceCriteria": [
-        "Payment success event fires the Automation Webhook URL with payment data payload",
-        "WhatsApp Auto-Reply fires a POST to the Automation Webhook URL with WhatsApp message payload when toggle is ON",
-        "If WhatsApp Token or Automation Webhook URL is not configured, a warning is shown instead of a silent failure",
-        "Both flows appear in the Webhook Log panel with their status"
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "text": "Ensure PDF and CSV exports work correctly across all dashboard modules including Leads, AI Smart Systems results, WhatsApp Logs, Invoices, and the Data Export Center. Fix any broken export functions: CSV exports must produce valid comma-separated files with headers and download to the user's browser; PDF exports must generate a formatted document and trigger a browser download. Each export button must show a loading state while generating and an error message if it fails.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-latest"
-        ],
-        "quotes": [
-          "Ensure PDF and CSV exports generate properly"
-        ]
-      },
-      "acceptanceCriteria": [
-        "CSV export buttons produce a downloadable .csv file with correct headers and data rows",
-        "PDF export buttons produce a downloadable .pdf file with formatted content",
-        "Export buttons show a loading/processing state while the file is being generated",
-        "Failed exports show an error toast with a descriptive message",
-        "Exports are available in: Leads page, AI generator result pages, WhatsApp Logs page, Invoice History page, and Data Export Center"
-      ]
-    },
-    {
-      "id": "REQ-8",
-      "text": "Add a real-time connection status indicator for each configured integration (API Endpoint, CRM Webhook URL, Automation Webhook URL, WhatsApp, Razorpay). Each indicator must show 'Connected' (green) when the last call to that endpoint returned a 2xx response, 'Error' (red) when the last call failed, and 'Not Configured' (grey) when the URL/key is empty. Add a 'Test Connection' button for CRM Webhook URL and Automation Webhook URL that sends a test POST payload and updates the indicator in real time.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-latest"
-        ],
-        "quotes": [
-          "real-time status updates",
-          "Verify Make.com webhook URLs receive data correctly and return responses properly"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Each integration shows a colored status badge: green (Connected), red (Error), grey (Not Configured)",
-        "CRM Webhook URL and Automation Webhook URL have a 'Test Connection' button that fires a test POST and updates the badge",
-        "Status badge updates immediately after a test or live call result",
-        "Test connection sends a minimal valid JSON payload and checks for 2xx response"
+        "Clicking the Sign In button on the login screen triggers the Internet Identity login flow",
+        "A loading/spinner state is shown on the button while authentication is in progress",
+        "After successful authentication, the user is redirected to their dashboard",
+        "If authentication fails or is cancelled, a visible error message is shown",
+        "The button is fully functional and not disabled by default"
       ]
     }
   ],
   "constraints": [
-    "All API calls and webhook triggers must remain in the frontend only — no new backend Motoko logic is required for this fix",
     "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
-    "Saved API config values must use a centralized store (localStorage-backed context or similar) accessible across all pages and components",
-    "Do not break existing lead management, CRM, invoice, or project features"
+    "All price values must be stored and displayed in Indian Rupees (₹) exactly as provided",
+    "Use the existing useCart hook for cart operations — do not create a parallel cart system",
+    "Internet Identity is the only supported authentication method — do not introduce third-party auth"
   ],
   "nonGoals": [
-    "Adding new AI modules or sales tools beyond what already exists",
-    "Implementing real Razorpay server-side webhook verification (no backend changes)",
-    "Building a new backend data model or Motoko actor changes",
-    "Adding new pages or navigation routes not already in the system",
-    "Integrating new third-party services not already configured in the dashboard"
+    "Building a new backend schema for the service catalog — seed data may be hardcoded on the frontend or persisted via existing backend service mutations",
+    "Implementing a new payment gateway beyond Razorpay and the existing Stripe integration",
+    "Creating new authentication mechanisms beyond Internet Identity"
   ],
   "imageRequirements": {
     "required": [],

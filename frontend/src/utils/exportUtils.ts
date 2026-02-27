@@ -1,5 +1,6 @@
-import { Lead, Invoice } from '../backend';
+import { Lead, Invoice, WhatsAppMessageLog } from '../backend';
 
+// ---- Types ----
 export interface AutomationLog {
   id: bigint;
   leadId: bigint;
@@ -8,6 +9,7 @@ export interface AutomationLog {
   timestamp: bigint;
 }
 
+// ---- Qualification tier helper ----
 export function computeQualificationTier(score: number): 'Cold' | 'Warm' | 'Hot' | 'Qualified' {
   if (score >= 75) return 'Qualified';
   if (score >= 50) return 'Hot';
@@ -15,65 +17,8 @@ export function computeQualificationTier(score: number): 'Cold' | 'Warm' | 'Hot'
   return 'Cold';
 }
 
-function formatDate(timestamp: bigint | number): string {
-  const ms = typeof timestamp === 'bigint' ? Number(timestamp) / 1_000_000 : timestamp;
-  return new Date(ms).toLocaleString();
-}
-
-function formatCurrency(amount: number): string {
-  return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function escapeCSV(value: string | number | boolean | null | undefined): string {
-  if (value === null || value === undefined) return '';
-  const str = String(value);
-  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
-}
-
-export interface LeadExportRow {
-  Name: string;
-  Email: string;
-  Phone: string;
-  Status: string;
-  Source: string;
-  'Assigned Agent': string;
-  'Quote Base': string;
-  'GST Rate': string;
-  'Quote Total': string;
-  Score: string;
-  'Qualification Tier': string;
-  'Created Date': string;
-}
-
-export function formatLeadForExport(lead: Lead & { quoteBase?: number; gstRate?: number; quoteTotal?: number }): LeadExportRow {
-  const score = Number(lead.qualificationScore);
-  const tier = computeQualificationTier(score);
-  return {
-    Name: lead.name,
-    Email: lead.email,
-    Phone: lead.phone ?? '',
-    Status: lead.status,
-    Source: lead.channel,
-    'Assigned Agent': lead.assignedTo ? lead.assignedTo.toString() : '',
-    'Quote Base': lead.quoteBase !== undefined ? formatCurrency(lead.quoteBase) : '',
-    'GST Rate': lead.gstRate !== undefined ? `${lead.gstRate}%` : '',
-    'Quote Total': lead.quoteTotal !== undefined ? formatCurrency(lead.quoteTotal) : '',
-    Score: String(score),
-    'Qualification Tier': tier,
-    'Created Date': formatDate(lead.createdAt),
-  };
-}
-
-function arrayToCSV(headers: string[], rows: string[][]): string {
-  const headerLine = headers.map(escapeCSV).join(',');
-  const dataLines = rows.map(row => row.map(escapeCSV).join(','));
-  return [headerLine, ...dataLines].join('\n');
-}
-
-function triggerDownload(content: string, filename: string, mimeType: string): void {
+// ---- CSV helpers ----
+function downloadFile(content: string, filename: string, mimeType: string) {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -85,21 +30,53 @@ function triggerDownload(content: string, filename: string, mimeType: string): v
   URL.revokeObjectURL(url);
 }
 
-export function exportLeadsToCSV(leads: (Lead & { quoteBase?: number; gstRate?: number; quoteTotal?: number })[], filename: string = 'leads.csv'): void {
-  const headers = ['Name', 'Email', 'Phone', 'Status', 'Source', 'Assigned Agent', 'Quote Base', 'GST Rate', 'Quote Total', 'Score', 'Qualification Tier', 'Created Date'];
-  const rows = leads.map(lead => {
-    const row = formatLeadForExport(lead);
-    return headers.map(h => row[h as keyof LeadExportRow] ?? '');
-  });
-  const csv = arrayToCSV(headers, rows);
-  triggerDownload(csv, filename, 'text/csv;charset=utf-8;');
+function escapeCsvCell(value: unknown): string {
+  const str = value === null || value === undefined ? '' : String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
 }
 
-export function exportLeadsToPDF(leads: (Lead & { quoteBase?: number; gstRate?: number; quoteTotal?: number })[], filename: string = 'leads-report.pdf'): void {
-  const rows = leads.map(formatLeadForExport);
-  const headers = ['Name', 'Email', 'Status', 'Source', 'Score', 'Tier', 'Quote Total', 'Created Date'];
+function buildCsv(headers: string[], rows: unknown[][]): string {
+  const headerRow = headers.map(escapeCsvCell).join(',');
+  const dataRows = rows.map(row => row.map(escapeCsvCell).join(','));
+  return [headerRow, ...dataRows].join('\n');
+}
 
-  const htmlContent = `
+// ---- Leads CSV ----
+export function exportLeadsToCSV(leads: Lead[], filename?: string): void {
+  if (!leads || leads.length === 0) throw new Error('No data to export');
+  const headers = ['ID', 'Name', 'Email', 'Phone', 'Channel', 'Status', 'Score', 'Micro Niche', 'Created At'];
+  const rows = leads.map(l => [
+    String(l.id),
+    l.name,
+    l.email,
+    l.phone ?? '',
+    l.channel,
+    l.status,
+    String(l.qualificationScore),
+    l.microNiche,
+    new Date(Number(l.createdAt) / 1_000_000).toLocaleString(),
+  ]);
+  const csv = buildCsv(headers, rows);
+  downloadFile(csv, filename ?? `leads-export-${Date.now()}.csv`, 'text/csv;charset=utf-8;');
+}
+
+// ---- Leads PDF (HTML print) ----
+export function exportLeadsToPDF(leads: Lead[], filename?: string): void {
+  if (!leads || leads.length === 0) throw new Error('No data to export');
+  const rows = leads.map(l => ({
+    name: l.name,
+    email: l.email,
+    status: l.status,
+    channel: l.channel,
+    score: String(l.qualificationScore),
+    tier: computeQualificationTier(Number(l.qualificationScore)),
+    createdAt: new Date(Number(l.createdAt) / 1_000_000).toLocaleString(),
+  }));
+
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -113,10 +90,6 @@ export function exportLeadsToPDF(leads: (Lead & { quoteBase?: number; gstRate?: 
         th { background: #1a1a2e; color: white; padding: 8px 6px; text-align: left; font-size: 10px; }
         td { padding: 6px; border-bottom: 1px solid #e5e7eb; font-size: 10px; }
         tr:nth-child(even) { background: #f9fafb; }
-        .tier-qualified { color: #16a34a; font-weight: bold; }
-        .tier-hot { color: #ea580c; font-weight: bold; }
-        .tier-warm { color: #ca8a04; font-weight: bold; }
-        .tier-cold { color: #6b7280; font-weight: bold; }
         .footer { margin-top: 20px; font-size: 10px; color: #9ca3af; text-align: center; }
       </style>
     </head>
@@ -125,19 +98,21 @@ export function exportLeadsToPDF(leads: (Lead & { quoteBase?: number; gstRate?: 
       <div class="subtitle">Generated on ${new Date().toLocaleString()} · Total: ${leads.length} leads</div>
       <table>
         <thead>
-          <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+          <tr>
+            <th>Name</th><th>Email</th><th>Status</th><th>Channel</th>
+            <th>Score</th><th>Tier</th><th>Created At</th>
+          </tr>
         </thead>
         <tbody>
-          ${rows.map(row => `
+          ${rows.map(r => `
             <tr>
-              <td>${row.Name}</td>
-              <td>${row.Email}</td>
-              <td>${row.Status}</td>
-              <td>${row.Source}</td>
-              <td>${row.Score}</td>
-              <td class="tier-${row['Qualification Tier'].toLowerCase()}">${row['Qualification Tier']}</td>
-              <td>${row['Quote Total']}</td>
-              <td>${row['Created Date']}</td>
+              <td>${r.name}</td>
+              <td>${r.email}</td>
+              <td>${r.status}</td>
+              <td>${r.channel}</td>
+              <td>${r.score}</td>
+              <td>${r.tier}</td>
+              <td>${r.createdAt}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -149,7 +124,7 @@ export function exportLeadsToPDF(leads: (Lead & { quoteBase?: number; gstRate?: 
 
   const printWindow = window.open('', '_blank');
   if (printWindow) {
-    printWindow.document.write(htmlContent);
+    printWindow.document.write(html);
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => {
@@ -159,126 +134,116 @@ export function exportLeadsToPDF(leads: (Lead & { quoteBase?: number; gstRate?: 
   }
 }
 
-export function exportInvoicesToCSV(invoices: Invoice[], filename: string = 'invoices.csv'): void {
-  const headers = ['Invoice Number', 'Client ID', 'Service Breakdown', 'GST Amount', 'Total Paid', 'Created Date'];
+// ---- WhatsApp Logs CSV ----
+export function exportWhatsAppLogsToCSV(logs: WhatsAppMessageLog[], filename?: string): void {
+  if (!logs || logs.length === 0) throw new Error('No data to export');
+  const headers = ['Recipient Phone', 'Message Type', 'Delivery Status', 'Sent At'];
+  const rows = logs.map(l => [
+    l.recipientPhone,
+    l.messageType,
+    l.deliveryStatus,
+    new Date(Number(l.sentAt) / 1_000_000).toLocaleString(),
+  ]);
+  const csv = buildCsv(headers, rows);
+  downloadFile(csv, filename ?? `whatsapp-logs-${Date.now()}.csv`, 'text/csv;charset=utf-8;');
+}
+
+// ---- Invoices CSV ----
+export function exportInvoicesToCSV(invoices: Invoice[], filename?: string): void {
+  if (!invoices || invoices.length === 0) throw new Error('No data to export');
+  const headers = ['Invoice ID', 'Client ID', 'Created At', 'Total Paid', 'GST Amount', 'Service Breakdown'];
   const rows = invoices.map(inv => [
     inv.invoiceId,
     inv.clientId.toString(),
+    new Date(Number(inv.createdAt) / 1_000_000).toLocaleString(),
+    String(inv.totalPaid),
+    String(inv.gstAmount),
     inv.serviceBreakdown,
-    String(Number(inv.gstAmount)),
-    String(Number(inv.totalPaid)),
-    formatDate(inv.createdAt),
   ]);
-  const csv = arrayToCSV(headers, rows);
-  triggerDownload(csv, filename, 'text/csv;charset=utf-8;');
+  const csv = buildCsv(headers, rows);
+  downloadFile(csv, filename ?? `invoices-export-${Date.now()}.csv`, 'text/csv;charset=utf-8;');
 }
 
+// ---- Invoice PDF (HTML print) ----
 export function exportInvoiceToPDF(invoice: Invoice): void {
-  const gstAmount = Number(invoice.gstAmount);
-  const totalPaid = Number(invoice.totalPaid);
-  const baseAmount = totalPaid - gstAmount;
-
-  const htmlContent = `
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
-      <meta charset="utf-8">
       <title>Invoice ${invoice.invoiceId}</title>
       <style>
-        body { font-family: Arial, sans-serif; margin: 40px; color: #1a1a2e; }
-        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
-        .company { font-size: 24px; font-weight: bold; color: #1a1a2e; }
-        .invoice-title { font-size: 32px; font-weight: bold; color: #3b82f6; text-align: right; }
-        .invoice-meta { text-align: right; font-size: 13px; color: #666; margin-top: 4px; }
-        .section { margin-bottom: 24px; }
-        .section-title { font-size: 12px; font-weight: bold; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-        .client-info { font-size: 14px; }
+        body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+        h1 { color: #1a56db; }
+        .meta { margin: 20px 0; }
+        .meta p { margin: 4px 0; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { background: #1a1a2e; color: white; padding: 10px 12px; text-align: left; font-size: 12px; }
-        td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
-        .totals { margin-top: 20px; text-align: right; }
-        .total-row { display: flex; justify-content: flex-end; gap: 40px; padding: 6px 0; font-size: 14px; }
-        .total-final { font-size: 18px; font-weight: bold; color: #1a1a2e; border-top: 2px solid #1a1a2e; padding-top: 8px; margin-top: 4px; }
-        .footer { margin-top: 60px; text-align: center; font-size: 11px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 16px; }
-        .paid-stamp { color: #16a34a; border: 3px solid #16a34a; padding: 4px 16px; font-size: 20px; font-weight: bold; display: inline-block; transform: rotate(-15deg); margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #f5f5f5; }
+        .total { font-size: 1.2em; font-weight: bold; margin-top: 20px; }
+        .footer { margin-top: 40px; font-size: 0.85em; color: #888; }
       </style>
     </head>
     <body>
-      <div class="header">
-        <div>
-          <div class="company">🐝 QuickBee</div>
-          <div style="font-size:13px;color:#666;margin-top:4px;">AI Agency Platform</div>
-        </div>
-        <div>
-          <div class="invoice-title">INVOICE</div>
-          <div class="invoice-meta"># ${invoice.invoiceId}</div>
-          <div class="invoice-meta">Date: ${formatDate(invoice.createdAt)}</div>
-        </div>
+      <h1>Invoice</h1>
+      <div class="meta">
+        <p><strong>Invoice ID:</strong> ${invoice.invoiceId}</p>
+        <p><strong>Client ID:</strong> ${invoice.clientId.toString()}</p>
+        <p><strong>Date:</strong> ${new Date(Number(invoice.createdAt) / 1_000_000).toLocaleString()}</p>
       </div>
-
-      <div class="section">
-        <div class="section-title">Bill To</div>
-        <div class="client-info">${invoice.clientId.toString()}</div>
-      </div>
-
       <table>
-        <thead>
-          <tr>
-            <th>Description</th>
-            <th style="text-align:right">Amount</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Description</th><th>Amount</th></tr></thead>
         <tbody>
-          <tr>
-            <td>${invoice.serviceBreakdown}</td>
-            <td style="text-align:right">₹${baseAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-          </tr>
-          <tr>
-            <td style="color:#666">GST</td>
-            <td style="text-align:right;color:#666">₹${gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-          </tr>
+          <tr><td>${invoice.serviceBreakdown}</td><td>₹${invoice.totalPaid}</td></tr>
+          <tr><td>GST</td><td>₹${invoice.gstAmount}</td></tr>
         </tbody>
       </table>
-
-      <div class="totals">
-        <div class="total-row total-final">
-          <span>Total Paid</span>
-          <span>₹${totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-        </div>
-      </div>
-
-      <div style="text-align:center;margin-top:30px;">
-        <div class="paid-stamp">PAID</div>
-      </div>
-
-      <div class="footer">
-        Thank you for your business! · QuickBee AI Agency Platform · Built with caffeine.ai
-      </div>
+      <div class="total">Total Paid: ₹${invoice.totalPaid}</div>
+      <div class="footer">Generated by QuickBee Sales System</div>
     </body>
     </html>
   `;
-
-  const printWindow = window.open('', '_blank');
-  if (printWindow) {
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 500);
+  const win = window.open('', '_blank');
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 500);
   }
 }
 
-export function exportAutomationLogsToCSV(logs: AutomationLog[], filename: string = 'automation-logs.csv'): void {
+// ---- Automation Logs CSV ----
+export function exportAutomationLogsToCSV(logs: AutomationLog[], filename?: string): void {
+  if (!logs || logs.length === 0) throw new Error('No data to export');
   const headers = ['Log ID', 'Lead ID', 'Event Type', 'Status', 'Timestamp'];
   const rows = logs.map(log => [
     String(log.id),
     String(log.leadId),
     log.eventType,
     log.status,
-    formatDate(log.timestamp),
+    new Date(Number(log.timestamp) / 1_000_000).toLocaleString(),
   ]);
-  const csv = arrayToCSV(headers, rows);
-  triggerDownload(csv, filename, 'text/csv;charset=utf-8;');
+  const csv = buildCsv(headers, rows);
+  downloadFile(csv, filename ?? `automation-logs-${Date.now()}.csv`, 'text/csv;charset=utf-8;');
+}
+
+// ---- Generic JSON export ----
+export function exportToJSON(data: unknown, filename: string): void {
+  if (!data || (Array.isArray(data) && data.length === 0)) throw new Error('No data to export');
+  const json = JSON.stringify(data, null, 2);
+  downloadFile(json, filename, 'application/json');
+}
+
+// ---- Text file export ----
+export function exportToText(content: string, filename: string): void {
+  if (!content) throw new Error('No content to export');
+  downloadFile(content, filename, 'text/plain;charset=utf-8;');
+}
+
+// ---- Generic CSV from array of objects ----
+export function exportObjectsToCSV(data: Record<string, unknown>[], filename: string): void {
+  if (!data || data.length === 0) throw new Error('No data to export');
+  const headers = Object.keys(data[0]);
+  const rows = data.map(obj => headers.map(h => obj[h]));
+  const csv = buildCsv(headers, rows);
+  downloadFile(csv, filename, 'text/csv;charset=utf-8;');
 }

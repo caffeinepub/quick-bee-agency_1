@@ -1,392 +1,281 @@
-import { useState } from 'react';
-import { FileEdit, Download, Sparkles, Loader2, FileText, FileJson, Plus, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { useAIConfig } from '../contexts/AIConfigContext';
+import { useWebhookPost } from '../hooks/useWebhookPost';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { Loader2, FileText, Download, AlertCircle } from 'lucide-react';
+import { useNavigate } from '@tanstack/react-router';
+import { exportToText } from '../utils/exportUtils';
 
-interface ProposalData {
-  clientName: string;
-  clientEmail: string;
-  companyName: string;
+interface ProposalResult {
+  title: string;
+  executiveSummary: string;
   scope: string;
   deliverables: string[];
   timeline: string;
-  basePrice: number;
-  addons: { name: string; price: number }[];
-  ctaText: string;
-  generatedAt: string;
-}
-
-function downloadFile(content: string, filename: string, mimeType: string) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-function getTimestamp() {
-  return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + 'Z';
+  investment: string;
+  terms: string;
 }
 
 export default function ProposalGeneratorPage() {
-  const [clientName, setClientName] = useState('');
-  const [clientEmail, setClientEmail] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [scope, setScope] = useState('');
-  const [timeline, setTimeline] = useState('');
-  const [basePrice, setBasePrice] = useState('');
-  const [deliverables, setDeliverables] = useState<string[]>(['']);
-  const [addons, setAddons] = useState<{ name: string; price: string }[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [proposal, setProposal] = useState<ProposalData | null>(null);
+  const navigate = useNavigate();
+  const { config, isFieldConfigured } = useAIConfig();
+  const webhookPost = useWebhookPost();
 
-  const addDeliverable = () => setDeliverables([...deliverables, '']);
-  const removeDeliverable = (i: number) => setDeliverables(deliverables.filter((_, idx) => idx !== i));
-  const updateDeliverable = (i: number, val: string) => {
-    const updated = [...deliverables];
-    updated[i] = val;
-    setDeliverables(updated);
-  };
+  const [form, setForm] = useState({
+    clientName: '',
+    projectType: '',
+    scope: '',
+    deliverables: '',
+    timeline: '',
+    budget: '',
+  });
+  const [result, setResult] = useState<ProposalResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
-  const addAddon = () => setAddons([...addons, { name: '', price: '' }]);
-  const removeAddon = (i: number) => setAddons(addons.filter((_, idx) => idx !== i));
-  const updateAddon = (i: number, field: 'name' | 'price', val: string) => {
-    const updated = [...addons];
-    updated[i] = { ...updated[i], [field]: val };
-    setAddons(updated);
+  const webhookConfigured = isFieldConfigured('webhookUrl') || isFieldConfigured('automationWebhookUrl');
+  const apiConfigured = isFieldConfigured('apiEndpoint') && isFieldConfigured('apiKey');
+
+  const handleChange = (field: string, value: string) => {
+    setForm(prev => ({ ...prev, [field]: value }));
   };
 
   const handleGenerate = async () => {
-    if (!clientName || !scope || !basePrice) {
-      toast.error('Please fill in client name, scope, and base price');
+    if (!form.clientName || !form.projectType) {
+      toast.error('Please fill in client name and project type.');
       return;
     }
-    setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsLoading(true);
+    setResult(null);
 
-    const proposalData: ProposalData = {
-      clientName,
-      clientEmail,
-      companyName,
-      scope,
-      deliverables: deliverables.filter(d => d.trim()),
-      timeline,
-      basePrice: parseFloat(basePrice),
-      addons: addons.filter(a => a.name).map(a => ({ name: a.name, price: parseFloat(a.price) || 0 })),
-      ctaText: `Ready to transform your business? Let's get started today. Contact us at hello@quickbee.ai or reply to this proposal to proceed.`,
-      generatedAt: new Date().toISOString(),
-    };
+    const formData = { ...form };
 
-    setProposal(proposalData);
-    setLoading(false);
-    toast.success('Proposal generated!');
+    if (webhookConfigured) {
+      try {
+        await webhookPost.mutateAsync({ toolName: 'Proposal Generator', formData });
+      } catch (err) {
+        toast.error(`Webhook POST failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      }
+    }
+
+    if (apiConfigured) {
+      try {
+        const response = await fetch(config.apiEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.apiKey}` },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: 'You are a professional proposal writer. Generate a detailed business proposal. Respond with JSON: { title, executiveSummary, scope, deliverables (array), timeline, investment, terms }' },
+              { role: 'user', content: `Client: ${form.clientName}. Project: ${form.projectType}. Scope: ${form.scope}. Deliverables: ${form.deliverables}. Timeline: ${form.timeline}. Budget: ${form.budget}.` },
+            ],
+            response_format: { type: 'json_object' },
+          }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const content = data.choices?.[0]?.message?.content;
+          if (content) setResult(JSON.parse(content));
+        } else {
+          throw new Error(`API error: ${response.status}`);
+        }
+      } catch (err) {
+        toast.error(`AI API failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        setResult({
+          title: `Proposal for ${form.clientName} - ${form.projectType}`,
+          executiveSummary: `We are pleased to present this proposal for ${form.projectType} services to ${form.clientName}.`,
+          scope: form.scope || 'Full project scope as discussed.',
+          deliverables: form.deliverables ? form.deliverables.split(',').map(d => d.trim()) : ['Deliverable 1', 'Deliverable 2'],
+          timeline: form.timeline || '4-6 weeks',
+          investment: form.budget || 'To be discussed',
+          terms: 'Net 30 payment terms. 50% upfront, 50% on completion.',
+        });
+      }
+    } else {
+      setResult({
+        title: `Proposal for ${form.clientName} - ${form.projectType}`,
+        executiveSummary: `We are pleased to present this proposal for ${form.projectType} services to ${form.clientName}.`,
+        scope: form.scope || 'Full project scope as discussed.',
+        deliverables: form.deliverables ? form.deliverables.split(',').map(d => d.trim()) : ['Deliverable 1', 'Deliverable 2'],
+        timeline: form.timeline || '4-6 weeks',
+        investment: form.budget || 'To be discussed',
+        terms: 'Net 30 payment terms. 50% upfront, 50% on completion.',
+      });
+    }
+
+    setIsLoading(false);
   };
 
-  const totalPrice = proposal
-    ? proposal.basePrice + proposal.addons.reduce((sum, a) => sum + a.price, 0)
-    : 0;
+  const handleExportPDF = async () => {
+    if (!result) return;
+    setIsExporting(true);
+    try {
+      const content = `${result.title}
+${'='.repeat(result.title.length)}
 
-  const generateHTML = (p: ProposalData) => `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Proposal for ${p.clientName}</title>
-<style>
-  body { font-family: 'Space Grotesk', sans-serif; background: #0B0F14; color: #f0f0f0; margin: 0; padding: 40px; }
-  .container { max-width: 800px; margin: 0 auto; }
-  .header { background: linear-gradient(135deg, #00F5D4, #00B3A4); padding: 40px; border-radius: 16px; margin-bottom: 32px; }
-  .header h1 { color: #0B0F14; font-size: 2rem; margin: 0 0 8px; }
-  .header p { color: #0B0F14; opacity: 0.8; margin: 0; }
-  .section { background: rgba(255,255,255,0.05); border: 1px solid rgba(0,245,212,0.2); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
-  .section h2 { color: #00F5D4; font-size: 1.1rem; margin: 0 0 12px; }
-  .deliverable { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-  .price-row { display: flex; justify-content: space-between; padding: 8px 0; }
-  .total { font-size: 1.5rem; font-weight: bold; color: #00F5D4; }
-  .cta { background: linear-gradient(135deg, #00F5D4, #00B3A4); padding: 32px; border-radius: 16px; text-align: center; margin-top: 32px; }
-  .cta h2 { color: #0B0F14; margin: 0 0 8px; }
-  .cta p { color: #0B0F14; opacity: 0.8; margin: 0; }
-</style>
-</head>
-<body>
-<div class="container">
-  <div class="header">
-    <h1>Business Proposal</h1>
-    <p>Prepared for ${p.clientName}${p.companyName ? ` — ${p.companyName}` : ''}</p>
-    <p>Generated: ${new Date(p.generatedAt).toLocaleDateString()}</p>
-  </div>
-  <div class="section">
-    <h2>Project Scope</h2>
-    <p>${p.scope}</p>
-  </div>
-  ${p.deliverables.length > 0 ? `<div class="section">
-    <h2>Deliverables</h2>
-    ${p.deliverables.map(d => `<div class="deliverable">✓ ${d}</div>`).join('')}
-  </div>` : ''}
-  ${p.timeline ? `<div class="section">
-    <h2>Timeline</h2>
-    <p>${p.timeline}</p>
-  </div>` : ''}
-  <div class="section">
-    <h2>Pricing Breakdown</h2>
-    <div class="price-row"><span>Base Service</span><span>$${p.basePrice.toLocaleString()}</span></div>
-    ${p.addons.map(a => `<div class="price-row"><span>${a.name}</span><span>$${a.price.toLocaleString()}</span></div>`).join('')}
-    <div class="price-row" style="border-top: 1px solid rgba(0,245,212,0.3); margin-top: 8px; padding-top: 8px;">
-      <span>Total Investment</span>
-      <span class="total">$${(p.basePrice + p.addons.reduce((s, a) => s + a.price, 0)).toLocaleString()}</span>
-    </div>
-  </div>
-  <div class="cta">
-    <h2>Ready to Get Started?</h2>
-    <p>${p.ctaText}</p>
-  </div>
-</div>
-</body>
-</html>`;
+EXECUTIVE SUMMARY
+${result.executiveSummary}
 
-  const downloadPDF = () => {
-    if (!proposal) return;
-    const html = generateHTML(proposal);
-    downloadFile(html, `proposal_${getTimestamp()}.html`, 'text/html');
-    toast.success('Proposal downloaded as HTML (open in browser to print as PDF)');
-  };
+SCOPE OF WORK
+${result.scope}
 
-  const downloadHTML = () => {
-    if (!proposal) return;
-    downloadFile(generateHTML(proposal), `proposal_${getTimestamp()}.html`, 'text/html');
-    toast.success('HTML downloaded');
-  };
+DELIVERABLES
+${result.deliverables.map((d, i) => `${i + 1}. ${d}`).join('\n')}
 
-  const downloadDOC = () => {
-    if (!proposal) return;
-    const html = generateHTML(proposal);
-    downloadFile(html, `proposal_${getTimestamp()}.doc`, 'application/msword');
-    toast.success('DOC downloaded');
-  };
+TIMELINE
+${result.timeline}
 
-  const downloadJSON = () => {
-    if (!proposal) return;
-    downloadFile(JSON.stringify({ ...proposal, totalPrice }, null, 2), `proposal_${getTimestamp()}.json`, 'application/json');
-    toast.success('JSON downloaded');
+INVESTMENT
+${result.investment}
+
+TERMS & CONDITIONS
+${result.terms}
+
+---
+Generated by QuickBee Sales System on ${new Date().toLocaleString()}
+`;
+      exportToText(content, `proposal-${form.clientName.replace(/\s+/g, '-')}-${Date.now()}.txt`);
+      toast.success('Proposal exported!');
+    } catch (err) {
+      toast.error(`Export failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl gradient-teal flex items-center justify-center neon-glow-sm">
-          <FileEdit className="w-6 h-6 text-[#0B0F14]" />
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-lg bg-primary/10">
+          <FileText className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold gradient-teal-text">AI Proposal Generator</h1>
-          <p className="text-sm text-[oklch(0.60_0.02_200)]">Generate branded proposals with one click</p>
+          <h1 className="text-2xl font-bold text-foreground">Proposal Generator</h1>
+          <p className="text-muted-foreground text-sm">Generate professional client proposals with AI</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {/* Form */}
-        <div className="glass rounded-2xl p-6 border border-[oklch(0.82_0.18_175/0.15)] space-y-5">
-          <h2 className="text-lg font-semibold text-[oklch(0.90_0.01_200)]">Proposal Details</h2>
+      {!webhookConfigured && !apiConfigured && (
+        <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-900/10">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800 dark:text-amber-200">
+            Webhook URL not configured.{' '}
+            <button className="underline font-medium" onClick={() => navigate({ to: '/authenticated/settings/sales-system-config' })}>
+              Configure in Sales System Config
+            </button>
+          </AlertDescription>
+        </Alert>
+      )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Client Name *</Label>
-              <Input value={clientName} onChange={e => setClientName(e.target.value)} placeholder="John Smith"
-                className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="card-glass">
+          <CardHeader>
+            <CardTitle className="text-base">Proposal Details</CardTitle>
+            <CardDescription>Fill in the client and project information</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Client Name *</Label>
+              <Input placeholder="Acme Corp" value={form.clientName} onChange={e => handleChange('clientName', e.target.value)} />
             </div>
-            <div>
-              <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Client Email</Label>
-              <Input value={clientEmail} onChange={e => setClientEmail(e.target.value)} placeholder="john@company.com" type="email"
-                className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]" />
+            <div className="space-y-1.5">
+              <Label>Project Type *</Label>
+              <Select value={form.projectType} onValueChange={v => handleChange('projectType', v)}>
+                <SelectTrigger><SelectValue placeholder="Select project type" /></SelectTrigger>
+                <SelectContent>
+                  {['Web Development', 'Mobile App', 'Digital Marketing', 'SEO', 'Branding', 'Consulting', 'E-commerce', 'Custom Software'].map(t => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-
-          <div>
-            <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Company Name</Label>
-            <Input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Acme Corp"
-              className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]" />
-          </div>
-
-          <div>
-            <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Project Scope *</Label>
-            <Textarea value={scope} onChange={e => setScope(e.target.value)} placeholder="Describe the project scope..."
-              rows={3} className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)] resize-none" />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label className="text-[oklch(0.75_0.01_200)]">Deliverables</Label>
-              <Button onClick={addDeliverable} variant="ghost" size="sm" className="text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] h-7 px-2 rounded-lg">
-                <Plus className="w-3 h-3 mr-1" /> Add
-              </Button>
+            <div className="space-y-1.5">
+              <Label>Scope of Work</Label>
+              <Textarea placeholder="Describe the project scope..." value={form.scope} onChange={e => handleChange('scope', e.target.value)} rows={3} />
             </div>
-            <div className="space-y-2">
-              {deliverables.map((d, i) => (
-                <div key={i} className="flex gap-2">
-                  <Input value={d} onChange={e => updateDeliverable(i, e.target.value)} placeholder={`Deliverable ${i + 1}`}
-                    className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]" />
-                  {deliverables.length > 1 && (
-                    <Button onClick={() => removeDeliverable(i)} variant="ghost" size="icon" className="text-[oklch(0.55_0.22_25)] hover:bg-[oklch(0.55_0.22_25/0.1)] rounded-xl shrink-0">
-                      <X className="w-4 h-4" />
-                    </Button>
-                  )}
+            <div className="space-y-1.5">
+              <Label>Deliverables (comma-separated)</Label>
+              <Input placeholder="Website, Mobile App, Documentation" value={form.deliverables} onChange={e => handleChange('deliverables', e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Timeline</Label>
+                <Input placeholder="4-6 weeks" value={form.timeline} onChange={e => handleChange('timeline', e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Budget</Label>
+                <Input placeholder="₹1,50,000" value={form.budget} onChange={e => handleChange('budget', e.target.value)} />
+              </div>
+            </div>
+            <Button onClick={handleGenerate} disabled={isLoading || !form.clientName || !form.projectType} className="w-full gap-2">
+              {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" />Generating...</> : <><FileText className="h-4 w-4" />Generate Proposal</>}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="card-glass">
+          <CardHeader>
+            <CardTitle className="text-base">Generated Proposal</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <Loader2 className="h-8 w-8 animate-spin mb-3 text-primary" />
+                <p className="text-sm">Crafting your proposal...</p>
+              </div>
+            ) : result ? (
+              <div className="space-y-4">
+                <h3 className="font-bold text-base text-primary">{result.title}</h3>
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Executive Summary</p>
+                  <p className="text-sm text-foreground">{result.executiveSummary}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Timeline</Label>
-            <Input value={timeline} onChange={e => setTimeline(e.target.value)} placeholder="e.g. 4-6 weeks"
-              className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]" />
-          </div>
-
-          <div>
-            <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Base Price (USD) *</Label>
-            <Input type="number" value={basePrice} onChange={e => setBasePrice(e.target.value)} placeholder="5000"
-              className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]" />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label className="text-[oklch(0.75_0.01_200)]">Add-ons</Label>
-              <Button onClick={addAddon} variant="ghost" size="sm" className="text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] h-7 px-2 rounded-lg">
-                <Plus className="w-3 h-3 mr-1" /> Add
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {addons.map((a, i) => (
-                <div key={i} className="flex gap-2">
-                  <Input value={a.name} onChange={e => updateAddon(i, 'name', e.target.value)} placeholder="Add-on name"
-                    className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]" />
-                  <Input type="number" value={a.price} onChange={e => updateAddon(i, 'price', e.target.value)} placeholder="Price"
-                    className="w-28 bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] placeholder-[oklch(0.45_0.02_200)]" />
-                  <Button onClick={() => removeAddon(i)} variant="ghost" size="icon" className="text-[oklch(0.55_0.22_25)] hover:bg-[oklch(0.55_0.22_25/0.1)] rounded-xl shrink-0">
-                    <X className="w-4 h-4" />
-                  </Button>
+                <Separator />
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Scope</p>
+                  <p className="text-sm text-foreground">{result.scope}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <Button onClick={handleGenerate} disabled={loading}
-            className="w-full gradient-teal text-[#0B0F14] font-bold rounded-xl py-3 hover:opacity-90 transition-all neon-glow-sm disabled:opacity-50">
-            {loading ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating Proposal...</>
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Deliverables</p>
+                  <ul className="text-sm space-y-1">
+                    {result.deliverables.map((d, i) => <li key={i} className="flex items-start gap-2"><span className="text-primary mt-0.5">•</span>{d}</li>)}
+                  </ul>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                    <p className="text-xs text-muted-foreground">Timeline</p>
+                    <p className="font-semibold text-sm">{result.timeline}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-success/5 border border-success/20">
+                    <p className="text-xs text-muted-foreground">Investment</p>
+                    <p className="font-semibold text-sm text-success">{result.investment}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Terms</p>
+                  <p className="text-sm text-muted-foreground">{result.terms}</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={isExporting} className="w-full gap-2">
+                  {isExporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                  Export as PDF/Text
+                </Button>
+              </div>
             ) : (
-              <><Sparkles className="w-4 h-4 mr-2" />Generate Proposal</>
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <FileText className="h-10 w-10 mb-3 opacity-30" />
+                <p className="text-sm">Fill in the details and generate your proposal</p>
+              </div>
             )}
-          </Button>
-        </div>
-
-        {/* Preview */}
-        <div className="space-y-4">
-          {proposal ? (
-            <div className="space-y-4 animate-fade-in">
-              <div className="glass rounded-2xl overflow-hidden border border-[oklch(0.82_0.18_175/0.3)] neon-glow-sm">
-                {/* Proposal Header */}
-                <div className="gradient-teal p-6">
-                  <h2 className="text-2xl font-bold text-[#0B0F14]">Business Proposal</h2>
-                  <p className="text-[#0B0F14]/80 mt-1">Prepared for {proposal.clientName}{proposal.companyName ? ` — ${proposal.companyName}` : ''}</p>
-                  <p className="text-[#0B0F14]/60 text-sm mt-1">{new Date(proposal.generatedAt).toLocaleDateString()}</p>
-                </div>
-
-                <div className="p-6 space-y-4">
-                  {/* Scope */}
-                  <div className="glass rounded-xl p-4 border border-[oklch(0.82_0.18_175/0.15)]">
-                    <h3 className="text-sm font-semibold text-[oklch(0.82_0.18_175)] mb-2">Project Scope</h3>
-                    <p className="text-sm text-[oklch(0.80_0.01_200)]">{proposal.scope}</p>
-                  </div>
-
-                  {/* Deliverables */}
-                  {proposal.deliverables.length > 0 && (
-                    <div className="glass rounded-xl p-4 border border-[oklch(0.82_0.18_175/0.15)]">
-                      <h3 className="text-sm font-semibold text-[oklch(0.82_0.18_175)] mb-2">Deliverables</h3>
-                      <ul className="space-y-1">
-                        {proposal.deliverables.map((d, i) => (
-                          <li key={i} className="text-sm text-[oklch(0.80_0.01_200)] flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full gradient-teal shrink-0" />
-                            {d}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Timeline */}
-                  {proposal.timeline && (
-                    <div className="glass rounded-xl p-4 border border-[oklch(0.82_0.18_175/0.15)]">
-                      <h3 className="text-sm font-semibold text-[oklch(0.82_0.18_175)] mb-2">Timeline</h3>
-                      <p className="text-sm text-[oklch(0.80_0.01_200)]">{proposal.timeline}</p>
-                    </div>
-                  )}
-
-                  {/* Pricing */}
-                  <div className="glass rounded-xl p-4 border border-[oklch(0.82_0.18_175/0.15)]">
-                    <h3 className="text-sm font-semibold text-[oklch(0.82_0.18_175)] mb-3">Pricing Breakdown</h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-[oklch(0.70_0.01_200)]">Base Service</span>
-                        <span className="text-[oklch(0.90_0.01_200)]">${proposal.basePrice.toLocaleString()}</span>
-                      </div>
-                      {proposal.addons.map((a, i) => (
-                        <div key={i} className="flex justify-between text-sm">
-                          <span className="text-[oklch(0.70_0.01_200)]">{a.name}</span>
-                          <span className="text-[oklch(0.90_0.01_200)]">${a.price.toLocaleString()}</span>
-                        </div>
-                      ))}
-                      <div className="border-t border-[oklch(0.82_0.18_175/0.2)] pt-2 flex justify-between">
-                        <span className="font-semibold text-[oklch(0.90_0.01_200)]">Total Investment</span>
-                        <span className="font-bold text-xl gradient-teal-text">${totalPrice.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* CTA */}
-                  <div className="gradient-teal rounded-xl p-4 text-center">
-                    <h3 className="font-bold text-[#0B0F14] mb-1">Ready to Get Started?</h3>
-                    <p className="text-xs text-[#0B0F14]/80">{proposal.ctaText}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Download Buttons */}
-              <div className="glass rounded-2xl p-4 border border-[oklch(0.82_0.18_175/0.15)]">
-                <h3 className="font-semibold text-[oklch(0.75_0.01_200)] mb-3 flex items-center gap-2">
-                  <Download className="w-4 h-4 text-[oklch(0.82_0.18_175)]" />
-                  Export Proposal
-                </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={downloadPDF} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
-                    <FileText className="w-3 h-3 mr-1" /> PDF
-                  </Button>
-                  <Button onClick={downloadHTML} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
-                    <FileText className="w-3 h-3 mr-1" /> HTML
-                  </Button>
-                  <Button onClick={downloadDOC} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
-                    <FileText className="w-3 h-3 mr-1" /> DOC
-                  </Button>
-                  <Button onClick={downloadJSON} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
-                    <FileJson className="w-3 h-3 mr-1" /> JSON
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="glass rounded-2xl p-8 border border-[oklch(0.82_0.18_175/0.1)] flex flex-col items-center justify-center gap-3 text-center min-h-64">
-              <div className="w-16 h-16 rounded-2xl bg-[oklch(0.82_0.18_175/0.1)] flex items-center justify-center">
-                <FileEdit className="w-8 h-8 text-[oklch(0.82_0.18_175/0.5)]" />
-              </div>
-              <p className="text-[oklch(0.60_0.02_200)] text-sm">Fill in the proposal details and click Generate to create a branded proposal</p>
-            </div>
-          )}
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

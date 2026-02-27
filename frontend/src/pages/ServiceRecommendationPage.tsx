@@ -1,325 +1,310 @@
-import { useState } from 'react';
-import { Brain, Download, Sparkles, TrendingUp, Zap, Target, Loader2, FileText, FileJson, FileSpreadsheet } from 'lucide-react';
+import React, { useState } from 'react';
+import { useAIConfig } from '../contexts/AIConfigContext';
+import { useWebhookPost } from '../hooks/useWebhookPost';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Slider } from '@/components/ui/slider';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { Loader2, Sparkles, Target, TrendingUp, Download, AlertCircle, Settings } from 'lucide-react';
+import { useNavigate } from '@tanstack/react-router';
+import { exportToText } from '../utils/exportUtils';
+
+const BUSINESS_TYPES = ['E-commerce', 'SaaS', 'Agency', 'Consulting', 'Healthcare', 'Education', 'Real Estate', 'Finance', 'Retail', 'Manufacturing'];
+const GOALS = ['Increase Revenue', 'Generate Leads', 'Brand Awareness', 'Customer Retention', 'Automate Operations', 'Scale Team', 'Launch Product', 'Enter New Market'];
 
 interface RecommendationResult {
   recommendedService: string;
   upsellSuggestion: string;
-  revenueStrategy: string;
-  estimatedROI: string;
-  businessType: string;
+  reasoning: string;
+  projectedROI: string;
   budget: number;
-  goals: string;
-  timestamp: string;
-}
-
-const businessTypes = [
-  'E-commerce', 'SaaS', 'Agency', 'Consulting', 'Healthcare',
-  'Education', 'Real Estate', 'Finance', 'Retail', 'Manufacturing',
-  'Hospitality', 'Legal', 'Marketing', 'Technology', 'Other'
-];
-
-function downloadFile(content: string, filename: string, mimeType: string) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-function getTimestamp() {
-  return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + 'Z';
 }
 
 export default function ServiceRecommendationPage() {
-  const [businessType, setBusinessType] = useState('');
-  const [budget, setBudget] = useState('');
-  const [goals, setGoals] = useState('');
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { config, isFieldConfigured } = useAIConfig();
+  const webhookPost = useWebhookPost();
+
+  const [selectedBusinessTypes, setSelectedBusinessTypes] = useState<string[]>([]);
+  const [budget, setBudget] = useState([50000]);
+  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
+  const [teamSize, setTeamSize] = useState([10]);
   const [result, setResult] = useState<RecommendationResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const webhookConfigured = isFieldConfigured('webhookUrl') || isFieldConfigured('automationWebhookUrl');
+  const apiConfigured = isFieldConfigured('apiEndpoint') && isFieldConfigured('apiKey');
+
+  const toggleBusinessType = (type: string) => {
+    setSelectedBusinessTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
+  const toggleGoal = (goal: string) => {
+    setSelectedGoals(prev =>
+      prev.includes(goal) ? prev.filter(g => g !== goal) : [...prev, goal]
+    );
+  };
 
   const handleGenerate = async () => {
-    if (!businessType || !budget || !goals) {
-      toast.error('Please fill in all fields');
+    if (selectedBusinessTypes.length === 0) {
+      toast.error('Please select at least one business type.');
       return;
     }
+    setIsLoading(true);
+    setResult(null);
 
-    setLoading(true);
-    try {
-      // Simulate AI recommendation (OpenRouter API call)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+    const formData = {
+      businessTypes: selectedBusinessTypes,
+      budget: budget[0],
+      goals: selectedGoals,
+      teamSize: teamSize[0],
+    };
 
-      const budgetNum = parseInt(budget);
-      let recommendedService = '';
-      let upsellSuggestion = '';
-      let revenueStrategy = '';
-
-      if (budgetNum < 5000) {
-        recommendedService = `Starter ${businessType} Digital Package — Social media setup, basic SEO, and brand identity kit`;
-        upsellSuggestion = `Upgrade to Growth Package (+$2,500) for automated email sequences and lead generation funnel`;
-        revenueStrategy = `Focus on quick wins: optimize Google My Business, run targeted Facebook ads with $500/month budget, and implement a referral program to 3x your client acquisition rate within 90 days.`;
-      } else if (budgetNum < 20000) {
-        recommendedService = `${businessType} Growth Accelerator — Full-stack digital marketing, CRM setup, and conversion optimization`;
-        upsellSuggestion = `Add AI-powered chatbot integration (+$3,000) to capture 40% more leads automatically`;
-        revenueStrategy = `Deploy a multi-channel strategy: combine paid search (40% budget), content marketing (30%), and retargeting (30%). Expected 5-8x ROI within 6 months with proper funnel optimization.`;
-      } else {
-        recommendedService = `Enterprise ${businessType} Transformation Suite — Complete digital infrastructure, AI automation, and growth systems`;
-        upsellSuggestion = `Premium white-glove service (+$10,000) includes dedicated account manager, weekly strategy calls, and custom AI tools`;
-        revenueStrategy = `Implement a full revenue operations stack: marketing automation, sales enablement, and customer success systems. Target 10x ROI through systematic scaling and process automation.`;
+    // Send to webhook
+    if (webhookConfigured) {
+      try {
+        await webhookPost.mutateAsync({ toolName: 'Service Recommendation', formData });
+      } catch (err) {
+        toast.error(`Webhook POST failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
       }
-
-      const newResult: RecommendationResult = {
-        recommendedService,
-        upsellSuggestion,
-        revenueStrategy,
-        estimatedROI: budgetNum < 5000 ? '3-5x' : budgetNum < 20000 ? '5-8x' : '10x+',
-        businessType,
-        budget: budgetNum,
-        goals,
-        timestamp: new Date().toISOString(),
-      };
-
-      setResult(newResult);
-      toast.success('AI recommendation generated!');
-    } catch (error) {
-      toast.error('Failed to generate recommendation');
-    } finally {
-      setLoading(false);
     }
+
+    // Call AI API
+    if (apiConfigured) {
+      try {
+        const endpoint = config.apiEndpoint;
+        const apiKey = config.apiKey;
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert business consultant. Recommend the best service for the client based on their profile. Respond with JSON: { recommendedService, upsellSuggestion, reasoning, projectedROI, budget }',
+              },
+              {
+                role: 'user',
+                content: `Business types: ${selectedBusinessTypes.join(', ')}. Budget: ₹${budget[0].toLocaleString()}. Goals: ${selectedGoals.join(', ')}. Team size: ${teamSize[0]}.`,
+              },
+            ],
+            response_format: { type: 'json_object' },
+          }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const content = data.choices?.[0]?.message?.content;
+          if (content) {
+            const parsed = JSON.parse(content);
+            setResult({ ...parsed, budget: budget[0] });
+          }
+        } else {
+          throw new Error(`API error: ${response.status}`);
+        }
+      } catch (err) {
+        toast.error(`AI API failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        // Fallback result
+        setResult({
+          recommendedService: 'Digital Marketing Package',
+          upsellSuggestion: 'Add SEO + Content Marketing for 3x ROI',
+          reasoning: `Based on your ${selectedBusinessTypes.join('/')} business with a budget of ₹${budget[0].toLocaleString()}, a Digital Marketing Package is the best fit.`,
+          projectedROI: '250-400%',
+          budget: budget[0],
+        });
+      }
+    } else {
+      // Demo result
+      setResult({
+        recommendedService: 'Growth Marketing Suite',
+        upsellSuggestion: 'Add CRM Integration for 2x lead conversion',
+        reasoning: `For a ${selectedBusinessTypes.join('/')} business focused on ${selectedGoals.join(', ')}, the Growth Marketing Suite provides the best ROI.`,
+        projectedROI: '300-500%',
+        budget: budget[0],
+      });
+    }
+
+    setIsLoading(false);
   };
 
-  const downloadPDF = () => {
+  const handleExport = async () => {
     if (!result) return;
-    const content = `AI SERVICE RECOMMENDATION REPORT
-Generated: ${new Date(result.timestamp).toLocaleString()}
-${'='.repeat(60)}
+    setIsExporting(true);
+    try {
+      const content = `SERVICE RECOMMENDATION REPORT
+Generated: ${new Date().toLocaleString()}
 
-BUSINESS PROFILE
-Business Type: ${result.businessType}
-Budget: $${result.budget.toLocaleString()}
-Goals: ${result.goals}
+RECOMMENDED SERVICE: ${result.recommendedService}
+UPSELL SUGGESTION: ${result.upsellSuggestion}
+PROJECTED ROI: ${result.projectedROI}
+BUDGET: ₹${result.budget?.toLocaleString()}
 
-${'='.repeat(60)}
-RECOMMENDED SERVICE
-${result.recommendedService}
+REASONING:
+${result.reasoning}
 
-UPSELL SUGGESTION
-${result.upsellSuggestion}
-
-REVENUE STRATEGY
-${result.revenueStrategy}
-
-ESTIMATED ROI: ${result.estimatedROI}
-${'='.repeat(60)}
-Generated by QuickBee AI Platform`;
-    downloadFile(content, `recommendation_${getTimestamp()}.txt`, 'text/plain');
-    toast.success('PDF downloaded (as text format)');
-  };
-
-  const downloadJSON = () => {
-    if (!result) return;
-    downloadFile(JSON.stringify(result, null, 2), `recommendation_${getTimestamp()}.json`, 'application/json');
-    toast.success('JSON downloaded');
-  };
-
-  const downloadCSV = () => {
-    if (!result) return;
-    const csv = `Field,Value\nBusiness Type,${result.businessType}\nBudget,$${result.budget}\nGoals,"${result.goals}"\nRecommended Service,"${result.recommendedService}"\nUpsell Suggestion,"${result.upsellSuggestion}"\nRevenue Strategy,"${result.revenueStrategy}"\nEstimated ROI,${result.estimatedROI}\nTimestamp,${result.timestamp}`;
-    downloadFile(csv, `recommendation_${getTimestamp()}.csv`, 'text/csv');
-    toast.success('CSV downloaded');
-  };
-
-  const downloadTXT = () => {
-    if (!result) return;
-    const txt = `AI Service Recommendation\n\nBusiness Type: ${result.businessType}\nBudget: $${result.budget}\nGoals: ${result.goals}\n\nRecommended Service:\n${result.recommendedService}\n\nUpsell Suggestion:\n${result.upsellSuggestion}\n\nRevenue Strategy:\n${result.revenueStrategy}\n\nEstimated ROI: ${result.estimatedROI}`;
-    downloadFile(txt, `recommendation_${getTimestamp()}.txt`, 'text/plain');
-    toast.success('TXT downloaded');
+BUSINESS PROFILE:
+- Business Types: ${selectedBusinessTypes.join(', ')}
+- Goals: ${selectedGoals.join(', ')}
+- Team Size: ${teamSize[0]}
+`;
+      exportToText(content, `service-recommendation-${Date.now()}.txt`);
+      toast.success('Recommendation exported!');
+    } catch (err) {
+      toast.error(`Export failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl gradient-teal flex items-center justify-center neon-glow-sm">
-          <Brain className="w-6 h-6 text-[#0B0F14]" />
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-lg bg-primary/10">
+          <Target className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold gradient-teal-text">AI Service Recommendation</h1>
-          <p className="text-sm text-[oklch(0.60_0.02_200)]">Get personalized service recommendations powered by AI</p>
+          <h1 className="text-2xl font-bold text-foreground">Service Recommender</h1>
+          <p className="text-muted-foreground text-sm">AI-powered service recommendations based on your business profile</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Input Form */}
-        <div className="glass rounded-2xl p-6 border border-[oklch(0.82_0.18_175/0.15)] space-y-6">
-          <h2 className="text-lg font-semibold text-[oklch(0.90_0.01_200)] flex items-center gap-2">
-            <Target className="w-5 h-5 text-[oklch(0.82_0.18_175)]" />
-            Business Profile
-          </h2>
+      {!webhookConfigured && !apiConfigured && (
+        <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-900/10">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800 dark:text-amber-200">
+            Webhook URL not configured. Please{' '}
+            <button className="underline font-medium" onClick={() => navigate({ to: '/authenticated/settings/sales-system-config' })}>
+              configure in Sales System Config
+            </button>{' '}
+            to send data to Make.com.
+          </AlertDescription>
+        </Alert>
+      )}
 
-          <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="card-glass">
+          <CardHeader>
+            <CardTitle className="text-base">Business Profile</CardTitle>
+            <CardDescription>Select your business type and goals</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
             <div>
-              <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Business Type</Label>
-              <Select value={businessType} onValueChange={setBusinessType}>
-                <SelectTrigger className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] focus:ring-[oklch(0.82_0.18_175/0.3)]">
-                  <SelectValue placeholder="Select your business type" />
-                </SelectTrigger>
-                <SelectContent className="glass border-[oklch(0.82_0.18_175/0.2)] rounded-xl">
-                  {businessTypes.map(type => (
-                    <SelectItem key={type} value={type} className="text-[oklch(0.85_0.01_200)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-lg">
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Monthly Budget (USD)</Label>
-              <Input
-                type="number"
-                placeholder="e.g. 5000"
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-                className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] focus:ring-[oklch(0.82_0.18_175/0.3)] placeholder-[oklch(0.45_0.02_200)]"
-              />
-            </div>
-
-            <div>
-              <Label className="text-[oklch(0.75_0.01_200)] mb-2 block">Business Goals</Label>
-              <Textarea
-                placeholder="Describe your main business goals, challenges, and what you want to achieve..."
-                value={goals}
-                onChange={(e) => setGoals(e.target.value)}
-                rows={4}
-                className="bg-[oklch(0.14_0.015_200)] border-[oklch(0.20_0.02_200)] text-[oklch(0.90_0.01_200)] rounded-xl focus:border-[oklch(0.82_0.18_175/0.5)] focus:ring-[oklch(0.82_0.18_175/0.3)] placeholder-[oklch(0.45_0.02_200)] resize-none"
-              />
-            </div>
-          </div>
-
-          <Button
-            onClick={handleGenerate}
-            disabled={loading}
-            className="w-full gradient-teal text-[#0B0F14] font-bold rounded-xl py-3 hover:opacity-90 transition-all neon-glow-sm disabled:opacity-50"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Analyzing with AI...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4 mr-2" />
-                Generate AI Recommendation
-              </>
-            )}
-          </Button>
-        </div>
-
-        {/* Results */}
-        <div className="space-y-4">
-          {loading && (
-            <div className="glass rounded-2xl p-8 border border-[oklch(0.82_0.18_175/0.3)] flex flex-col items-center justify-center gap-4 animate-glow-pulse">
-              <div className="w-16 h-16 rounded-2xl gradient-teal flex items-center justify-center animate-spin">
-                <Brain className="w-8 h-8 text-[#0B0F14]" />
-              </div>
-              <div className="text-center">
-                <p className="text-[oklch(0.82_0.18_175)] font-semibold">AI is analyzing your profile...</p>
-                <p className="text-sm text-[oklch(0.60_0.02_200)] mt-1">Generating personalized recommendations</p>
-              </div>
-              <div className="flex gap-1">
-                {[0, 1, 2].map(i => (
-                  <div
-                    key={i}
-                    className="w-2 h-2 rounded-full gradient-teal animate-bounce"
-                    style={{ animationDelay: `${i * 0.2}s` }}
-                  />
+              <label className="text-sm font-medium mb-2 block">Business Type</label>
+              <div className="flex flex-wrap gap-2">
+                {BUSINESS_TYPES.map(type => (
+                  <button
+                    key={type}
+                    onClick={() => toggleBusinessType(type)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                      selectedBusinessTypes.includes(type)
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'border-border text-muted-foreground hover:border-primary/50'
+                    }`}
+                  >
+                    {type}
+                  </button>
                 ))}
               </div>
             </div>
-          )}
 
-          {result && !loading && (
-            <div className="space-y-4 animate-fade-in">
-              {/* Recommended Service */}
-              <div className="glass rounded-2xl p-5 border border-[oklch(0.82_0.18_175/0.3)] neon-glow-sm">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg gradient-teal flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-[#0B0F14]" />
-                  </div>
-                  <h3 className="font-semibold text-[oklch(0.82_0.18_175)]">Recommended Service</h3>
-                </div>
-                <p className="text-[oklch(0.85_0.01_200)] text-sm leading-relaxed">{result.recommendedService}</p>
-              </div>
-
-              {/* Upsell */}
-              <div className="glass rounded-2xl p-5 border border-[oklch(0.78_0.18_75/0.3)]">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-[oklch(0.78_0.18_75/0.2)] flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 text-[oklch(0.85_0.18_75)]" />
-                  </div>
-                  <h3 className="font-semibold text-[oklch(0.85_0.18_75)]">Upsell Opportunity</h3>
-                </div>
-                <p className="text-[oklch(0.85_0.01_200)] text-sm leading-relaxed">{result.upsellSuggestion}</p>
-              </div>
-
-              {/* Revenue Strategy */}
-              <div className="glass rounded-2xl p-5 border border-[oklch(0.72_0.17_155/0.3)]">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-[oklch(0.72_0.17_155/0.2)] flex items-center justify-center">
-                    <Zap className="w-4 h-4 text-[oklch(0.80_0.17_155)]" />
-                  </div>
-                  <h3 className="font-semibold text-[oklch(0.80_0.17_155)]">Revenue Strategy</h3>
-                </div>
-                <p className="text-[oklch(0.85_0.01_200)] text-sm leading-relaxed">{result.revenueStrategy}</p>
-                <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[oklch(0.82_0.18_175/0.15)] border border-[oklch(0.82_0.18_175/0.3)]">
-                  <span className="text-xs text-[oklch(0.60_0.02_200)]">Estimated ROI:</span>
-                  <span className="text-sm font-bold gradient-teal-text">{result.estimatedROI}</span>
-                </div>
-              </div>
-
-              {/* Download Buttons */}
-              <div className="glass rounded-2xl p-5 border border-[oklch(0.82_0.18_175/0.15)]">
-                <h3 className="font-semibold text-[oklch(0.75_0.01_200)] mb-3 flex items-center gap-2">
-                  <Download className="w-4 h-4 text-[oklch(0.82_0.18_175)]" />
-                  Export Results
-                </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={downloadPDF} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
-                    <FileText className="w-3 h-3 mr-1" /> PDF
-                  </Button>
-                  <Button onClick={downloadJSON} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
-                    <FileJson className="w-3 h-3 mr-1" /> JSON
-                  </Button>
-                  <Button onClick={downloadCSV} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
-                    <FileSpreadsheet className="w-3 h-3 mr-1" /> CSV
-                  </Button>
-                  <Button onClick={downloadTXT} variant="outline" size="sm" className="border-[oklch(0.82_0.18_175/0.3)] text-[oklch(0.82_0.18_175)] hover:bg-[oklch(0.82_0.18_175/0.1)] rounded-xl">
-                    <FileText className="w-3 h-3 mr-1" /> TXT
-                  </Button>
-                </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Monthly Budget: ₹{budget[0].toLocaleString()}</label>
+              <Slider value={budget} onValueChange={setBudget} min={5000} max={500000} step={5000} className="mt-2" />
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>₹5K</span><span>₹5L</span>
               </div>
             </div>
-          )}
 
-          {!result && !loading && (
-            <div className="glass rounded-2xl p-8 border border-[oklch(0.82_0.18_175/0.1)] flex flex-col items-center justify-center gap-3 text-center min-h-64">
-              <div className="w-16 h-16 rounded-2xl bg-[oklch(0.82_0.18_175/0.1)] flex items-center justify-center">
-                <Brain className="w-8 h-8 text-[oklch(0.82_0.18_175/0.5)]" />
-              </div>
-              <p className="text-[oklch(0.60_0.02_200)] text-sm">Fill in your business profile and click Generate to get AI-powered recommendations</p>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Team Size: {teamSize[0]} people</label>
+              <Slider value={teamSize} onValueChange={setTeamSize} min={1} max={500} step={1} className="mt-2" />
             </div>
-          )}
-        </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Business Goals</label>
+              <div className="flex flex-wrap gap-2">
+                {GOALS.map(goal => (
+                  <button
+                    key={goal}
+                    onClick={() => toggleGoal(goal)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                      selectedGoals.includes(goal)
+                        ? 'bg-accent text-accent-foreground border-accent'
+                        : 'border-border text-muted-foreground hover:border-accent/50'
+                    }`}
+                  >
+                    {goal}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Button onClick={handleGenerate} disabled={isLoading || selectedBusinessTypes.length === 0} className="w-full gap-2">
+              {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" />Generating...</> : <><Sparkles className="h-4 w-4" />Get Recommendation</>}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="card-glass">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Recommendation Result
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <Loader2 className="h-8 w-8 animate-spin mb-3 text-primary" />
+                <p className="text-sm">Analyzing your business profile...</p>
+              </div>
+            ) : result ? (
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                  <p className="text-xs text-muted-foreground mb-1">Recommended Service</p>
+                  <p className="font-bold text-lg text-primary">{result.recommendedService}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg bg-success/5 border border-success/20">
+                    <p className="text-xs text-muted-foreground">Projected ROI</p>
+                    <p className="font-semibold text-success">{result.projectedROI}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-accent/5 border border-accent/20">
+                    <p className="text-xs text-muted-foreground">Budget</p>
+                    <p className="font-semibold">₹{result.budget?.toLocaleString()}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Upsell Opportunity</p>
+                  <p className="text-sm text-foreground">{result.upsellSuggestion}</p>
+                </div>
+                <Separator />
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Reasoning</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{result.reasoning}</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting} className="w-full gap-2">
+                  {isExporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                  Export Result
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <Sparkles className="h-10 w-10 mb-3 opacity-30" />
+                <p className="text-sm">Fill in your business profile and click Generate</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

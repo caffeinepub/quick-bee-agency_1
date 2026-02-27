@@ -1,122 +1,98 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T14:54:09.872Z",
+  "generatedAt": "2026-02-27T06:02:42.183Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 8,
-    "implemented": 0,
+    "total": 6,
+    "implemented": 5,
     "items": [
       {
-        "id": "REQ-1",
-        "summary": "Fix the API settings configuration form so that all fields — API Endpoint, API Key, WhatsApp Token, Razorpay Key ID, Razorpay Secret, Email API Key, CRM Webhook URL, and Automation Webhook URL — are properly persisted to state/storage and included in all outgoing requests. Values must survive component re-renders and page navigation. Use a centralized config store (e.g., React context or persistent state via localStorage) so every module can read and use these values reliably.",
-        "status": "missing",
+        "id": "REQ-25",
+        "summary": "Populate the Services page with the complete Quick Bee Agency 2026 Master Service Price List. Organise all entries into 7 categories: (1) Web Development Services — 12 services with Student/Business/Premium tiers; (2) App Development Services — 8 services with Student/Business/Premium tiers; (3) AI Automation Services — 8 services with Starter/Growth/Enterprise tiers; (4) Digital Marketing & Growth — 8 services with Student/Business/Premium tiers; (5) Branding & Creative Services — 7 services with Starter/Business/Premium tiers; (6) SaaS & Advanced Tech — 8 services with Business/Advanced/Enterprise tiers; (7) Business Setup & Systems — 6 services with Starter/Growth/Premium tiers. Each service card must display the service name, category, all three pricing tiers with their INR (₹) prices, and the list of 16 features where provided in the user's input. The page must include a category filter/tab bar so users can browse by category. Prices must be formatted in Indian Rupee notation (e.g., ₹1,20,000).",
+        "status": "implemented",
         "plannedFiles": [
-          "frontend/src/contexts/ApiConfigContext.tsx",
-          "frontend/src/main.tsx",
-          "frontend/src/components/settings/ApiSettingsPanel.tsx",
-          "frontend/src/pages/SettingsPage.tsx"
+          "frontend/src/data/masterServiceCatalog.ts",
+          "frontend/src/pages/ServicesPage.tsx",
+          "frontend/src/utils/formatCurrency.ts"
         ],
-        "matchedFiles": []
+        "matchedFiles": [
+          "frontend/src/data/masterServiceCatalog.ts",
+          "frontend/src/pages/ServicesPage.tsx",
+          "frontend/src/utils/formatCurrency.ts"
+        ]
       },
       {
-        "id": "REQ-2",
-        "summary": "Fix all webhook trigger functions (form submission, lead qualification, payment success, project creation) to correctly send HTTP POST requests with proper JSON body and headers. Each trigger must include: Content-Type: application/json header, Authorization header using the saved API Key where required, and a structured JSON payload relevant to the event type. Use the saved CRM Webhook URL for CRM events and Automation Webhook URL for automation events from the API settings store.",
-        "status": "missing",
+        "id": "REQ-26",
+        "summary": "Add the 30 individual service packages (Website Development ₹999, Sales Funnel Setup ₹1,099, WhatsApp Automation ₹1,199, AI Chatbot Setup ₹1,299, Landing Pages ₹1,399, SEO Setup ₹1,499, Social Media Management ₹1,599, Instagram Growth System ₹1,699, Lead Generation System ₹1,799, Branding Kit ₹1,899, Logo Design ₹1,999, Video Editing ₹2,099, AI Content Creation ₹2,199, Email Marketing Setup ₹2,299, LinkedIn Outreach System ₹2,399, E-commerce Store Setup ₹2,499, No-Code App Development ₹2,599, Automation Setup ₹2,699, CRM Setup ₹2,799, AI Proposal Generator ₹2,899, Pricing Strategy Consulting ₹2,999, Funnel Optimization ₹3,099, Copywriting Service ₹3,199, Reels Script Creation ₹3,299, AI Image Generation ₹3,399, T-Shirt POD Setup ₹3,499, Etsy Automation ₹3,599, Affiliate Marketing System ₹3,699, Notion Dashboard Setup ₹3,799, Analytics Dashboard Setup ₹3,899) to the Services page as a separate 'Individual Packages' section or tab. Each package card must show: package name, flat INR price, category, sub-category, and its 16 listed features as a bullet list expandable on click.",
+        "status": "implemented",
         "plannedFiles": [
-          "frontend/src/utils/webhookTriggers.ts",
-          "frontend/src/pages/LeadsPage.tsx",
-          "frontend/src/pages/CheckoutPage.tsx",
-          "frontend/src/pages/ProjectsPage.tsx"
+          "frontend/src/data/individualPackages.ts",
+          "frontend/src/pages/ServicesPage.tsx"
         ],
-        "matchedFiles": []
+        "matchedFiles": [
+          "frontend/src/data/individualPackages.ts",
+          "frontend/src/pages/ServicesPage.tsx"
+        ]
       },
       {
-        "id": "REQ-3",
-        "summary": "Add comprehensive error handling, logging, and response status validation to all webhook and API calls. For every outgoing request: catch network errors and show a user-visible error message specifying which webhook/API failed, log request details (URL, payload, timestamp) and response details (status, body) to a visible in-dashboard Webhook Log panel, confirm HTTP 200/2xx as success and display a success indicator, show a distinct error state for non-2xx responses including the status code and response message.",
-        "status": "missing",
+        "id": "REQ-27",
+        "summary": "Add the Monthly Maintenance & Subscription plans to the Services page as a dedicated 'Maintenance Plans' section or tab. Include all five plan categories: (1) Website Maintenance — Basic (₹999–₹2,999/mo), Business (₹3,999–₹7,999/mo), Premium/AI/3D (₹10,000–₹35,000/mo); (2) App Maintenance — Basic (₹2,999–₹6,999/mo), Growth (₹8,000–₹20,000/mo), Enterprise (₹25,000–₹75,000/mo); (3) AI Automation Maintenance — Basic (₹2,999–₹7,999/mo), Advanced (₹10,000–₹30,000/mo); (4) Marketing & Growth Retainer — Starter (₹4,999–₹12,000/mo), Growth (₹15,000–₹40,000/mo), Premium (₹50,000–₹1,50,000/mo); (5) SaaS & Backend Retainer — Business (₹15,000–₹35,000/mo), Enterprise (₹40,000–₹1,20,000/mo). Each plan card must list its included features as provided in the user's input.",
+        "status": "implemented",
         "plannedFiles": [
-          "frontend/src/contexts/WebhookLogContext.tsx",
-          "frontend/src/main.tsx",
-          "frontend/src/utils/webhookTriggers.ts",
-          "frontend/src/components/automation/WebhookLogPanel.tsx",
-          "frontend/src/pages/AutomationPage.tsx"
+          "frontend/src/data/maintenancePlans.ts",
+          "frontend/src/pages/ServicesPage.tsx"
         ],
-        "matchedFiles": []
+        "matchedFiles": [
+          "frontend/src/data/maintenancePlans.ts",
+          "frontend/src/pages/ServicesPage.tsx"
+        ]
       },
       {
-        "id": "REQ-4",
-        "summary": "Fix automation toggles on the Automation Page so each one truly enables or disables its corresponding feature. When a toggle is OFF, its automation must not fire (no webhook calls, no API calls, no UI triggers). When ON, the automation must be active. The following toggles must be fixed: WhatsApp Auto-Reply, Proposal Auto-Send (when lead is qualified), Lead Follow-Up Sequences, Payment Confirmation via Razorpay webhook, and Project Onboarding after payment success. Toggle state must persist across sessions.",
-        "status": "missing",
+        "id": "REQ-28",
+        "summary": "Add the 3 Master Agency Plans (Spark, Surge, Titan) to the Services page as a prominently styled 'Agency Plans' section or tab. Display: Spark Plan (₹4,999–₹25,000, Student/Beginner/Idea Stage), Surge Plan (₹30,000–₹1,20,000, Local & National Business Growth), Titan Plan (₹1,50,000–₹5,00,000+, National/Global/Enterprise Clients). Style each plan as a highlighted pricing card with a distinct colour badge (green for Spark, blue for Surge, purple for Titan) matching the emoji indicators in the source data.",
+        "status": "implemented",
         "plannedFiles": [
-          "frontend/src/contexts/AutomationConfigContext.tsx",
-          "frontend/src/main.tsx",
-          "frontend/src/pages/AutomationPage.tsx",
-          "frontend/src/utils/webhookTriggers.ts",
-          "frontend/src/pages/LeadsPage.tsx"
+          "frontend/src/data/agencyPlans.ts",
+          "frontend/src/pages/ServicesPage.tsx"
         ],
-        "matchedFiles": []
+        "matchedFiles": [
+          "frontend/src/data/agencyPlans.ts",
+          "frontend/src/pages/ServicesPage.tsx"
+        ]
       },
       {
-        "id": "REQ-5",
-        "summary": "Fix the AI Smart Systems modules (Service Recommendation, Proposal Generator, Pricing Strategy, Closing Scripts, Follow-Up Messages, Lead Qualification) so that AI responses from OpenRouter/OpenAI are correctly fetched and displayed in the dashboard. Each module must: build the correct API request using the saved API Endpoint and API Key, send the prompt with proper OpenAI-compatible JSON body format, handle the response and extract the generated text, and render the AI response in the relevant result area of the page.",
+        "id": "REQ-29",
+        "summary": "On every service card, pricing tier card, maintenance plan card, individual package card, and agency plan card on the Services page, add a direct 'Buy Now' or 'Select & Pay' button. When clicked, this button must: (1) add the selected service/plan at the chosen price tier to the cart (using the existing useCart hook), then navigate to the CheckoutPage; OR (2) if Razorpay is configured in the centralized config store, initiate a Razorpay payment flow directly for the selected item's price. For tiered services (Student/Business/Premium), display a tier selector (radio buttons or segmented control) on the card so the user can choose which tier price to purchase before clicking the button. The selected tier and price must be passed through to the cart/checkout.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/services/TierSelector.tsx",
+          "frontend/src/components/services/BuyNowButton.tsx",
+          "frontend/src/hooks/useDirectPurchase.ts",
+          "frontend/src/pages/ServicesPage.tsx",
+          "frontend/src/cart/useCart.ts",
+          "frontend/src/pages/CheckoutPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/services/TierSelector.tsx",
+          "frontend/src/components/services/BuyNowButton.tsx",
+          "frontend/src/hooks/useDirectPurchase.ts",
+          "frontend/src/pages/ServicesPage.tsx",
+          "frontend/src/cart/useCart.ts",
+          "frontend/src/pages/CheckoutPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-30",
+        "summary": "Fix the Sign In button on the LoginPage (frontend/src/pages/LoginPage.tsx) so that clicking it correctly triggers the Internet Identity authentication flow, waits for authentication to complete, and then redirects the authenticated user to the appropriate dashboard route. The button must show a loading/spinner state while the authentication is in progress. If authentication fails or is cancelled, display a user-visible error message. Ensure the button is not disabled or unbound from its click handler.",
         "status": "missing",
         "plannedFiles": [
-          "frontend/src/utils/aiClient.ts",
-          "frontend/src/pages/ServiceRecommendationPage.tsx",
-          "frontend/src/pages/ProposalGeneratorPage.tsx",
-          "frontend/src/pages/PricingStrategyPage.tsx",
-          "frontend/src/pages/generators/ClosingScriptsPage.tsx",
-          "frontend/src/pages/generators/FollowUpMessagesPage.tsx",
-          "frontend/src/pages/generators/LeadQualificationPage.tsx",
+          "frontend/src/pages/LoginPage.tsx",
+          "frontend/src/hooks/useInternetIdentity.ts",
           "frontend/src/App.tsx"
-        ],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-6",
-        "summary": "Fix Razorpay payment webhook handling and WhatsApp auto-reply triggers. For Razorpay: when a payment success event occurs (or is simulated), fire the Automation Webhook URL with a structured payment payload and update the lead/project status accordingly. For WhatsApp Auto-Reply: when the WhatsApp Auto-Reply toggle is ON and a lead is created or updated, send a POST request to the saved Automation Webhook URL with WhatsApp message payload (using the saved WhatsApp Token as authorization). Both flows must validate the webhook URL is configured before attempting.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/utils/razorpayWebhookHandler.ts",
-          "frontend/src/pages/PaymentSuccessPage.tsx",
-          "frontend/src/utils/whatsAppAutoReply.ts",
-          "frontend/src/pages/LeadsPage.tsx"
-        ],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-7",
-        "summary": "Ensure PDF and CSV exports work correctly across all dashboard modules including Leads, AI Smart Systems results, WhatsApp Logs, Invoices, and the Data Export Center. Fix any broken export functions: CSV exports must produce valid comma-separated files with headers and download to the user's browser; PDF exports must generate a formatted document and trigger a browser download. Each export button must show a loading state while generating and an error message if it fails.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/utils/exportUtils.ts",
-          "frontend/src/pages/LeadsPage.tsx",
-          "frontend/src/pages/ServiceRecommendationPage.tsx",
-          "frontend/src/pages/ProposalGeneratorPage.tsx",
-          "frontend/src/pages/PricingStrategyPage.tsx",
-          "frontend/src/pages/WhatsAppLogsPage.tsx",
-          "frontend/src/pages/InvoiceHistoryPage.tsx",
-          "frontend/src/pages/DataExportCenterPage.tsx"
-        ],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-8",
-        "summary": "Add a real-time connection status indicator for each configured integration (API Endpoint, CRM Webhook URL, Automation Webhook URL, WhatsApp, Razorpay). Each indicator must show 'Connected' (green) when the last call to that endpoint returned a 2xx response, 'Error' (red) when the last call failed, and 'Not Configured' (grey) when the URL/key is empty. Add a 'Test Connection' button for CRM Webhook URL and Automation Webhook URL that sends a test POST payload and updates the indicator in real time.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/contexts/ConnectionStatusContext.tsx",
-          "frontend/src/main.tsx",
-          "frontend/src/components/settings/ConnectionStatusIndicator.tsx",
-          "frontend/src/components/settings/TestConnectionButton.tsx",
-          "frontend/src/components/settings/ApiSettingsPanel.tsx",
-          "frontend/src/utils/webhookTriggers.ts",
-          "frontend/src/utils/aiClient.ts",
-          "frontend/src/pages/AutomationPage.tsx"
         ],
         "matchedFiles": []
       }
@@ -125,7 +101,21 @@
   "changedFiles": [
     "build-request.json",
     "feature_evidence.json",
+    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/cart/useCart.ts",
+    "frontend/src/components/services/BuyNowButton.tsx",
+    "frontend/src/components/services/TierSelector.tsx",
+    "frontend/src/data/agencyPlans.ts",
+    "frontend/src/data/individualPackages.ts",
+    "frontend/src/data/maintenancePlans.ts",
+    "frontend/src/data/masterServiceCatalog.ts",
+    "frontend/src/hooks/useDirectPurchase.ts",
+    "frontend/src/pages/CartPage.tsx",
+    "frontend/src/pages/CheckoutPage.tsx",
+    "frontend/src/pages/ServiceDetailPage.tsx",
+    "frontend/src/pages/ServicesPage.tsx",
+    "frontend/src/utils/formatCurrency.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

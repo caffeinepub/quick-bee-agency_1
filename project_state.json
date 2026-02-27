@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 3,
+  "projectStateVersion": 9,
   "summary": "AI agency platform with multi-step build: Lead Management CRM (Step 1), Automation Dashboard with webhook-based Sales System Configuration (Step 2). Features include downloadable exports, invoice/GST quote generation, automation controls, API integrations (Razorpay, WhatsApp Cloud API, OpenRouter/OpenAI, Supabase, Airtable, Resend, Google Sheets, PDF generator), AI Smart Systems, and no-code configurable webhook automation engine.",
   "architectural_notes": [
     "All AI systems connect through external automation tools (e.g., Make.com) via webhook URLs — no direct backend API integration",
@@ -12,10 +12,181 @@
     "Automation toggles not reliably enabling/disabling features",
     "Webhook triggers not sending correct POST requests to Make.com/external APIs",
     "AI responses (OpenRouter/OpenAI) not displaying in dashboard",
-    "Razorpay payment webhooks and WhatsApp auto-reply triggers not functioning correctly"
+    "Razorpay payment webhooks and WhatsApp auto-reply triggers not functioning correctly",
+    "AI Smart Systems 'Launch Tool' buttons not opening functional tool UIs — tools are non-functional placeholders",
+    "Sign In button on login screen is non-functional / not working"
   ],
   "isFixRequest": true,
-  "existing_features": [],
+  "existing_features": [
+    {
+      "id": "feature-on-the-generators-page-when-a-user-clicks-launch-tool-for-the-service-recommender-card-navigate-to-the-service-recommendation-page-generators-service-recommender-and-ensure-the-page-renders-a-fully-functional-ai-powered-tool-ui-the-tool-must-read-the-saved-api-endpoint-and-api-key-from-the-centralized-config-store-localstorage-react-context-set-via-salessystemconfigdialog-build-an-openai-compatible-post-request-with-a-structured-prompt-asking-for-service-recommendations-based-on-the-user-s-inputs-business-type-budget-goals-display-a-loading-state-while-awaiting-the-response-extract-and-render-the-ai-generated-recommendation-text-in-a-clearly-styled-result-area-and-show-an-error-message-if-the-api-call-fails",
+      "title": "On the Generators page, when a user clicks 'Launch Tool' for the Service Recommender card, navigate to the Service Recommendation page (/generators/service-recommender) and ensure the page renders a fully functional AI-powered tool UI. The tool must: read the saved API Endpoint and API Key from the centralized config store (localStorage/React context set via SalesSystemConfigDialog); build an OpenAI-compatible POST request with a structured prompt asking for service recommendations based on the user's inputs (business type, budget, goals); display a loading state while awaiting the response; extract and render the AI-generated recommendation text in a clearly styled result area; and show an error message if the API call fails.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-on-the-generators-page-when-a-user-clicks-launch-tool-for-the-proposal-generator-card-navigate-to-the-proposal-generator-page-generators-proposal-and-ensure-the-page-renders-a-fully-functional-ai-powered-proposal-generation-ui-the-tool-must-read-the-saved-api-endpoint-and-api-key-from-the-centralized-config-store-accept-user-inputs-for-client-name-project-type-scope-deliverables-timeline-and-budget-build-an-openai-compatible-post-request-with-a-prompt-instructing-the-ai-to-generate-a-professional-proposal-display-a-loading-state-render-the-full-ai-generated-proposal-text-in-a-formatted-result-area-and-provide-a-working-export-html-or-text-download-of-the-generated-proposal",
+      "title": "On the Generators page, when a user clicks 'Launch Tool' for the Proposal Generator card, navigate to the Proposal Generator page (/generators/proposal) and ensure the page renders a fully functional AI-powered proposal generation UI. The tool must: read the saved API Endpoint and API Key from the centralized config store; accept user inputs for client name, project type, scope, deliverables, timeline, and budget; build an OpenAI-compatible POST request with a prompt instructing the AI to generate a professional proposal; display a loading state; render the full AI-generated proposal text in a formatted result area; and provide a working export (HTML or text download) of the generated proposal.",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-on-the-generators-page-when-a-user-clicks-launch-tool-for-the-smart-pricing-strategy-card-navigate-to-the-pricing-strategy-page-generators-pricing-and-ensure-the-page-renders-a-fully-functional-ai-powered-pricing-tool-the-tool-must-read-the-saved-api-endpoint-and-api-key-from-the-centralized-config-store-accept-user-inputs-service-type-base-cost-target-margin-competitor-pricing-urgency-complexity-modifiers-send-an-openai-compatible-post-request-with-a-prompt-requesting-dynamic-pricing-recommendations-and-psychological-pricing-suggestions-display-a-loading-state-render-the-ai-generated-pricing-recommendations-in-a-structured-result-area-alongside-or-replacing-the-existing-static-calculator-output-and-support-exporting-the-results",
+      "title": "On the Generators page, when a user clicks 'Launch Tool' for the Smart Pricing Strategy card, navigate to the Pricing Strategy page (/generators/pricing) and ensure the page renders a fully functional AI-powered pricing tool. The tool must: read the saved API Endpoint and API Key from the centralized config store; accept user inputs (service type, base cost, target margin, competitor pricing, urgency/complexity modifiers); send an OpenAI-compatible POST request with a prompt requesting dynamic pricing recommendations and psychological pricing suggestions; display a loading state; render the AI-generated pricing recommendations in a structured result area (alongside or replacing the existing static calculator output); and support exporting the results.",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-on-the-generators-page-when-a-user-clicks-launch-tool-for-the-ai-closing-scripts-card-create-and-navigate-to-a-new-closing-scripts-page-generators-closing-scripts-the-page-must-render-a-form-accepting-inputs-for-prospect-name-industry-primary-objection-and-desired-outcome-read-the-saved-api-endpoint-and-api-key-from-the-centralized-config-store-build-and-send-an-openai-compatible-post-request-with-a-prompt-requesting-tailored-closing-scripts-for-the-given-objection-and-context-display-a-loading-state-render-the-ai-generated-closing-script-s-in-a-clearly-formatted-result-area-and-provide-a-copy-to-clipboard-and-or-download-option-for-the-generated-scripts",
+      "title": "On the Generators page, when a user clicks 'Launch Tool' for the AI Closing Scripts card, create and navigate to a new Closing Scripts page (/generators/closing-scripts). The page must: render a form accepting inputs for prospect name, industry, primary objection, and desired outcome; read the saved API Endpoint and API Key from the centralized config store; build and send an OpenAI-compatible POST request with a prompt requesting tailored closing scripts for the given objection and context; display a loading state; render the AI-generated closing script(s) in a clearly formatted result area; and provide a copy-to-clipboard and/or download option for the generated scripts.",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-on-the-generators-page-when-a-user-clicks-launch-tool-for-the-auto-follow-up-messages-card-create-and-navigate-to-a-new-follow-up-messages-page-generators-follow-up-the-page-must-render-a-form-accepting-inputs-for-lead-name-pipeline-stage-last-interaction-summary-and-follow-up-goal-read-the-saved-api-endpoint-and-api-key-from-the-centralized-config-store-send-an-openai-compatible-post-request-requesting-an-automated-follow-up-message-sequence-3-5-messages-tailored-to-the-lead-s-stage-display-a-loading-state-render-the-ai-generated-follow-up-sequence-in-a-clearly-formatted-result-area-with-each-message-numbered-and-separated-and-provide-a-copy-to-clipboard-or-export-option",
+      "title": "On the Generators page, when a user clicks 'Launch Tool' for the Auto Follow-up Messages card, create and navigate to a new Follow-Up Messages page (/generators/follow-up). The page must: render a form accepting inputs for lead name, pipeline stage, last interaction summary, and follow-up goal; read the saved API Endpoint and API Key from the centralized config store; send an OpenAI-compatible POST request requesting an automated follow-up message sequence (3–5 messages) tailored to the lead's stage; display a loading state; render the AI-generated follow-up sequence in a clearly formatted result area with each message numbered and separated; and provide a copy-to-clipboard or export option.",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-on-the-generators-page-when-a-user-clicks-launch-tool-for-the-smart-lead-qualification-card-create-and-navigate-to-a-new-lead-qualification-page-generators-lead-qualification-the-page-must-render-a-form-accepting-inputs-for-prospect-details-company-size-budget-range-urgency-decision-maker-status-and-needs-description-read-the-saved-api-endpoint-and-api-key-from-the-centralized-config-store-send-an-openai-compatible-post-request-with-a-prompt-requesting-a-qualification-score-0-100-tier-label-hot-warm-cold-and-reasoning-display-a-loading-state-render-the-ai-generated-qualification-result-including-the-score-tier-badge-and-explanation-text-in-a-clearly-styled-result-card-and-show-an-error-message-if-the-api-call-fails",
+      "title": "On the Generators page, when a user clicks 'Launch Tool' for the Smart Lead Qualification card, create and navigate to a new Lead Qualification page (/generators/lead-qualification). The page must: render a form accepting inputs for prospect details (company size, budget range, urgency, decision-maker status, and needs description); read the saved API Endpoint and API Key from the centralized config store; send an OpenAI-compatible POST request with a prompt requesting a qualification score (0–100), tier label (Hot/Warm/Cold), and reasoning; display a loading state; render the AI-generated qualification result including the score, tier badge, and explanation text in a clearly styled result card; and show an error message if the API call fails.",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-centralized-ai-config-store-using-react-context-backed-by-localstorage-that-exposes-the-saved-api-endpoint-and-api-key-from-the-salessystemconfigdialog-settings-all-six-ai-generator-pages-must-read-from-this-store-to-make-their-api-calls-if-the-api-endpoint-or-api-key-is-not-configured-each-generator-tool-page-must-display-a-clearly-visible-banner-warning-the-user-that-ai-credentials-are-not-yet-set-with-a-link-or-button-to-open-the-api-settings-dialog",
+      "title": "Create a centralized AI config store (using React context backed by localStorage) that exposes the saved API Endpoint and API Key (from the SalesSystemConfigDialog settings). All six AI Generator pages must read from this store to make their API calls. If the API Endpoint or API Key is not configured, each Generator tool page must display a clearly visible banner warning the user that AI credentials are not yet set, with a link or button to open the API settings dialog.",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-register-the-new-closing-scripts-generators-closing-scripts-follow-up-messages-generators-follow-up-and-lead-qualification-generators-lead-qualification-routes-in-the-tanstack-router-configuration-in-app-tsx-nested-under-the-authenticated-shell-route-so-they-are-accessible-after-login",
+      "title": "Register the new Closing Scripts (/generators/closing-scripts), Follow-Up Messages (/generators/follow-up), and Lead Qualification (/generators/lead-qualification) routes in the TanStack Router configuration in App.tsx, nested under the authenticated shell route, so they are accessible after login.",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-or-overhaul-a-sales-system-configuration-page-accessible-from-the-sidebar-settings-with-a-form-containing-the-following-fields-webhook-url-general-api-endpoint-api-key-whatsapp-token-razorpay-key-id-razorpay-secret-email-api-key-crm-webhook-url-and-automation-webhook-url-each-field-must-have-an-on-off-toggle-to-enable-or-disable-it-all-values-must-be-persisted-to-localstorage-via-the-centralized-ai-config-context-extending-aiconfigcontext-or-creating-a-unified-webhookconfigcontext-and-survive-page-navigation-and-re-renders-a-save-configuration-button-must-commit-all-values-a-visible-connection-status-indicator-connected-not-connected-not-configured-must-appear-beside-each-url-key-field",
+      "title": "Create or overhaul a Sales System Configuration page (accessible from the sidebar/settings) with a form containing the following fields: Webhook URL (general), API Endpoint, API Key, WhatsApp Token, Razorpay Key ID, Razorpay Secret, Email API Key, CRM Webhook URL, and Automation Webhook URL. Each field must have an ON/OFF toggle to enable or disable it. All values must be persisted to localStorage via the centralized AI config context (extending AIConfigContext or creating a unified WebhookConfigContext) and survive page navigation and re-renders. A 'Save Configuration' button must commit all values. A visible connection status indicator (Connected / Not Connected / Not Configured) must appear beside each URL/key field.",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-extend-the-centralized-config-context-or-create-a-new-webhookconfigcontext-to-expose-all-configuration-values-from-req-17-webhook-url-api-endpoint-api-key-whatsapp-token-razorpay-key-id-razorpay-secret-email-api-key-crm-webhook-url-automation-webhook-url-along-with-their-on-off-toggle-states-all-six-ai-generator-pages-and-all-automation-trigger-functions-must-read-exclusively-from-this-store-wrap-the-app-in-this-provider-in-app-tsx",
+      "title": "Extend the centralized config context (or create a new WebhookConfigContext) to expose all configuration values from REQ-17 (Webhook URL, API Endpoint, API Key, WhatsApp Token, Razorpay Key ID, Razorpay Secret, Email API Key, CRM Webhook URL, Automation Webhook URL) along with their ON/OFF toggle states. All six AI Generator pages and all automation trigger functions must read exclusively from this store. Wrap the app in this provider in App.tsx.",
+      "reqIds": [
+        "REQ-18"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-all-six-ai-generator-tool-pages-service-recommendation-proposal-generator-pricing-strategy-closing-scripts-follow-up-messages-lead-qualification-so-that-when-a-form-is-submitted-in-addition-to-or-optionally-instead-of-calling-the-ai-api-directly-the-form-payload-is-also-sent-as-a-post-request-to-the-configured-webhook-url-or-automation-webhook-url-from-the-centralized-config-store-the-webhook-post-must-include-content-type-application-json-header-authorization-header-with-the-saved-api-key-and-a-structured-json-body-containing-the-tool-name-all-form-field-values-and-a-timestamp-the-ai-generated-response-from-the-openai-compatible-endpoint-must-be-rendered-in-the-result-area-of-each-respective-page-if-the-ai-api-or-webhook-call-fails-show-a-user-visible-error-message-specifying-which-endpoint-failed",
+      "title": "Update all six AI Generator tool pages (Service Recommendation, Proposal Generator, Pricing Strategy, Closing Scripts, Follow-Up Messages, Lead Qualification) so that when a form is submitted, in addition to (or optionally instead of) calling the AI API directly, the form payload is also sent as a POST request to the configured Webhook URL (or Automation Webhook URL) from the centralized config store. The webhook POST must include: Content-Type: application/json header, Authorization header with the saved API Key, and a structured JSON body containing the tool name, all form field values, and a timestamp. The AI-generated response (from the OpenAI-compatible endpoint) must be rendered in the result area of each respective page. If the AI API or webhook call fails, show a user-visible error message specifying which endpoint failed.",
+      "reqIds": [
+        "REQ-19"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-five-automation-triggers-that-fire-webhook-post-requests-to-the-configured-automation-webhook-url-when-their-corresponding-toggle-is-on-in-the-centralized-config-store-1-whatsapp-auto-reply-fires-when-a-lead-is-created-or-updated-sending-a-payload-with-lead-details-and-using-the-whatsapp-token-as-authorization-2-proposal-auto-send-fires-when-a-lead-s-status-is-marked-qualified-sending-lead-and-proposal-data-3-lead-follow-up-sequences-fires-on-a-configurable-schedule-or-manual-trigger-per-lead-sending-lead-stage-and-contact-info-4-payment-confirmation-fires-after-a-razorpay-payment-success-event-real-or-simulated-sending-payment-and-lead-order-details-5-project-onboarding-fires-after-payment-success-sending-project-creation-payload-each-trigger-must-validate-that-the-automation-webhook-url-is-configured-and-its-toggle-is-on-before-attempting-the-post-when-a-trigger-fires-successfully-log-the-event-on-failure-show-a-user-visible-error",
+      "title": "Implement five automation triggers that fire webhook POST requests to the configured Automation Webhook URL when their corresponding toggle is ON in the centralized config store: (1) WhatsApp Auto-Reply — fires when a lead is created or updated, sending a payload with lead details and using the WhatsApp Token as Authorization; (2) Proposal Auto-Send — fires when a lead's status is marked 'Qualified', sending lead and proposal data; (3) Lead Follow-Up Sequences — fires on a configurable schedule or manual trigger per lead, sending lead stage and contact info; (4) Payment Confirmation — fires after a Razorpay payment success event (real or simulated), sending payment and lead/order details; (5) Project Onboarding — fires after payment success, sending project creation payload. Each trigger must validate that the Automation Webhook URL is configured and its toggle is ON before attempting the POST. When a trigger fires successfully, log the event; on failure, show a user-visible error.",
+      "reqIds": [
+        "REQ-20"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-all-automation-toggles-on-the-automation-page-so-each-one-reliably-enables-or-disables-its-feature-toggle-state-must-be-read-from-and-written-to-the-centralized-config-store-localstorage-backed-so-it-persists-across-sessions-when-a-toggle-is-turned-off-its-corresponding-automation-must-not-fire-any-webhook-calls-api-calls-or-ui-triggers-the-five-toggles-that-must-work-correctly-are-whatsapp-auto-reply-proposal-auto-send-lead-follow-up-sequences-payment-confirmation-and-project-onboarding",
+      "title": "Fix all automation toggles on the Automation Page so each one reliably enables or disables its feature. Toggle state must be read from and written to the centralized config store (localStorage-backed) so it persists across sessions. When a toggle is turned OFF, its corresponding automation must not fire any webhook calls, API calls, or UI triggers. The five toggles that must work correctly are: WhatsApp Auto-Reply, Proposal Auto-Send, Lead Follow-Up Sequences, Payment Confirmation, and Project Onboarding.",
+      "reqIds": [
+        "REQ-21"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-webhook-log-panel-visible-in-the-dashboard-e-g-as-a-collapsible-panel-or-a-dedicated-webhook-logs-route-accessible-from-the-sidebar-this-panel-must-log-every-outgoing-webhook-and-api-request-with-timestamp-target-url-event-tool-name-request-payload-summary-http-response-status-and-response-body-summary-entries-must-be-color-coded-green-for-2xx-success-red-for-errors-or-non-2xx-the-panel-must-support-filtering-by-event-type-and-status-and-provide-a-clear-logs-button-logs-are-stored-in-memory-or-localstorage-for-the-session",
+      "title": "Add a Webhook Log panel visible in the dashboard (e.g., as a collapsible panel or a dedicated /webhook-logs route accessible from the sidebar). This panel must log every outgoing webhook and API request with: timestamp, target URL, event/tool name, request payload summary, HTTP response status, and response body summary. Entries must be color-coded: green for 2xx success, red for errors or non-2xx. The panel must support filtering by event type and status, and provide a 'Clear Logs' button. Logs are stored in-memory or localStorage for the session.",
+      "reqIds": [
+        "REQ-22"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-csv-and-pdf-exports-work-correctly-across-all-dashboard-modules-leads-ai-smart-systems-results-each-generator-tool-whatsapp-logs-invoices-and-the-data-export-center-csv-exports-must-produce-valid-comma-separated-files-with-column-headers-and-trigger-a-browser-download-pdf-exports-for-proposals-and-invoices-must-generate-a-formatted-document-and-trigger-a-browser-download-each-export-button-must-show-a-loading-spinner-state-while-generating-and-display-an-error-message-if-export-fails-fix-any-broken-export-utility-functions-in-exportutils-ts-as-needed",
+      "title": "Ensure CSV and PDF exports work correctly across all dashboard modules: Leads, AI Smart Systems results (each generator tool), WhatsApp Logs, Invoices, and the Data Export Center. CSV exports must produce valid comma-separated files with column headers and trigger a browser download. PDF exports (for proposals and invoices) must generate a formatted document and trigger a browser download. Each export button must show a loading/spinner state while generating and display an error message if export fails. Fix any broken export utility functions in exportUtils.ts as needed.",
+      "reqIds": [
+        "REQ-23"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-real-time-connection-status-indicators-for-each-configured-integration-on-the-sales-system-configuration-page-api-endpoint-crm-webhook-url-automation-webhook-url-whatsapp-token-and-razorpay-key-id-secret-each-indicator-must-display-connected-green-badge-when-the-last-call-to-that-endpoint-returned-a-2xx-response-error-red-badge-when-the-last-call-failed-or-returned-non-2xx-and-not-configured-grey-badge-when-the-url-key-field-is-empty-or-its-toggle-is-off-crm-webhook-url-and-automation-webhook-url-must-each-have-a-test-connection-button-that-sends-a-test-post-payload-type-test-timestamp-and-updates-the-indicator-immediately-based-on-the-response",
+      "title": "Add real-time connection status indicators for each configured integration on the Sales System Configuration page: API Endpoint, CRM Webhook URL, Automation Webhook URL, WhatsApp (token), and Razorpay (Key ID + Secret). Each indicator must display 'Connected' (green badge) when the last call to that endpoint returned a 2xx response, 'Error' (red badge) when the last call failed or returned non-2xx, and 'Not Configured' (grey badge) when the URL/key field is empty or its toggle is OFF. CRM Webhook URL and Automation Webhook URL must each have a 'Test Connection' button that sends a test POST payload ({ type: 'test', timestamp }) and updates the indicator immediately based on the response.",
+      "reqIds": [
+        "REQ-24"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-populate-the-services-page-with-the-complete-quick-bee-agency-2026-master-service-price-list-organise-all-entries-into-7-categories-1-web-development-services-12-services-with-student-business-premium-tiers-2-app-development-services-8-services-with-student-business-premium-tiers-3-ai-automation-services-8-services-with-starter-growth-enterprise-tiers-4-digital-marketing-growth-8-services-with-student-business-premium-tiers-5-branding-creative-services-7-services-with-starter-business-premium-tiers-6-saas-advanced-tech-8-services-with-business-advanced-enterprise-tiers-7-business-setup-systems-6-services-with-starter-growth-premium-tiers-each-service-card-must-display-the-service-name-category-all-three-pricing-tiers-with-their-inr-prices-and-the-list-of-16-features-where-provided-in-the-user-s-input-the-page-must-include-a-category-filter-tab-bar-so-users-can-browse-by-category-prices-must-be-formatted-in-indian-rupee-notation-e-g-1-20-000",
+      "title": "Populate the Services page with the complete Quick Bee Agency 2026 Master Service Price List. Organise all entries into 7 categories: (1) Web Development Services — 12 services with Student/Business/Premium tiers; (2) App Development Services — 8 services with Student/Business/Premium tiers; (3) AI Automation Services — 8 services with Starter/Growth/Enterprise tiers; (4) Digital Marketing & Growth — 8 services with Student/Business/Premium tiers; (5) Branding & Creative Services — 7 services with Starter/Business/Premium tiers; (6) SaaS & Advanced Tech — 8 services with Business/Advanced/Enterprise tiers; (7) Business Setup & Systems — 6 services with Starter/Growth/Premium tiers. Each service card must display the service name, category, all three pricing tiers with their INR (₹) prices, and the list of 16 features where provided in the user's input. The page must include a category filter/tab bar so users can browse by category. Prices must be formatted in Indian Rupee notation (e.g., ₹1,20,000).",
+      "reqIds": [
+        "REQ-25"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-the-30-individual-service-packages-website-development-999-sales-funnel-setup-1-099-whatsapp-automation-1-199-ai-chatbot-setup-1-299-landing-pages-1-399-seo-setup-1-499-social-media-management-1-599-instagram-growth-system-1-699-lead-generation-system-1-799-branding-kit-1-899-logo-design-1-999-video-editing-2-099-ai-content-creation-2-199-email-marketing-setup-2-299-linkedin-outreach-system-2-399-e-commerce-store-setup-2-499-no-code-app-development-2-599-automation-setup-2-699-crm-setup-2-799-ai-proposal-generator-2-899-pricing-strategy-consulting-2-999-funnel-optimization-3-099-copywriting-service-3-199-reels-script-creation-3-299-ai-image-generation-3-399-t-shirt-pod-setup-3-499-etsy-automation-3-599-affiliate-marketing-system-3-699-notion-dashboard-setup-3-799-analytics-dashboard-setup-3-899-to-the-services-page-as-a-separate-individual-packages-section-or-tab-each-package-card-must-show-package-name-flat-inr-price-category-sub-category-and-its-16-listed-features-as-a-bullet-list-expandable-on-click",
+      "title": "Add the 30 individual service packages (Website Development ₹999, Sales Funnel Setup ₹1,099, WhatsApp Automation ₹1,199, AI Chatbot Setup ₹1,299, Landing Pages ₹1,399, SEO Setup ₹1,499, Social Media Management ₹1,599, Instagram Growth System ₹1,699, Lead Generation System ₹1,799, Branding Kit ₹1,899, Logo Design ₹1,999, Video Editing ₹2,099, AI Content Creation ₹2,199, Email Marketing Setup ₹2,299, LinkedIn Outreach System ₹2,399, E-commerce Store Setup ₹2,499, No-Code App Development ₹2,599, Automation Setup ₹2,699, CRM Setup ₹2,799, AI Proposal Generator ₹2,899, Pricing Strategy Consulting ₹2,999, Funnel Optimization ₹3,099, Copywriting Service ₹3,199, Reels Script Creation ₹3,299, AI Image Generation ₹3,399, T-Shirt POD Setup ₹3,499, Etsy Automation ₹3,599, Affiliate Marketing System ₹3,699, Notion Dashboard Setup ₹3,799, Analytics Dashboard Setup ₹3,899) to the Services page as a separate 'Individual Packages' section or tab. Each package card must show: package name, flat INR price, category, sub-category, and its 16 listed features as a bullet list expandable on click.",
+      "reqIds": [
+        "REQ-26"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-the-monthly-maintenance-subscription-plans-to-the-services-page-as-a-dedicated-maintenance-plans-section-or-tab-include-all-five-plan-categories-1-website-maintenance-basic-999-2-999-mo-business-3-999-7-999-mo-premium-ai-3d-10-000-35-000-mo-2-app-maintenance-basic-2-999-6-999-mo-growth-8-000-20-000-mo-enterprise-25-000-75-000-mo-3-ai-automation-maintenance-basic-2-999-7-999-mo-advanced-10-000-30-000-mo-4-marketing-growth-retainer-starter-4-999-12-000-mo-growth-15-000-40-000-mo-premium-50-000-1-50-000-mo-5-saas-backend-retainer-business-15-000-35-000-mo-enterprise-40-000-1-20-000-mo-each-plan-card-must-list-its-included-features-as-provided-in-the-user-s-input",
+      "title": "Add the Monthly Maintenance & Subscription plans to the Services page as a dedicated 'Maintenance Plans' section or tab. Include all five plan categories: (1) Website Maintenance — Basic (₹999–₹2,999/mo), Business (₹3,999–₹7,999/mo), Premium/AI/3D (₹10,000–₹35,000/mo); (2) App Maintenance — Basic (₹2,999–₹6,999/mo), Growth (₹8,000–₹20,000/mo), Enterprise (₹25,000–₹75,000/mo); (3) AI Automation Maintenance — Basic (₹2,999–₹7,999/mo), Advanced (₹10,000–₹30,000/mo); (4) Marketing & Growth Retainer — Starter (₹4,999–₹12,000/mo), Growth (₹15,000–₹40,000/mo), Premium (₹50,000–₹1,50,000/mo); (5) SaaS & Backend Retainer — Business (₹15,000–₹35,000/mo), Enterprise (₹40,000–₹1,20,000/mo). Each plan card must list its included features as provided in the user's input.",
+      "reqIds": [
+        "REQ-27"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-the-3-master-agency-plans-spark-surge-titan-to-the-services-page-as-a-prominently-styled-agency-plans-section-or-tab-display-spark-plan-4-999-25-000-student-beginner-idea-stage-surge-plan-30-000-1-20-000-local-national-business-growth-titan-plan-1-50-000-5-00-000-national-global-enterprise-clients-style-each-plan-as-a-highlighted-pricing-card-with-a-distinct-colour-badge-green-for-spark-blue-for-surge-purple-for-titan-matching-the-emoji-indicators-in-the-source-data",
+      "title": "Add the 3 Master Agency Plans (Spark, Surge, Titan) to the Services page as a prominently styled 'Agency Plans' section or tab. Display: Spark Plan (₹4,999–₹25,000, Student/Beginner/Idea Stage), Surge Plan (₹30,000–₹1,20,000, Local & National Business Growth), Titan Plan (₹1,50,000–₹5,00,000+, National/Global/Enterprise Clients). Style each plan as a highlighted pricing card with a distinct colour badge (green for Spark, blue for Surge, purple for Titan) matching the emoji indicators in the source data.",
+      "reqIds": [
+        "REQ-28"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-on-every-service-card-pricing-tier-card-maintenance-plan-card-individual-package-card-and-agency-plan-card-on-the-services-page-add-a-direct-buy-now-or-select-pay-button-when-clicked-this-button-must-1-add-the-selected-service-plan-at-the-chosen-price-tier-to-the-cart-using-the-existing-usecart-hook-then-navigate-to-the-checkoutpage-or-2-if-razorpay-is-configured-in-the-centralized-config-store-initiate-a-razorpay-payment-flow-directly-for-the-selected-item-s-price-for-tiered-services-student-business-premium-display-a-tier-selector-radio-buttons-or-segmented-control-on-the-card-so-the-user-can-choose-which-tier-price-to-purchase-before-clicking-the-button-the-selected-tier-and-price-must-be-passed-through-to-the-cart-checkout",
+      "title": "On every service card, pricing tier card, maintenance plan card, individual package card, and agency plan card on the Services page, add a direct 'Buy Now' or 'Select & Pay' button. When clicked, this button must: (1) add the selected service/plan at the chosen price tier to the cart (using the existing useCart hook), then navigate to the CheckoutPage; OR (2) if Razorpay is configured in the centralized config store, initiate a Razorpay payment flow directly for the selected item's price. For tiered services (Student/Business/Premium), display a tier selector (radio buttons or segmented control) on the card so the user can choose which tier price to purchase before clicking the button. The selected tier and price must be passed through to the cart/checkout.",
+      "reqIds": [
+        "REQ-29"
+      ],
+      "version": 1
+    }
+  ],
   "new_feature_requests": [
     {
       "id": "AR-1",
@@ -120,6 +291,32 @@
       "summary": "Add a real-time connection status indicator for each configured integration (API Endpoint, CRM Webhook URL, Automation Webhook URL, WhatsApp, Razorpay). Each indicator must show 'Connected' (green) when the last call to that endpoint returned a 2xx response, 'Error' (red) when the last call failed, and 'Not Configured' (grey) when the URL/key is empty. Add a 'Test Connection' button for CRM Webhook URL and Automation Webhook URL that sends a test POST payload and updates the indicator in real time.",
       "reqIds": [
         "REQ-8"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-16",
+      "summary": "Make each AI Generator tool (Service Recommender, Proposal Generator, Pricing Strategy, Closing Scripts, Follow-Up Messages, Lead Qualification) launch a functional tool UI when clicking 'Launch Tool', with working AI-powered functionality using the saved API Endpoint and API Key.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-17",
+      "summary": "Add full Quick Bee Agency 2026 Master Service Price List to the Services page, organized by category (Web Dev, App Dev, AI Automation, Digital Marketing, Branding, SaaS & Tech, Business Systems) with tiered pricing (Student/Business/Premium/Enterprise), monthly maintenance plans, master agency plans (Spark/Surge/Titan), and individual service cards with 16 features each — all with direct payment/purchase selection via Razorpay",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-18",
+      "summary": "Fix the Sign In button on the login screen so it correctly authenticates and redirects the user",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-24",
+      "summary": "Fix the Sign In button on the LoginPage (frontend/src/pages/LoginPage.tsx) so that clicking it correctly triggers the Internet Identity authentication flow, waits for authentication to complete, and then redirects the authenticated user to the appropriate dashboard route. The button must show a loading/spinner state while the authentication is in progress. If authentication fails or is cancelled, display a user-visible error message. Ensure the button is not disabled or unbound from its click handler.",
+      "reqIds": [
+        "REQ-30"
       ],
       "status": "pending"
     }

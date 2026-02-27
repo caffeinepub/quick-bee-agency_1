@@ -1,16 +1,16 @@
 # Specification
 
 ## Summary
-**Goal:** Debug and fix API settings persistence, automation toggles, webhook triggers, AI module responses, and export functionality across the QuickBee Sales Engine dashboard.
+**Goal:** Populate the Services page with the complete Quick Bee Agency 2026 Master Service Price List across multiple sections, add direct payment/cart functionality on every service card, and fix the Sign In button on the Login page.
 
 **Planned changes:**
-- Implement a centralized localStorage-backed config store for all API settings (API Endpoint, API Key, WhatsApp Token, Razorpay Keys, Email API Key, CRM Webhook URL, Automation Webhook URL) so values persist across navigation and re-renders, with a "Saved successfully" confirmation toast
-- Fix all webhook trigger functions (form submission, lead qualification, payment success, project creation) to send correct HTTP POST requests with proper JSON payloads, Content-Type and Authorization headers, using URLs from the centralized config store
-- Add a Webhook Log panel on the Automation page showing timestamped entries with status, URL, and response code for every outgoing webhook attempt; show green/red toasts for success/failure
-- Fix automation toggles (WhatsApp Auto-Reply, Proposal Auto-Send, Lead Follow-Up Sequences, Payment Confirmation, Project Onboarding) so they truly block or allow their respective webhook/API calls, with state persisted to localStorage
-- Fix AI Smart Systems modules (Service Recommendation, Proposal Generator, Pricing Strategy, Closing Scripts, Follow-Up Messages, Lead Qualification) to correctly call the saved API Endpoint with Bearer auth, display AI responses, show loading spinners, and handle errors
-- Fix Razorpay payment webhook handling to fire the Automation Webhook URL with a payment payload on payment success, and fix WhatsApp Auto-Reply to POST a WhatsApp message payload when the toggle is ON and the token/URL are configured
-- Fix PDF and CSV export functions across Leads, AI result pages, WhatsApp Logs, Invoice History, and Data Export Center to produce valid downloadable files with loading and error states
-- Add real-time connection status badges (green/red/grey) for each integration and "Test Connection" buttons for CRM Webhook URL and Automation Webhook URL that fire a test POST and update the badge immediately
+- Add a category filter/tab bar to the Services page with tabs for: Service Catalog, Individual Packages, Maintenance Plans, Agency Plans
+- Populate the Service Catalog tab with all 57 services across 7 categories (Web Development, App Development, AI Automation, Digital Marketing & Growth, Branding & Creative, SaaS & Advanced Tech, Business Setup & Systems), each with 3 pricing tiers in INR and a 16-feature list, plus a sub-category filter within the tab
+- Add an Individual Packages tab listing all 30 packages sorted by price ascending, each showing flat INR price, category, sub-category, and an expandable 16-feature bullet list
+- Add a Maintenance Plans tab with all 5 plan categories (Website, App, AI Automation, Marketing & Growth Retainer, SaaS & Backend Retainer) and their tier price ranges and included features
+- Add an Agency Plans tab with 3 master plan cards (Spark — green badge, Surge — blue badge, Titan — purple badge) showing price ranges and target audience descriptions
+- Add a tier selector (radio buttons or segmented control) on all tiered service cards so users can pick a pricing tier before purchase
+- Add a "Buy Now" / "Select & Pay" button to every card; clicking it adds the item at the selected tier/price to the cart via the existing `useCart` hook and navigates to CheckoutPage; if Razorpay is configured in the config store, initiate the Razorpay payment flow directly
+- Fix the Sign In button on LoginPage to correctly bind to the Internet Identity authentication flow, show a loading/spinner state during authentication, redirect to the appropriate dashboard on success, and display a visible error message on failure or cancellation
 
-**User-visible outcome:** All API settings are reliably saved and used across the dashboard; automation toggles correctly enable/disable their features; webhooks fire with proper payloads and their results are logged; AI modules display generated responses; exports produce valid files; and each integration shows a live connection status with testability.
+**User-visible outcome:** Users can browse the full Quick Bee Agency service catalog across all categories and plans, select a pricing tier, and directly purchase or add any service to cart for checkout. The Sign In button on the login screen works correctly with loading feedback and error handling.

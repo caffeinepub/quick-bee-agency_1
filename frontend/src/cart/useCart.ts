@@ -1,86 +1,82 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface CartItem {
-  serviceId: bigint;
-  serviceName: string;
-  tier: 'Basic' | 'Pro' | 'Premium';
+  id: string;
+  name: string;
   price: number;
   quantity: number;
+  tierLabel?: string;
 }
 
-const CART_KEY = 'qb_cart';
-
-function loadCart(): CartItem[] {
-  try {
-    const stored = localStorage.getItem(CART_KEY);
-    if (!stored) return [];
-    const parsed = JSON.parse(stored);
-    return parsed.map((item: any) => ({
-      ...item,
-      serviceId: BigInt(item.serviceId),
-    }));
-  } catch {
-    return [];
-  }
+interface CartState {
+  items: CartItem[];
 }
 
-function saveCart(items: CartItem[]) {
+const CART_STORAGE_KEY = 'quickbee_cart';
+
+function loadCart(): CartState {
   try {
-    const serializable = items.map(item => ({
-      ...item,
-      serviceId: item.serviceId.toString(),
-    }));
-    localStorage.setItem(CART_KEY, JSON.stringify(serializable));
-  } catch {
-    // ignore
-  }
+    const stored = localStorage.getItem(CART_STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return { items: [] };
+}
+
+function saveCart(state: CartState) {
+  try {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state));
+  } catch {}
 }
 
 export function useCart() {
-  const [items, setItems] = useState<CartItem[]>(loadCart);
+  const [state, setState] = useState<CartState>(loadCart);
 
   useEffect(() => {
-    saveCart(items);
-  }, [items]);
+    saveCart(state);
+  }, [state]);
 
   const addItem = useCallback((item: CartItem) => {
-    setItems(prev => {
-      const existing = prev.find(
-        i => i.serviceId === item.serviceId && i.tier === item.tier
-      );
+    setState((prev) => {
+      const existing = prev.items.find((i) => i.id === item.id);
       if (existing) {
-        return prev.map(i =>
-          i.serviceId === item.serviceId && i.tier === item.tier
-            ? { ...i, quantity: i.quantity + item.quantity }
-            : i
-        );
+        return {
+          items: prev.items.map((i) =>
+            i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i
+          ),
+        };
       }
-      return [...prev, item];
+      return { items: [...prev.items, item] };
     });
   }, []);
 
-  const removeItem = useCallback((serviceId: bigint, tier: string) => {
-    setItems(prev => prev.filter(i => !(i.serviceId === serviceId && i.tier === tier)));
+  const removeItem = useCallback((id: string) => {
+    setState((prev) => ({ items: prev.items.filter((i) => i.id !== id) }));
   }, []);
 
-  const updateQuantity = useCallback((serviceId: bigint, tier: string, quantity: number) => {
+  const updateQuantity = useCallback((id: string, quantity: number) => {
     if (quantity <= 0) {
-      setItems(prev => prev.filter(i => !(i.serviceId === serviceId && i.tier === tier)));
+      setState((prev) => ({ items: prev.items.filter((i) => i.id !== id) }));
     } else {
-      setItems(prev =>
-        prev.map(i =>
-          i.serviceId === serviceId && i.tier === tier ? { ...i, quantity } : i
-        )
-      );
+      setState((prev) => ({
+        items: prev.items.map((i) => (i.id === id ? { ...i, quantity } : i)),
+      }));
     }
   }, []);
 
   const clearCart = useCallback(() => {
-    setItems([]);
+    setState({ items: [] });
   }, []);
 
-  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const total = state.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const itemCount = state.items.reduce((sum, item) => sum + item.quantity, 0);
 
-  return { items, addItem, removeItem, updateQuantity, clearCart, total, itemCount };
+  return {
+    items: state.items,
+    addItem,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    total,
+    itemCount,
+  };
 }

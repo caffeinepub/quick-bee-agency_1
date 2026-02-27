@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Check, ShoppingCart, Star } from 'lucide-react';
 import { toast } from 'sonner';
+import formatINR from '../utils/formatCurrency';
 
 export default function ServiceDetailPage() {
   const { serviceId } = useParams({ from: '/authenticated/services/$serviceId' });
@@ -15,22 +16,24 @@ export default function ServiceDetailPage() {
   const { data: service, isLoading } = useGetService(serviceIdBigInt);
   const { addItem } = useCart();
 
-  const handleAddToCart = (tier: 'Basic' | 'Pro' | 'Premium') => {
+  const handleAddToCart = (tierName: 'Basic' | 'Pro' | 'Premium') => {
     if (!service) return;
-    const price = tier === 'Basic'
-      ? Number(service.pricingBasic.price)
-      : tier === 'Pro'
-      ? Number(service.pricingPro.price)
-      : Number(service.pricingPremium.price);
+    const price =
+      tierName === 'Basic'
+        ? Number(service.pricingBasic.price)
+        : tierName === 'Pro'
+        ? Number(service.pricingPro.price)
+        : Number(service.pricingPremium.price);
 
+    const id = `service-${service.id.toString()}-${tierName}-${Date.now()}`;
     addItem({
-      serviceId: service.id,
-      serviceName: service.name,
-      tier,
+      id,
+      name: service.name,
       price,
       quantity: 1,
+      tierLabel: tierName,
     });
-    toast.success(`${service.name} (${tier}) added to cart`);
+    toast.success(`${service.name} (${tierName}) added to cart`);
   };
 
   if (isLoading) {
@@ -39,7 +42,9 @@ export default function ServiceDetailPage() {
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-32 w-full" />
         <div className="grid grid-cols-3 gap-4">
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-64" />)}
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-64" />
+          ))}
         </div>
       </div>
     );
@@ -49,7 +54,11 @@ export default function ServiceDetailPage() {
     return (
       <div className="text-center py-16">
         <p className="text-muted-foreground">Service not found</p>
-        <Button variant="outline" onClick={() => navigate({ to: '/authenticated/services' })} className="mt-4">
+        <Button
+          variant="outline"
+          onClick={() => navigate({ to: '/authenticated/services' })}
+          className="mt-4"
+        >
           Back to Services
         </Button>
       </div>
@@ -65,12 +74,16 @@ export default function ServiceDetailPage() {
   return (
     <div className="space-y-6 max-w-5xl">
       {/* Back button */}
-      <Button variant="ghost" onClick={() => navigate({ to: '/authenticated/services' })} className="gap-2 -ml-2">
+      <Button
+        variant="ghost"
+        onClick={() => navigate({ to: '/authenticated/services' })}
+        className="gap-2 -ml-2"
+      >
         <ArrowLeft className="w-4 h-4" /> Back to Services
       </Button>
 
       {/* Service header */}
-      <div className="glass rounded-xl p-6 border border-border/50">
+      <div className="rounded-xl p-6 border border-border/50 bg-card">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold font-display text-foreground">{service.name}</h1>
@@ -88,7 +101,10 @@ export default function ServiceDetailPage() {
             <p className="text-sm font-medium text-foreground mb-2">Included Features</p>
             <div className="flex flex-wrap gap-2">
               {service.features.map((f, i) => (
-                <span key={i} className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded-md">
+                <span
+                  key={i}
+                  className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded-md"
+                >
                   <Check className="w-3 h-3 text-primary" /> {f}
                 </span>
               ))}
@@ -100,7 +116,7 @@ export default function ServiceDetailPage() {
       {/* Pricing tiers */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {tiers.map((tier) => (
-          <Card key={tier.name} className={`glass border-2 ${tier.color} relative`}>
+          <Card key={tier.name} className={`border-2 ${tier.color} relative`}>
             {tier.badge && (
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                 <Badge className="bg-primary text-primary-foreground text-xs px-3">
@@ -111,7 +127,7 @@ export default function ServiceDetailPage() {
             <CardHeader className="pb-3 pt-6">
               <CardTitle className="text-lg font-display">{tier.name}</CardTitle>
               <p className="text-3xl font-bold text-foreground">
-                ₹{Number(tier.pricing.price).toLocaleString()}
+                {formatINR(Number(tier.pricing.price))}
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -123,10 +139,7 @@ export default function ServiceDetailPage() {
                   </li>
                 ))}
               </ul>
-              <Button
-                className="w-full gap-2"
-                onClick={() => handleAddToCart(tier.name)}
-              >
+              <Button className="w-full gap-2" onClick={() => handleAddToCart(tier.name)}>
                 <ShoppingCart className="w-4 h-4" />
                 Add to Cart
               </Button>
