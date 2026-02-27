@@ -2,111 +2,144 @@ import React, { useState } from 'react';
 import { useNavigate, useRouterState } from '@tanstack/react-router';
 import { useInternetIdentity } from '../../hooks/useInternetIdentity';
 import { useQueryClient } from '@tanstack/react-query';
-import { useGetCallerUserRole } from '../../hooks/useQueries';
+import { useGetCallerUserProfile, useGetCallerUserRole } from '../../hooks/useQueries';
 import {
-  LayoutDashboard, Users, Briefcase, ShoppingCart, BarChart3,
-  Settings, LogOut, ChevronDown, ChevronRight, Zap, FileText,
-  CreditCard, MessageSquare, Package, Scale, Bell, Download,
-  Receipt, Bot, Activity, Webhook
+  LayoutDashboard,
+  Users,
+  FolderOpen,
+  ShoppingCart,
+  BarChart3,
+  Settings,
+  LogOut,
+  ChevronDown,
+  ChevronRight,
+  Zap,
+  FileText,
+  Bell,
+  CreditCard,
+  Scale,
+  Download,
+  MessageSquare,
+  Sparkles,
+  TrendingUp,
+  Target,
+  PenTool,
+  Brain,
+  Workflow,
+  Activity,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface NavItem {
   label: string;
-  path: string;
   icon: React.ReactNode;
-  adminOnly?: boolean;
-  badge?: string;
+  path: string;
+  roles?: string[];
 }
 
 interface NavGroup {
   label: string;
+  icon: React.ReactNode;
   items: NavItem[];
-  defaultOpen?: boolean;
+  roles?: string[];
 }
 
-const NAV_GROUPS: NavGroup[] = [
+const navGroups: NavGroup[] = [
   {
     label: 'Overview',
-    defaultOpen: true,
+    icon: <LayoutDashboard className="w-4 h-4" />,
     items: [
-      { label: 'Dashboard', path: '/authenticated', icon: <LayoutDashboard className="h-4 w-4" /> },
-      { label: 'Analytics', path: '/authenticated/analytics', icon: <BarChart3 className="h-4 w-4" />, adminOnly: true },
-      { label: 'Admin Dashboard', path: '/authenticated/admin-dashboard', icon: <LayoutDashboard className="h-4 w-4" />, adminOnly: true },
+      { label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" />, path: '/authenticated' },
     ],
   },
   {
-    label: 'Sales',
-    defaultOpen: true,
+    label: 'Sales & CRM',
+    icon: <Users className="w-4 h-4" />,
+    roles: ['admin', 'user'],
     items: [
-      { label: 'Leads', path: '/authenticated/leads', icon: <Users className="h-4 w-4" /> },
-      { label: 'CRM Pipeline', path: '/authenticated/crm', icon: <Briefcase className="h-4 w-4" /> },
-      { label: 'Payment Links', path: '/authenticated/payments', icon: <CreditCard className="h-4 w-4" /> },
-      { label: 'Invoices', path: '/authenticated/invoices', icon: <Receipt className="h-4 w-4" /> },
+      { label: 'Leads', icon: <Users className="w-4 h-4" />, path: '/authenticated/leads', roles: ['admin', 'user'] },
+      { label: 'CRM Pipeline', icon: <TrendingUp className="w-4 h-4" />, path: '/authenticated/crm', roles: ['admin', 'user'] },
+      { label: 'Analytics', icon: <BarChart3 className="w-4 h-4" />, path: '/authenticated/analytics', roles: ['admin', 'user'] },
     ],
   },
   {
-    label: 'AI Tools',
-    defaultOpen: false,
+    label: 'AI Smart Systems',
+    icon: <Brain className="w-4 h-4" />,
+    roles: ['admin', 'user'],
     items: [
-      { label: 'AI Generators', path: '/authenticated/generators', icon: <Bot className="h-4 w-4" /> },
-      { label: 'Service Recommender', path: '/authenticated/generators/service-recommendation', icon: <Package className="h-4 w-4" /> },
-      { label: 'Proposal Generator', path: '/authenticated/generators/proposal-generator', icon: <FileText className="h-4 w-4" /> },
-      { label: 'Pricing Strategy', path: '/authenticated/generators/pricing-strategy', icon: <BarChart3 className="h-4 w-4" /> },
-      { label: 'Closing Scripts', path: '/authenticated/generators/closing-scripts', icon: <MessageSquare className="h-4 w-4" /> },
-      { label: 'Follow-Up Messages', path: '/authenticated/generators/follow-up', icon: <MessageSquare className="h-4 w-4" /> },
-      { label: 'Lead Qualification', path: '/authenticated/generators/lead-qualification', icon: <Users className="h-4 w-4" /> },
+      { label: 'AI Generators', icon: <Sparkles className="w-4 h-4" />, path: '/authenticated/generators', roles: ['admin', 'user'] },
+      { label: 'Service Recommender', icon: <Target className="w-4 h-4" />, path: '/authenticated/service-recommendation', roles: ['admin', 'user'] },
+      { label: 'Proposal Generator', icon: <FileText className="w-4 h-4" />, path: '/authenticated/proposal-generator', roles: ['admin', 'user'] },
+      { label: 'Pricing Strategy', icon: <TrendingUp className="w-4 h-4" />, path: '/authenticated/pricing-strategy', roles: ['admin', 'user'] },
     ],
   },
   {
-    label: 'Automation',
-    defaultOpen: false,
+    label: 'Automations',
+    icon: <Zap className="w-4 h-4" />,
+    roles: ['admin', 'user'],
     items: [
-      { label: 'Automation Center', path: '/authenticated/automation', icon: <Zap className="h-4 w-4" /> },
-      { label: 'WhatsApp Logs', path: '/authenticated/whatsapp-logs', icon: <MessageSquare className="h-4 w-4" />, adminOnly: true },
-      { label: 'Webhook Logs', path: '/authenticated/webhook-logs', icon: <Activity className="h-4 w-4" /> },
+      { label: 'Automation Center', icon: <Zap className="w-4 h-4" />, path: '/authenticated/automation', roles: ['admin', 'user'] },
+      { label: 'Workflows', icon: <Workflow className="w-4 h-4" />, path: '/authenticated/workflows', roles: ['admin', 'user'] },
+      { label: 'Analytics Engine', icon: <Activity className="w-4 h-4" />, path: '/authenticated/analytics-engine', roles: ['admin', 'user'] },
+      { label: 'Content Creator', icon: <PenTool className="w-4 h-4" />, path: '/authenticated/content-creator', roles: ['admin', 'user'] },
     ],
   },
   {
-    label: 'Catalog',
-    defaultOpen: false,
+    label: 'Commerce',
+    icon: <ShoppingCart className="w-4 h-4" />,
     items: [
-      { label: 'Services', path: '/authenticated/services', icon: <Package className="h-4 w-4" /> },
-      { label: 'Projects', path: '/authenticated/projects', icon: <Briefcase className="h-4 w-4" /> },
-      { label: 'Cart', path: '/authenticated/cart', icon: <ShoppingCart className="h-4 w-4" /> },
+      { label: 'Services', icon: <Sparkles className="w-4 h-4" />, path: '/authenticated/services' },
+      { label: 'Cart', icon: <ShoppingCart className="w-4 h-4" />, path: '/authenticated/cart' },
+      { label: 'Payments', icon: <CreditCard className="w-4 h-4" />, path: '/authenticated/payments', roles: ['admin', 'user'] },
+      { label: 'Invoices', icon: <FileText className="w-4 h-4" />, path: '/authenticated/invoices', roles: ['admin', 'user'] },
     ],
   },
   {
-    label: 'Settings',
-    defaultOpen: false,
+    label: 'Projects',
+    icon: <FolderOpen className="w-4 h-4" />,
     items: [
-      { label: 'Settings', path: '/authenticated/settings', icon: <Settings className="h-4 w-4" />, adminOnly: true },
-      { label: 'Sales System Config', path: '/authenticated/settings/sales-system-config', icon: <Webhook className="h-4 w-4" /> },
-      { label: 'Notifications', path: '/authenticated/notifications', icon: <Bell className="h-4 w-4" /> },
-      { label: 'Legal Pages', path: '/authenticated/legal', icon: <Scale className="h-4 w-4" />, adminOnly: true },
-      { label: 'Data Export', path: '/authenticated/data-export', icon: <Download className="h-4 w-4" />, adminOnly: true },
+      { label: 'My Projects', icon: <FolderOpen className="w-4 h-4" />, path: '/authenticated/projects' },
+    ],
+  },
+  {
+    label: 'Communication',
+    icon: <MessageSquare className="w-4 h-4" />,
+    roles: ['admin', 'user'],
+    items: [
+      { label: 'WhatsApp Logs', icon: <MessageSquare className="w-4 h-4" />, path: '/authenticated/whatsapp-logs', roles: ['admin', 'user'] },
+      { label: 'Notifications', icon: <Bell className="w-4 h-4" />, path: '/authenticated/notifications' },
+    ],
+  },
+  {
+    label: 'Admin',
+    icon: <Settings className="w-4 h-4" />,
+    roles: ['admin'],
+    items: [
+      { label: 'Settings', icon: <Settings className="w-4 h-4" />, path: '/authenticated/settings', roles: ['admin'] },
+      { label: 'Legal Pages', icon: <Scale className="w-4 h-4" />, path: '/authenticated/legal', roles: ['admin'] },
+      { label: 'Data Export', icon: <Download className="w-4 h-4" />, path: '/authenticated/data-export', roles: ['admin'] },
     ],
   },
 ];
 
-export default function SidebarNav() {
+export function SidebarNav() {
   const navigate = useNavigate();
   const routerState = useRouterState();
-  const { clear, identity } = useInternetIdentity();
+  const { clear } = useInternetIdentity();
   const queryClient = useQueryClient();
-  const { data: userRole } = useGetCallerUserRole();
-  const isAdmin = userRole === 'admin';
+  const { data: profile } = useGetCallerUserProfile();
+  const { data: role } = useGetCallerUserRole();
 
   const currentPath = routerState.location.pathname;
 
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
-    NAV_GROUPS.forEach(g => { initial[g.label] = g.defaultOpen ?? false; });
+    navGroups.forEach(g => { initial[g.label] = true; });
     return initial;
   });
 
   const toggleGroup = (label: string) => {
-    setOpenGroups(prev => ({ ...prev, [label]: !prev[label] }));
+    setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
   };
 
   const handleLogout = async () => {
@@ -115,87 +148,99 @@ export default function SidebarNav() {
     navigate({ to: '/' });
   };
 
-  const isActive = (path: string) => {
-    if (path === '/authenticated') return currentPath === '/authenticated';
-    return currentPath.startsWith(path);
+  const isItemVisible = (item: NavItem) => {
+    if (!item.roles) return true;
+    return item.roles.includes(role || 'guest');
+  };
+
+  const isGroupVisible = (group: NavGroup) => {
+    if (!group.roles) return true;
+    return group.roles.includes(role || 'guest');
   };
 
   return (
-    <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
+    <div className="flex flex-col h-full bg-sidebar-gradient text-sidebar-foreground">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-4 py-4 border-b border-sidebar-border">
-        <img src="/assets/generated/quickbee-logo.dim_256x256.png" alt="QuickBee" className="h-8 w-8 rounded-lg" />
-        <div>
-          <span className="font-bold text-base text-sidebar-foreground">QuickBee</span>
-          <p className="text-xs text-sidebar-foreground/60">Sales Engine</p>
+      <div className="p-4 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <img src="/assets/generated/quickbee-logo.dim_256x256.png" alt="QuickBee" className="w-8 h-8 rounded-lg" />
+          <div>
+            <div className="font-bold text-sm text-white leading-tight">Quick Bee</div>
+            <div className="text-xs text-white/60 leading-tight">AI Growth Engine</div>
+          </div>
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
-        {NAV_GROUPS.map(group => {
-          const visibleItems = group.items.filter(item => !item.adminOnly || isAdmin);
+      {/* Navigation */}
+      <div className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
+        {navGroups.map(group => {
+          if (!isGroupVisible(group)) return null;
+          const visibleItems = group.items.filter(isItemVisible);
           if (visibleItems.length === 0) return null;
 
+          const isExpanded = expandedGroups[group.label] !== false;
+
           return (
-            <div key={group.label} className="mb-1">
+            <div key={group.label}>
               <button
                 onClick={() => toggleGroup(group.label)}
-                className="w-full flex items-center justify-between px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50 hover:text-sidebar-foreground/80 transition-colors"
+                className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-semibold text-white/50 uppercase tracking-wider hover:text-white/70 transition-colors"
               >
                 <span>{group.label}</span>
-                {openGroups[group.label]
-                  ? <ChevronDown className="h-3 w-3" />
-                  : <ChevronRight className="h-3 w-3" />
-                }
+                {isExpanded ? (
+                  <ChevronDown className="w-3 h-3" />
+                ) : (
+                  <ChevronRight className="w-3 h-3" />
+                )}
               </button>
 
-              {openGroups[group.label] && (
-                <div className="mt-0.5 space-y-0.5">
-                  {visibleItems.map(item => (
-                    <button
-                      key={item.path}
-                      onClick={() => navigate({ to: item.path })}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-all duration-150 text-left
-                        ${isActive(item.path)
-                          ? 'bg-primary/15 text-primary font-medium border-l-2 border-primary pl-[10px]'
-                          : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-                        }`}
-                    >
-                      <span className={isActive(item.path) ? 'text-primary' : 'text-sidebar-foreground/50'}>
-                        {item.icon}
-                      </span>
-                      <span className="flex-1 truncate">{item.label}</span>
-                      {item.badge && (
-                        <Badge variant="secondary" className="text-xs h-4 px-1">{item.badge}</Badge>
-                      )}
-                    </button>
-                  ))}
+              {isExpanded && (
+                <div className="space-y-0.5 mt-0.5">
+                  {visibleItems.map(item => {
+                    const isActive = currentPath === item.path ||
+                      (item.path !== '/authenticated' && currentPath.startsWith(item.path));
+
+                    return (
+                      <button
+                        key={item.path}
+                        onClick={() => navigate({ to: item.path })}
+                        className={cn(
+                          'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-all',
+                          isActive
+                            ? 'bg-white/15 text-white border-l-2 border-primary font-medium'
+                            : 'text-white/70 hover:bg-white/10 hover:text-white border-l-2 border-transparent'
+                        )}
+                      >
+                        <span className={cn(isActive ? 'text-primary' : 'text-white/50')}>
+                          {item.icon}
+                        </span>
+                        {item.label}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
           );
         })}
-      </nav>
+      </div>
 
-      {/* User footer */}
-      <div className="border-t border-sidebar-border p-3">
-        <div className="flex items-center gap-2 mb-2 px-1">
-          <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
-            {identity?.getPrincipal().toString().slice(0, 2).toUpperCase() ?? 'U'}
+      {/* User Footer */}
+      <div className="p-3 border-t border-white/10">
+        <div className="flex items-center gap-2 mb-2 px-2">
+          <div className="w-7 h-7 rounded-full bg-primary/30 flex items-center justify-center text-xs font-bold text-primary">
+            {profile?.name?.[0]?.toUpperCase() || '?'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-sidebar-foreground truncate">
-              {identity?.getPrincipal().toString().slice(0, 12) ?? 'User'}...
-            </p>
-            <p className="text-xs text-sidebar-foreground/50 capitalize">{userRole ?? 'user'}</p>
+            <div className="text-xs font-medium text-white truncate">{profile?.name || 'User'}</div>
+            <div className="text-xs text-white/50 capitalize">{role || 'guest'}</div>
           </div>
         </div>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs text-sidebar-foreground/60 hover:bg-destructive/10 hover:text-destructive transition-colors"
+          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs text-white/60 hover:text-white hover:bg-white/10 transition-colors"
         >
-          <LogOut className="h-3.5 w-3.5" />
+          <LogOut className="w-3.5 h-3.5" />
           Sign Out
         </button>
       </div>

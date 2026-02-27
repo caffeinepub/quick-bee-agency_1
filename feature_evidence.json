@@ -2,10 +2,13 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-perform-a-full-rewrite-of-frontend-src-pages-loginpage-tsx-the-sign-in-with-internet-identity-button-must-1-never-be-disabled-or-have-any-condition-preventing-it-from-being-clicked-2-call-the-login-function-from-the-useinternetidentity-hook-on-click-3-display-a-visible-loading-spinner-while-isloggingin-is-true-4-on-successful-authentication-identity-becomes-non-null-isauthenticated-becomes-true-use-tanstack-router-s-usenavigate-to-redirect-to-dashboard-or-admin-dashboard-manager-dashboard-client-dashboard-based-on-role-if-available-5-display-a-user-visible-inline-error-message-if-login-throws-or-authentication-is-cancelled-remove-every-guard-disabled-prop-or-conditional-render-that-could-block-the-button-before-the-actor-is-initialized",
-      "featureTitle": "Perform a full rewrite of frontend/src/pages/LoginPage.tsx. The Sign In with Internet Identity button must: (1) never be disabled or have any condition preventing it from being clicked; (2) call the login() function from the useInternetIdentity hook on click; (3) display a visible loading spinner while isLoggingIn is true; (4) on successful authentication (identity becomes non-null / isAuthenticated becomes true), use TanStack Router's useNavigate to redirect to /dashboard (or /admin-dashboard, /manager-dashboard, /client-dashboard based on role if available); (5) display a user-visible inline error message if login() throws or authentication is cancelled. Remove every guard, disabled prop, or conditional render that could block the button before the actor is initialized.",
+      "featureId": "feature-create-an-automation-workflows-dashboard-page-accessible-from-the-sidebar-under-automations-that-displays-the-five-core-workflow-cards-new-lead-submission-meeting-scheduling-payment-processing-analytics-engine-and-ai-content-creation-each-card-must-show-the-workflow-name-trigger-description-status-indicator-active-inactive-a-manual-run-button-to-trigger-the-workflow-and-the-last-execution-timestamp-and-result-success-error-from-localstorage-persisted-log-entries",
+      "featureTitle": "Create an Automation Workflows dashboard page (accessible from the sidebar under Automations) that displays the five core workflow cards: New Lead Submission, Meeting Scheduling, Payment Processing, Analytics Engine, and AI Content Creation. Each card must show the workflow name, trigger description, status indicator (Active/Inactive), a manual 'Run' button to trigger the workflow, and the last execution timestamp and result (success/error) from localStorage-persisted log entries.",
       "files": [
-        "frontend/src/pages/LoginPage.tsx"
+        "frontend/src/components/workflows/WorkflowCard.tsx",
+        "frontend/src/components/workflows/WorkflowResultDisplay.tsx",
+        "frontend/src/hooks/useWorkflowExecution.ts",
+        "frontend/src/pages/WorkflowsPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -21,15 +24,16 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-37"
+        "REQ-41"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-rewrite-frontend-src-components-bootstrap-bootstrapgate-tsx-so-it-never-blocks-or-visually-disables-the-loginpage-ui-bootstrapgate-must-detect-when-the-current-route-is-the-login-page-or-when-the-user-is-unauthenticated-and-render-children-directly-without-any-loading-spinner-overlay-or-disabled-wrapper-the-gate-must-only-intercept-navigation-to-authenticated-protected-routes-unauthenticated-users-must-always-see-and-interact-with-the-full-login-ui-regardless-of-actor-or-identity-initialization-state",
-      "featureTitle": "Rewrite frontend/src/components/bootstrap/BootstrapGate.tsx so it never blocks or visually disables the LoginPage UI. BootstrapGate must detect when the current route is the login page (or when the user is unauthenticated) and render children directly without any loading spinner, overlay, or disabled wrapper. The gate must only intercept navigation to authenticated/protected routes. Unauthenticated users must always see and interact with the full login UI regardless of actor or identity initialization state.",
+      "featureId": "feature-implement-workflow-1-new-lead-submission-when-a-new-lead-is-created-in-the-leads-page-or-a-manual-trigger-is-fired-execute-the-following-sequence-using-the-centralized-config-store-values-1-validate-required-fields-name-email-service-interest-2-post-to-the-configured-crm-webhook-url-with-a-deduplication-check-payload-3-post-to-the-configured-automation-webhook-url-with-contact-creation-data-including-tags-new-lead-and-the-service-interest-value-4-log-the-full-lead-data-entry-in-the-webhook-log-tool-name-new-lead-submission-all-lead-fields-timestamp-5-return-a-structured-json-response-in-the-format-action-id-status-message-data-logged-next-steps-6-display-the-automated-follow-up-message-text-in-the-result-area-thank-you-for-contacting-quick-bee-ai-growth-engine-our-team-will-review-your-request-and-contact-you-shortly-the-webhook-post-must-use-content-type-application-json-and-authorization-header-with-the-saved-api-key",
+      "featureTitle": "Implement Workflow 1 – New Lead Submission: When a new lead is created in the Leads page (or a manual trigger is fired), execute the following sequence using the centralized config store values: (1) Validate required fields (name, email, service interest); (2) POST to the configured CRM Webhook URL with a deduplication check payload; (3) POST to the configured Automation Webhook URL with contact creation data including tags 'New Lead' and the service interest value; (4) Log the full lead data entry in the webhook log (tool name: 'new_lead_submission', all lead fields, timestamp); (5) Return a structured JSON response in the format { action_id, status, message, data_logged, next_steps }; (6) Display the automated follow-up message text in the result area: 'Thank you for contacting Quick Bee AI Growth Engine. Our team will review your request and contact you shortly.' The webhook POST must use Content-Type: application/json and Authorization header with the saved API Key.",
       "files": [
-        "frontend/src/components/bootstrap/BootstrapGate.tsx"
+        "frontend/src/hooks/useNewLeadSubmissionWorkflow.ts",
+        "frontend/src/pages/WorkflowsPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -45,15 +49,17 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-38"
+        "REQ-42"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-audit-and-fix-the-useinternetidentity-hook-integration-in-loginpage-ensure-the-hook-is-imported-from-the-correct-immutable-path-frontend-src-hooks-useinternetidentity-ts-that-the-destructured-login-function-and-isloggingin-isauthenticated-identity-values-are-correctly-consumed-and-that-a-useeffect-watches-isauthenticated-identity-to-trigger-role-based-navigation-after-login-resolves-if-the-hook-returns-a-promise-from-login-await-it-before-checking-authentication-state-confirm-the-internetidentityprovider-is-wrapping-the-app-in-frontend-src-main-tsx-so-the-hook-has-access-to-its-context",
-      "featureTitle": "Audit and fix the useInternetIdentity hook integration in LoginPage. Ensure the hook is imported from the correct immutable path (frontend/src/hooks/useInternetIdentity.ts), that the destructured login function and isLoggingIn / isAuthenticated / identity values are correctly consumed, and that a useEffect watches isAuthenticated / identity to trigger role-based navigation after login resolves. If the hook returns a promise from login(), await it before checking authentication state. Confirm the InternetIdentityProvider is wrapping the app in frontend/src/main.tsx so the hook has access to its context.",
+      "featureId": "feature-implement-workflow-2-meeting-scheduling-create-a-meeting-scheduler-ui-panel-accessible-from-the-workflow-dashboard-or-leads-detail-panel-that-1-displays-a-generate-booking-link-button-which-reads-the-configured-calendly-url-from-the-centralized-config-store-add-a-calendly-url-field-to-the-sales-system-configuration-page-2-on-click-composes-a-booking-link-and-copies-it-to-clipboard-3-posts-to-the-configured-automation-webhook-url-with-payload-tool-meeting-scheduling-calendly-url-lead-id-lead-email-timestamp-using-the-saved-api-key-as-authorization-4-displays-a-confirmation-message-with-the-booking-link-5-logs-the-event-in-the-webhook-log-6-updates-the-associated-lead-s-status-to-meeting-scheduled-by-calling-the-existing-lead-update-mutation-if-the-automation-webhook-url-is-not-configured-or-its-toggle-is-off-show-the-not-configured-banner-instead",
+      "featureTitle": "Implement Workflow 2 – Meeting Scheduling: Create a Meeting Scheduler UI panel (accessible from the workflow dashboard or leads detail panel) that: (1) Displays a 'Generate Booking Link' button which reads the configured Calendly URL from the centralized config store (add a 'Calendly URL' field to the Sales System Configuration page); (2) On click, composes a booking link and copies it to clipboard; (3) POSTs to the configured Automation Webhook URL with payload { tool: 'meeting_scheduling', calendly_url, lead_id, lead_email, timestamp } using the saved API Key as Authorization; (4) Displays a confirmation message with the booking link; (5) Logs the event in the webhook log; (6) Updates the associated lead's status to 'Meeting Scheduled' by calling the existing lead update mutation. If the Automation Webhook URL is not configured or its toggle is OFF, show the not-configured banner instead.",
       "files": [
-        "frontend/src/pages/LoginPage.tsx"
+        "frontend/src/hooks/useMeetingSchedulingWorkflow.ts",
+        "frontend/src/pages/SalesSystemConfigPage.tsx",
+        "frontend/src/pages/WorkflowsPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -69,15 +75,17 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-39"
+        "REQ-43"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-ensure-role-based-post-login-redirect-works-correctly-in-loginpage-after-login-resolves-and-the-user-is-authenticated-query-the-user-s-role-from-the-backend-actor-or-from-the-existing-usequeries-hooks-redirect-admin-users-to-admin-dashboard-manager-users-to-manager-dashboard-client-users-to-client-dashboard-and-any-other-authenticated-user-or-unresolved-role-to-dashboard-as-the-safe-default-if-the-role-query-is-still-loading-redirect-to-dashboard-immediately-rather-than-waiting-indefinitely",
-      "featureTitle": "Ensure role-based post-login redirect works correctly in LoginPage. After login() resolves and the user is authenticated, query the user's role from the backend actor (or from the existing useQueries hooks). Redirect admin users to /admin-dashboard, manager users to /manager-dashboard, client users to /client-dashboard, and any other authenticated user or unresolved role to /dashboard as the safe default. If the role query is still loading, redirect to /dashboard immediately rather than waiting indefinitely.",
+      "featureId": "feature-implement-workflow-3-payment-processing-extend-the-existing-payment-success-failure-flow-so-that-when-a-payment-success-event-occurs-razorpay-webhook-or-simulated-success-on-paymentsuccesspage-1-post-to-the-automation-webhook-url-with-payload-tool-payment-processing-status-paid-payment-id-lead-id-order-id-amount-invoice-ref-timestamp-2-generate-an-invoice-reference-number-format-qba-timestamp-and-store-it-in-the-webhook-log-3-display-a-success-confirmation-in-the-admin-notification-area-with-the-invoice-reference-4-on-payment-failure-post-a-failure-payload-tool-payment-processing-status-failed-payment-id-error-message-timestamp-and-display-a-user-visible-error-with-retry-instructions-all-posts-must-use-content-type-application-json-and-authorization-header-with-the-saved-api-key-log-both-success-and-failure-events-in-the-webhook-log",
+      "featureTitle": "Implement Workflow 3 – Payment Processing: Extend the existing payment success/failure flow so that when a payment success event occurs (Razorpay webhook or simulated success on PaymentSuccessPage): (1) POST to the Automation Webhook URL with payload { tool: 'payment_processing', status: 'paid', payment_id, lead_id, order_id, amount, invoice_ref, timestamp }; (2) Generate an invoice reference number (format: QBA-{timestamp}) and store it in the webhook log; (3) Display a success confirmation in the admin notification area with the invoice reference; (4) On payment failure, POST a failure payload { tool: 'payment_processing', status: 'failed', payment_id, error_message, timestamp } and display a user-visible error with retry instructions. All POSTs must use Content-Type: application/json and Authorization header with the saved API Key. Log both success and failure events in the webhook log.",
       "files": [
-        "frontend/src/pages/LoginPage.tsx"
+        "frontend/src/hooks/usePaymentProcessingWorkflow.ts",
+        "frontend/src/pages/PaymentFailurePage.tsx",
+        "frontend/src/pages/PaymentSuccessPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -93,7 +101,160 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-40"
+        "REQ-44"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-an-analytics-engine-page-at-route-analytics-engine-accessible-from-the-sidebar-the-page-must-1-display-a-generate-report-form-with-a-date-range-selector-defaulting-to-the-last-7-days-2-on-submit-post-to-the-configured-automation-webhook-url-with-payload-tool-analytics-engine-date-range-start-end-timestamp-3-render-a-structured-mock-simulated-analytics-report-in-the-result-area-showing-total-users-sessions-bounce-rate-top-traffic-source-and-conversion-rate-either-from-the-webhook-response-body-or-from-static-placeholder-values-with-a-note-that-live-ga4-data-requires-the-configured-endpoint-4-below-the-metrics-display-a-growth-summary-section-with-trend-analysis-text-growth-decline-drop-off-insights-funnel-suggestions-seo-tips-either-from-the-webhook-response-or-a-templated-placeholder-5-log-the-request-response-in-the-webhook-log-if-automation-webhook-url-is-not-configured-show-the-not-configured-banner",
+      "featureTitle": "Create an Analytics Engine page at route /analytics-engine (accessible from the sidebar). The page must: (1) Display a 'Generate Report' form with a date range selector defaulting to the last 7 days; (2) On submit, POST to the configured Automation Webhook URL with payload { tool: 'analytics_engine', date_range: { start, end }, timestamp }; (3) Render a structured mock/simulated analytics report in the result area showing: Total Users, Sessions, Bounce Rate, Top Traffic Source, and Conversion Rate — either from the webhook response body or from static placeholder values with a note that live GA4 data requires the configured endpoint; (4) Below the metrics, display a 'Growth Summary' section with trend analysis text (growth/decline, drop-off insights, funnel suggestions, SEO tips) either from the webhook response or a templated placeholder; (5) Log the request/response in the webhook log. If Automation Webhook URL is not configured, show the not-configured banner.",
+      "files": [
+        "frontend/src/components/analytics/AnalyticsMetricsCard.tsx",
+        "frontend/src/components/analytics/GrowthSummaryPanel.tsx",
+        "frontend/src/pages/AnalyticsEnginePage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-45"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-an-ai-content-creation-page-at-route-content-creator-accessible-from-the-sidebar-the-page-must-1-render-a-form-with-a-keyword-topic-text-input-and-a-generate-content-button-2-on-submit-build-an-openai-compatible-post-request-using-the-saved-api-endpoint-and-api-key-with-a-structured-prompt-requesting-seo-optimized-blog-content-title-meta-description-h1-h2-structure-cta-internal-linking-suggestions-suggested-social-media-captions-with-hashtags-a-short-linkedin-version-and-an-instagram-carousel-outline-3-display-a-loading-state-while-the-request-is-in-progress-4-render-the-ai-generated-content-in-clearly-labelled-sections-blog-content-social-media-captions-linkedin-post-instagram-carousel-5-also-post-the-form-payload-to-the-automation-webhook-url-with-tool-ai-content-creation-keyword-timestamp-6-provide-a-copy-button-for-each-section-and-an-export-all-button-that-downloads-the-full-content-as-a-text-file-7-show-an-error-message-if-the-ai-api-call-or-webhook-call-fails-specifying-which-endpoint-failed-show-the-not-configured-banner-if-api-credentials-are-missing",
+      "featureTitle": "Create an AI Content Creation page at route /content-creator (accessible from the sidebar). The page must: (1) Render a form with a keyword/topic text input and a 'Generate Content' button; (2) On submit, build an OpenAI-compatible POST request using the saved API Endpoint and API Key with a structured prompt requesting: SEO-optimized blog content (title, meta description, H1/H2 structure, CTA, internal linking suggestions), suggested social media captions with hashtags, a short LinkedIn version, and an Instagram carousel outline; (3) Display a loading state while the request is in progress; (4) Render the AI-generated content in clearly labelled sections: Blog Content, Social Media Captions, LinkedIn Post, Instagram Carousel; (5) Also POST the form payload to the Automation Webhook URL with { tool: 'ai_content_creation', keyword, timestamp }; (6) Provide a 'Copy' button for each section and an 'Export All' button that downloads the full content as a text file; (7) Show an error message if the AI API call or webhook call fails, specifying which endpoint failed. Show the not-configured banner if API credentials are missing.",
+      "files": [
+        "frontend/src/components/content/ContentSectionCard.tsx",
+        "frontend/src/hooks/useAIContentGeneration.ts",
+        "frontend/src/pages/ContentCreatorPage.tsx",
+        "frontend/src/utils/exportContent.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-46"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-calendly-url-field-to-the-sales-system-configuration-page-frontend-src-pages-salessystemconfigpage-tsx-alongside-the-existing-integration-fields-the-field-must-have-an-on-off-toggle-persist-to-the-centralized-config-store-aiconfigcontext-webhookconfigcontext-with-localstorage-backing-survive-page-navigation-and-display-a-not-configured-connected-status-badge-the-value-must-be-readable-by-the-meeting-scheduling-workflow-req-43",
+      "featureTitle": "Add a 'Calendly URL' field to the Sales System Configuration page (frontend/src/pages/SalesSystemConfigPage.tsx) alongside the existing integration fields. The field must have an ON/OFF toggle, persist to the centralized config store (AIConfigContext / WebhookConfigContext) with localStorage backing, survive page navigation, and display a Not Configured / Connected status badge. The value must be readable by the Meeting Scheduling workflow (REQ-43).",
+      "files": [
+        "frontend/src/contexts/AIConfigContext.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-47"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-sidebar-navigation-frontend-src-components-layout-sidebarnav-tsx-to-include-links-to-the-new-pages-workflows-pointing-to-the-automation-workflows-dashboard-from-req-41-analytics-engine-analytics-engine-and-content-creator-content-creator-these-links-must-be-visible-to-admin-and-manager-roles-also-register-the-routes-analytics-engine-and-content-creator-in-app-tsx-nested-under-the-authenticated-shell-route",
+      "featureTitle": "Update the sidebar navigation (frontend/src/components/layout/SidebarNav.tsx) to include links to the new pages: 'Workflows' (pointing to the automation workflows dashboard from REQ-41), 'Analytics Engine' (/analytics-engine), and 'Content Creator' (/content-creator). These links must be visible to Admin and Manager roles. Also register the routes /analytics-engine and /content-creator in App.tsx nested under the authenticated shell route.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/layout/SidebarNav.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-48"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-all-outgoing-automation-workflow-posts-return-and-display-a-structured-json-result-in-the-format-action-id-string-status-success-error-pending-review-message-string-data-logged-boolean-next-steps-string-in-the-relevant-workflow-result-panel-the-action-id-must-be-a-uuid-or-timestamp-based-unique-identifier-generated-client-side-if-the-webhook-response-includes-this-structure-display-it-directly-otherwise-construct-it-from-the-http-response-status-and-body-display-the-json-result-in-a-styled-code-block-or-summary-card-beneath-each-workflow-trigger-button",
+      "featureTitle": "Ensure all outgoing automation workflow POSTs return and display a structured JSON result in the format { action_id: string, status: 'success' | 'error' | 'pending_review', message: string, data_logged: boolean, next_steps: string } in the relevant workflow result panel. The action_id must be a UUID or timestamp-based unique identifier generated client-side. If the webhook response includes this structure, display it directly; otherwise, construct it from the HTTP response status and body. Display the JSON result in a styled code block or summary card beneath each workflow trigger button.",
+      "files": [
+        "frontend/src/components/workflows/WorkflowResultDisplay.tsx",
+        "frontend/src/hooks/useWorkflowExecution.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-49"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-role-based-access-control-enforcement-to-the-new-workflow-pages-req-41-req-45-req-46-admin-users-have-full-access-including-run-triggers-and-configuration-links-manager-users-can-view-workflows-and-run-triggers-but-cannot-edit-configuration-client-users-are-shown-an-access-denied-message-and-redirected-to-client-dashboard-read-the-current-user-s-role-from-the-existing-usequeries-hooks-and-enforce-these-restrictions-at-the-page-component-level",
+      "featureTitle": "Add role-based access control enforcement to the new workflow pages (REQ-41, REQ-45, REQ-46): Admin users have full access including Run triggers and configuration links. Manager users can view workflows and run triggers but cannot edit configuration. Client users are shown an access-denied message and redirected to /client-dashboard. Read the current user's role from the existing useQueries hooks and enforce these restrictions at the page component level.",
+      "files": [
+        "frontend/src/pages/AnalyticsEnginePage.tsx",
+        "frontend/src/pages/ContentCreatorPage.tsx",
+        "frontend/src/pages/WorkflowsPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "stripe@3.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "http-outcalls@3.0.0",
+        "qr-code@1.0.0",
+        "camera@1.0.0",
+        "blob-storage@4.0.0"
+      ],
+      "testIds": [
+        "REQ-50"
       ],
       "confidence": "high"
     }

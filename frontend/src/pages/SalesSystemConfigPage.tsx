@@ -8,12 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Loader2, Settings, Webhook, Key, MessageSquare, CreditCard, Mail, Link, Zap, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Settings, Webhook, Key, MessageSquare, CreditCard, Mail, Link, Zap, Eye, EyeOff, Calendar } from 'lucide-react';
 
 interface FieldConfig {
   key: keyof WebhookConfig;
   enabledKey: keyof WebhookConfig;
-  statusKey: keyof WebhookConfig;
+  statusKey?: keyof WebhookConfig;
   label: string;
   placeholder: string;
   isSecret?: boolean;
@@ -67,6 +67,11 @@ const FIELDS: FieldConfig[] = [
     key: 'automationWebhookUrl', enabledKey: 'automationWebhookUrlEnabled', statusKey: 'automationWebhookUrlStatus',
     label: 'Automation Webhook URL', placeholder: 'https://hook.make.com/automation/...', isUrl: true, canTest: true,
     icon: <Zap className="h-4 w-4" />,
+  },
+  {
+    key: 'calendlyUrl', enabledKey: 'calendlyEnabled',
+    label: 'Calendly URL', placeholder: 'https://calendly.com/your-link', isUrl: true,
+    icon: <Calendar className="h-4 w-4" />,
   },
 ];
 
@@ -138,7 +143,7 @@ export default function SalesSystemConfigPage() {
           {FIELDS.map((field, idx) => {
             const value = config[field.key] as string;
             const enabled = config[field.enabledKey] as boolean;
-            const status = config[field.statusKey] as ConnectionStatus;
+            const status = field.statusKey ? config[field.statusKey] as ConnectionStatus : (enabled && value ? 'connected' : 'not-configured');
             const isShown = showSecrets[field.key as string];
 
             return (

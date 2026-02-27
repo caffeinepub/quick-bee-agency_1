@@ -1,11 +1,13 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 17,
-  "summary": "AI agency platform with multi-step build: Lead Management CRM (Step 1), Automation Dashboard with webhook-based Sales System Configuration (Step 2). Features include downloadable exports, invoice/GST quote generation, automation controls, API integrations (Razorpay, WhatsApp Cloud API, OpenRouter/OpenAI, Supabase, Airtable, Resend, Google Sheets, PDF generator), AI Smart Systems, and no-code configurable webhook automation engine.",
+  "projectStateVersion": 19,
+  "summary": "AI agency platform (Quick Bee AI Growth Engine) with multi-step build: Lead Management CRM (Step 1), Automation Dashboard with webhook-based Sales System Configuration (Step 2). Features include downloadable exports, invoice/GST quote generation, automation controls, API integrations (Razorpay, WhatsApp Cloud API, OpenRouter/OpenAI, Supabase, Airtable, Resend, Google Sheets, PDF generator, HubSpot CRM, Mailchimp, Calendly, Stripe/PayPal, Tidio, Google Analytics 4, Typeform, Notion API), AI Smart Systems, and no-code configurable webhook automation engine. Five core automation workflows: New Lead Submission (Typeform → HubSpot → Sheets → Notion → Mailchimp), Meeting Scheduling (Calendly + Google Calendar + reminders), Payment Processing (Stripe/PayPal with invoice generation), Analytics Engine (GA4 reports), and AI Content Creation (SEO blog + social media captions).",
   "architectural_notes": [
     "All AI systems connect through external automation tools (e.g., Make.com) via webhook URLs — no direct backend API integration",
     "Webhook triggers must use POST method with proper JSON format and Authorization headers; responses must be checked for 200 status",
-    "API credentials (Endpoint, Key, WhatsApp Token, Razorpay Key ID/Secret, Email API Key, CRM Webhook URL, Automation Webhook URL) must be persisted and included in all outbound requests"
+    "API credentials (Endpoint, Key, WhatsApp Token, Razorpay Key ID/Secret, Email API Key, CRM Webhook URL, Automation Webhook URL) must be persisted and included in all outbound requests",
+    "Five core automation workflows: Lead Submission (Typeform→HubSpot→Sheets→Notion→Mailchimp), Meeting Scheduling (Calendly+GCal), Payment Processing (Stripe/PayPal), Analytics Engine (GA4), AI Content Creation (SEO blog+social)",
+    "All automation actions must return structured JSON: {action_id, status, message, data_logged, next_steps}; log every action to Google Sheets; retry failed webhooks once"
   ],
   "known_issues": [
     "API settings fields not saving/sending correctly in Sales System Dashboard",
@@ -266,6 +268,86 @@
         "REQ-40"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-create-an-automation-workflows-dashboard-page-accessible-from-the-sidebar-under-automations-that-displays-the-five-core-workflow-cards-new-lead-submission-meeting-scheduling-payment-processing-analytics-engine-and-ai-content-creation-each-card-must-show-the-workflow-name-trigger-description-status-indicator-active-inactive-a-manual-run-button-to-trigger-the-workflow-and-the-last-execution-timestamp-and-result-success-error-from-localstorage-persisted-log-entries",
+      "title": "Create an Automation Workflows dashboard page (accessible from the sidebar under Automations) that displays the five core workflow cards: New Lead Submission, Meeting Scheduling, Payment Processing, Analytics Engine, and AI Content Creation. Each card must show the workflow name, trigger description, status indicator (Active/Inactive), a manual 'Run' button to trigger the workflow, and the last execution timestamp and result (success/error) from localStorage-persisted log entries.",
+      "reqIds": [
+        "REQ-41"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-workflow-1-new-lead-submission-when-a-new-lead-is-created-in-the-leads-page-or-a-manual-trigger-is-fired-execute-the-following-sequence-using-the-centralized-config-store-values-1-validate-required-fields-name-email-service-interest-2-post-to-the-configured-crm-webhook-url-with-a-deduplication-check-payload-3-post-to-the-configured-automation-webhook-url-with-contact-creation-data-including-tags-new-lead-and-the-service-interest-value-4-log-the-full-lead-data-entry-in-the-webhook-log-tool-name-new-lead-submission-all-lead-fields-timestamp-5-return-a-structured-json-response-in-the-format-action-id-status-message-data-logged-next-steps-6-display-the-automated-follow-up-message-text-in-the-result-area-thank-you-for-contacting-quick-bee-ai-growth-engine-our-team-will-review-your-request-and-contact-you-shortly-the-webhook-post-must-use-content-type-application-json-and-authorization-header-with-the-saved-api-key",
+      "title": "Implement Workflow 1 – New Lead Submission: When a new lead is created in the Leads page (or a manual trigger is fired), execute the following sequence using the centralized config store values: (1) Validate required fields (name, email, service interest); (2) POST to the configured CRM Webhook URL with a deduplication check payload; (3) POST to the configured Automation Webhook URL with contact creation data including tags 'New Lead' and the service interest value; (4) Log the full lead data entry in the webhook log (tool name: 'new_lead_submission', all lead fields, timestamp); (5) Return a structured JSON response in the format { action_id, status, message, data_logged, next_steps }; (6) Display the automated follow-up message text in the result area: 'Thank you for contacting Quick Bee AI Growth Engine. Our team will review your request and contact you shortly.' The webhook POST must use Content-Type: application/json and Authorization header with the saved API Key.",
+      "reqIds": [
+        "REQ-42"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-workflow-2-meeting-scheduling-create-a-meeting-scheduler-ui-panel-accessible-from-the-workflow-dashboard-or-leads-detail-panel-that-1-displays-a-generate-booking-link-button-which-reads-the-configured-calendly-url-from-the-centralized-config-store-add-a-calendly-url-field-to-the-sales-system-configuration-page-2-on-click-composes-a-booking-link-and-copies-it-to-clipboard-3-posts-to-the-configured-automation-webhook-url-with-payload-tool-meeting-scheduling-calendly-url-lead-id-lead-email-timestamp-using-the-saved-api-key-as-authorization-4-displays-a-confirmation-message-with-the-booking-link-5-logs-the-event-in-the-webhook-log-6-updates-the-associated-lead-s-status-to-meeting-scheduled-by-calling-the-existing-lead-update-mutation-if-the-automation-webhook-url-is-not-configured-or-its-toggle-is-off-show-the-not-configured-banner-instead",
+      "title": "Implement Workflow 2 – Meeting Scheduling: Create a Meeting Scheduler UI panel (accessible from the workflow dashboard or leads detail panel) that: (1) Displays a 'Generate Booking Link' button which reads the configured Calendly URL from the centralized config store (add a 'Calendly URL' field to the Sales System Configuration page); (2) On click, composes a booking link and copies it to clipboard; (3) POSTs to the configured Automation Webhook URL with payload { tool: 'meeting_scheduling', calendly_url, lead_id, lead_email, timestamp } using the saved API Key as Authorization; (4) Displays a confirmation message with the booking link; (5) Logs the event in the webhook log; (6) Updates the associated lead's status to 'Meeting Scheduled' by calling the existing lead update mutation. If the Automation Webhook URL is not configured or its toggle is OFF, show the not-configured banner instead.",
+      "reqIds": [
+        "REQ-43"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-workflow-3-payment-processing-extend-the-existing-payment-success-failure-flow-so-that-when-a-payment-success-event-occurs-razorpay-webhook-or-simulated-success-on-paymentsuccesspage-1-post-to-the-automation-webhook-url-with-payload-tool-payment-processing-status-paid-payment-id-lead-id-order-id-amount-invoice-ref-timestamp-2-generate-an-invoice-reference-number-format-qba-timestamp-and-store-it-in-the-webhook-log-3-display-a-success-confirmation-in-the-admin-notification-area-with-the-invoice-reference-4-on-payment-failure-post-a-failure-payload-tool-payment-processing-status-failed-payment-id-error-message-timestamp-and-display-a-user-visible-error-with-retry-instructions-all-posts-must-use-content-type-application-json-and-authorization-header-with-the-saved-api-key-log-both-success-and-failure-events-in-the-webhook-log",
+      "title": "Implement Workflow 3 – Payment Processing: Extend the existing payment success/failure flow so that when a payment success event occurs (Razorpay webhook or simulated success on PaymentSuccessPage): (1) POST to the Automation Webhook URL with payload { tool: 'payment_processing', status: 'paid', payment_id, lead_id, order_id, amount, invoice_ref, timestamp }; (2) Generate an invoice reference number (format: QBA-{timestamp}) and store it in the webhook log; (3) Display a success confirmation in the admin notification area with the invoice reference; (4) On payment failure, POST a failure payload { tool: 'payment_processing', status: 'failed', payment_id, error_message, timestamp } and display a user-visible error with retry instructions. All POSTs must use Content-Type: application/json and Authorization header with the saved API Key. Log both success and failure events in the webhook log.",
+      "reqIds": [
+        "REQ-44"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-an-analytics-engine-page-at-route-analytics-engine-accessible-from-the-sidebar-the-page-must-1-display-a-generate-report-form-with-a-date-range-selector-defaulting-to-the-last-7-days-2-on-submit-post-to-the-configured-automation-webhook-url-with-payload-tool-analytics-engine-date-range-start-end-timestamp-3-render-a-structured-mock-simulated-analytics-report-in-the-result-area-showing-total-users-sessions-bounce-rate-top-traffic-source-and-conversion-rate-either-from-the-webhook-response-body-or-from-static-placeholder-values-with-a-note-that-live-ga4-data-requires-the-configured-endpoint-4-below-the-metrics-display-a-growth-summary-section-with-trend-analysis-text-growth-decline-drop-off-insights-funnel-suggestions-seo-tips-either-from-the-webhook-response-or-a-templated-placeholder-5-log-the-request-response-in-the-webhook-log-if-automation-webhook-url-is-not-configured-show-the-not-configured-banner",
+      "title": "Create an Analytics Engine page at route /analytics-engine (accessible from the sidebar). The page must: (1) Display a 'Generate Report' form with a date range selector defaulting to the last 7 days; (2) On submit, POST to the configured Automation Webhook URL with payload { tool: 'analytics_engine', date_range: { start, end }, timestamp }; (3) Render a structured mock/simulated analytics report in the result area showing: Total Users, Sessions, Bounce Rate, Top Traffic Source, and Conversion Rate — either from the webhook response body or from static placeholder values with a note that live GA4 data requires the configured endpoint; (4) Below the metrics, display a 'Growth Summary' section with trend analysis text (growth/decline, drop-off insights, funnel suggestions, SEO tips) either from the webhook response or a templated placeholder; (5) Log the request/response in the webhook log. If Automation Webhook URL is not configured, show the not-configured banner.",
+      "reqIds": [
+        "REQ-45"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-an-ai-content-creation-page-at-route-content-creator-accessible-from-the-sidebar-the-page-must-1-render-a-form-with-a-keyword-topic-text-input-and-a-generate-content-button-2-on-submit-build-an-openai-compatible-post-request-using-the-saved-api-endpoint-and-api-key-with-a-structured-prompt-requesting-seo-optimized-blog-content-title-meta-description-h1-h2-structure-cta-internal-linking-suggestions-suggested-social-media-captions-with-hashtags-a-short-linkedin-version-and-an-instagram-carousel-outline-3-display-a-loading-state-while-the-request-is-in-progress-4-render-the-ai-generated-content-in-clearly-labelled-sections-blog-content-social-media-captions-linkedin-post-instagram-carousel-5-also-post-the-form-payload-to-the-automation-webhook-url-with-tool-ai-content-creation-keyword-timestamp-6-provide-a-copy-button-for-each-section-and-an-export-all-button-that-downloads-the-full-content-as-a-text-file-7-show-an-error-message-if-the-ai-api-call-or-webhook-call-fails-specifying-which-endpoint-failed-show-the-not-configured-banner-if-api-credentials-are-missing",
+      "title": "Create an AI Content Creation page at route /content-creator (accessible from the sidebar). The page must: (1) Render a form with a keyword/topic text input and a 'Generate Content' button; (2) On submit, build an OpenAI-compatible POST request using the saved API Endpoint and API Key with a structured prompt requesting: SEO-optimized blog content (title, meta description, H1/H2 structure, CTA, internal linking suggestions), suggested social media captions with hashtags, a short LinkedIn version, and an Instagram carousel outline; (3) Display a loading state while the request is in progress; (4) Render the AI-generated content in clearly labelled sections: Blog Content, Social Media Captions, LinkedIn Post, Instagram Carousel; (5) Also POST the form payload to the Automation Webhook URL with { tool: 'ai_content_creation', keyword, timestamp }; (6) Provide a 'Copy' button for each section and an 'Export All' button that downloads the full content as a text file; (7) Show an error message if the AI API call or webhook call fails, specifying which endpoint failed. Show the not-configured banner if API credentials are missing.",
+      "reqIds": [
+        "REQ-46"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-calendly-url-field-to-the-sales-system-configuration-page-frontend-src-pages-salessystemconfigpage-tsx-alongside-the-existing-integration-fields-the-field-must-have-an-on-off-toggle-persist-to-the-centralized-config-store-aiconfigcontext-webhookconfigcontext-with-localstorage-backing-survive-page-navigation-and-display-a-not-configured-connected-status-badge-the-value-must-be-readable-by-the-meeting-scheduling-workflow-req-43",
+      "title": "Add a 'Calendly URL' field to the Sales System Configuration page (frontend/src/pages/SalesSystemConfigPage.tsx) alongside the existing integration fields. The field must have an ON/OFF toggle, persist to the centralized config store (AIConfigContext / WebhookConfigContext) with localStorage backing, survive page navigation, and display a Not Configured / Connected status badge. The value must be readable by the Meeting Scheduling workflow (REQ-43).",
+      "reqIds": [
+        "REQ-47"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-sidebar-navigation-frontend-src-components-layout-sidebarnav-tsx-to-include-links-to-the-new-pages-workflows-pointing-to-the-automation-workflows-dashboard-from-req-41-analytics-engine-analytics-engine-and-content-creator-content-creator-these-links-must-be-visible-to-admin-and-manager-roles-also-register-the-routes-analytics-engine-and-content-creator-in-app-tsx-nested-under-the-authenticated-shell-route",
+      "title": "Update the sidebar navigation (frontend/src/components/layout/SidebarNav.tsx) to include links to the new pages: 'Workflows' (pointing to the automation workflows dashboard from REQ-41), 'Analytics Engine' (/analytics-engine), and 'Content Creator' (/content-creator). These links must be visible to Admin and Manager roles. Also register the routes /analytics-engine and /content-creator in App.tsx nested under the authenticated shell route.",
+      "reqIds": [
+        "REQ-48"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-all-outgoing-automation-workflow-posts-return-and-display-a-structured-json-result-in-the-format-action-id-string-status-success-error-pending-review-message-string-data-logged-boolean-next-steps-string-in-the-relevant-workflow-result-panel-the-action-id-must-be-a-uuid-or-timestamp-based-unique-identifier-generated-client-side-if-the-webhook-response-includes-this-structure-display-it-directly-otherwise-construct-it-from-the-http-response-status-and-body-display-the-json-result-in-a-styled-code-block-or-summary-card-beneath-each-workflow-trigger-button",
+      "title": "Ensure all outgoing automation workflow POSTs return and display a structured JSON result in the format { action_id: string, status: 'success' | 'error' | 'pending_review', message: string, data_logged: boolean, next_steps: string } in the relevant workflow result panel. The action_id must be a UUID or timestamp-based unique identifier generated client-side. If the webhook response includes this structure, display it directly; otherwise, construct it from the HTTP response status and body. Display the JSON result in a styled code block or summary card beneath each workflow trigger button.",
+      "reqIds": [
+        "REQ-49"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-role-based-access-control-enforcement-to-the-new-workflow-pages-req-41-req-45-req-46-admin-users-have-full-access-including-run-triggers-and-configuration-links-manager-users-can-view-workflows-and-run-triggers-but-cannot-edit-configuration-client-users-are-shown-an-access-denied-message-and-redirected-to-client-dashboard-read-the-current-user-s-role-from-the-existing-usequeries-hooks-and-enforce-these-restrictions-at-the-page-component-level",
+      "title": "Add role-based access control enforcement to the new workflow pages (REQ-41, REQ-45, REQ-46): Admin users have full access including Run triggers and configuration links. Manager users can view workflows and run triggers but cannot edit configuration. Client users are shown an access-denied message and redirected to /client-dashboard. Read the current user's role from the existing useQueries hooks and enforce these restrictions at the page component level.",
+      "reqIds": [
+        "REQ-50"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -404,6 +486,78 @@
     {
       "id": "AR-25",
       "summary": "Fix the Services section to display the catalog/service list correctly and restore the UI options/layout as they appeared in version 19",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-26",
+      "summary": "Workflow 1 – New Lead Submission: Typeform trigger → validate fields → dedupe check in HubSpot → create/update HubSpot Contact with tags → log to Google Sheets → add to Notion CRM → send Mailchimp welcome email → return automated follow-up message with Calendly link",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-27",
+      "summary": "Workflow 2 – Meeting Scheduling: generate Calendly booking link → send via email → sync to Google Calendar → schedule 24-hour reminder email → update HubSpot lead status to 'Meeting Scheduled'",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-28",
+      "summary": "Workflow 3 – Payment Processing: dynamically generate Stripe/PayPal payment link → send to client email → on payment webhook success update status, move lead to Clients in Sheets, update Notion Paid Clients DB, generate invoice reference, send receipt email, notify admin → on failure log, send retry email, notify admin",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-29",
+      "summary": "Workflow 4 – Analytics Engine: pull last 7 days GA4 data (users, sessions, bounce rate, traffic source, conversion rate) → generate summary with growth trends, drop-off insights, funnel improvement suggestions, and SEO tips",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-30",
+      "summary": "Workflow 5 – AI Content Creation: given keyword/topic generate SEO-optimized blog content (title, meta, H1/H2, CTA, internal links) + fetch 3 royalty-free images (Pexels/Unsplash) + provide social captions, hashtags, LinkedIn version, Instagram carousel outline",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-31",
+      "summary": "Integrate HubSpot CRM for lead and deal management across all workflows — create/update contacts, add tags, update deal stages and lead status",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-32",
+      "summary": "Integrate Mailchimp API for email automation — welcome emails on lead creation, meeting reminder emails, payment receipt emails, and retry emails on payment failure",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-33",
+      "summary": "Integrate Calendly API for meeting scheduling — generate booking links, sync events to Google Calendar, and trigger automated pre-meeting reminder emails",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-34",
+      "summary": "Integrate Stripe and PayPal APIs for dynamic payment link generation, payment webhook handling, invoice reference generation, and admin notification on payment success/failure",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-35",
+      "summary": "Integrate Typeform API as lead capture trigger — listen for new submissions and feed them into the lead submission workflow with field validation",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-36",
+      "summary": "Integrate Notion API for internal CRM and knowledge base — add new leads, update Paid Clients database on payment success, and maintain structured records",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-37",
+      "summary": "Add global automation rules: validate all data before processing, prevent duplicate records, log every action in Google Sheets, return structured JSON output ({action_id, status, message, data_logged, next_steps}), handle API timeouts gracefully, retry failed webhooks once, and enforce role-based permissions for Admin/Manager/Client",
       "reqIds": [],
       "status": "pending"
     }

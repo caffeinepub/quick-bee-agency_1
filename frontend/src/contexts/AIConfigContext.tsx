@@ -25,6 +25,10 @@ export interface WebhookConfig {
   automationWebhookUrl: string;
   automationWebhookUrlEnabled: boolean;
 
+  // Calendly
+  calendlyUrl: string;
+  calendlyEnabled: boolean;
+
   // Automation toggles
   whatsAppAutoReplyEnabled: boolean;
   proposalAutoSendEnabled: boolean;
@@ -64,6 +68,9 @@ const defaultConfig: WebhookConfig = {
   automationWebhookUrl: '',
   automationWebhookUrlEnabled: false,
 
+  calendlyUrl: '',
+  calendlyEnabled: false,
+
   whatsAppAutoReplyEnabled: false,
   proposalAutoSendEnabled: false,
   leadFollowUpEnabled: false,
@@ -98,6 +105,12 @@ interface AIConfigContextType {
   setLeadFollowUpEnabled: (enabled: boolean) => void;
   setPaymentConfirmationEnabled: (enabled: boolean) => void;
   setProjectOnboardingEnabled: (enabled: boolean) => void;
+
+  // Calendly helpers
+  getCalendlyUrl: () => string;
+  getCalendlyEnabled: () => boolean;
+  setCalendlyUrl: (url: string) => void;
+  setCalendlyEnabled: (enabled: boolean) => void;
 }
 
 const AIConfigContext = createContext<AIConfigContextType | null>(null);
@@ -164,14 +177,14 @@ export function AIConfigProvider({ children }: { children: ReactNode }) {
   };
 
   const isFieldConfigured = (fieldName: keyof WebhookConfig): boolean => {
-    const enabledKey = `${fieldName}Enabled` as keyof WebhookConfig;
+    const enabledKey = `${fieldName as string}Enabled` as keyof WebhookConfig;
     const val = config[fieldName] as string;
     const enabled = config[enabledKey] as boolean;
     return enabled && !!val;
   };
 
   const getFieldValue = (fieldName: keyof WebhookConfig): string | null => {
-    const enabledKey = `${fieldName}Enabled` as keyof WebhookConfig;
+    const enabledKey = `${fieldName as string}Enabled` as keyof WebhookConfig;
     const val = config[fieldName] as string;
     const enabled = config[enabledKey] as boolean;
     if (!enabled || !val) return null;
@@ -250,6 +263,25 @@ export function AIConfigProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const getCalendlyUrl = () => config.calendlyUrl;
+  const getCalendlyEnabled = () => config.calendlyEnabled;
+
+  const setCalendlyUrl = (calendlyUrl: string) => {
+    setConfigState(prev => {
+      const updated = { ...prev, calendlyUrl };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const setCalendlyEnabled = (calendlyEnabled: boolean) => {
+    setConfigState(prev => {
+      const updated = { ...prev, calendlyEnabled };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   return (
     <AIConfigContext.Provider value={{
       config,
@@ -266,6 +298,10 @@ export function AIConfigProvider({ children }: { children: ReactNode }) {
       setLeadFollowUpEnabled,
       setPaymentConfirmationEnabled,
       setProjectOnboardingEnabled,
+      getCalendlyUrl,
+      getCalendlyEnabled,
+      setCalendlyUrl,
+      setCalendlyEnabled,
     }}>
       {children}
     </AIConfigContext.Provider>

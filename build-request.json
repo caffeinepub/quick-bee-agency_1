@@ -1,100 +1,255 @@
 {
   "kind": "build_request",
-  "title": "Fix Internet Identity login flow — deep diagnosis and full rewrite",
+  "title": "Automation Engine Workflows + Integration Pages (HubSpot, Mailchimp, Calendly, Stripe/PayPal, Typeform, Notion, GA4, AI Content)",
+  "projectName": "Quick Bee AI Growth Engine",
   "priority": "high",
   "requirements": [
     {
-      "id": "REQ-37",
-      "text": "Perform a full rewrite of frontend/src/pages/LoginPage.tsx. The Sign In with Internet Identity button must: (1) never be disabled or have any condition preventing it from being clicked; (2) call the login() function from the useInternetIdentity hook on click; (3) display a visible loading spinner while isLoggingIn is true; (4) on successful authentication (identity becomes non-null / isAuthenticated becomes true), use TanStack Router's useNavigate to redirect to /dashboard (or /admin-dashboard, /manager-dashboard, /client-dashboard based on role if available); (5) display a user-visible inline error message if login() throws or authentication is cancelled. Remove every guard, disabled prop, or conditional render that could block the button before the actor is initialized.",
+      "id": "REQ-41",
+      "text": "Create an Automation Workflows dashboard page (accessible from the sidebar under Automations) that displays the five core workflow cards: New Lead Submission, Meeting Scheduling, Payment Processing, Analytics Engine, and AI Content Creation. Each card must show the workflow name, trigger description, status indicator (Active/Inactive), a manual 'Run' button to trigger the workflow, and the last execution timestamp and result (success/error) from localStorage-persisted log entries.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "still not working, not able to login"
+          "WORKFLOW 1: NEW LEAD SUBMISSION",
+          "WORKFLOW 2: MEETING SCHEDULING",
+          "WORKFLOW 3: PAYMENT PROCESSING",
+          "WORKFLOW 4: ANALYTICS ENGINE",
+          "WORKFLOW 5: AI CONTENT CREATION"
         ]
       },
       "acceptanceCriteria": [
-        "Visiting the login page shows the Sign In with Internet Identity button in a clickable, enabled state immediately",
-        "Clicking the button invokes the Internet Identity popup/flow without any error",
-        "A spinner or loading indicator is visible while authentication is in progress",
-        "After successful authentication, the user is automatically redirected to the appropriate dashboard route",
-        "If the user cancels or authentication fails, an inline error message is shown on the login page",
-        "No disabled prop, loading guard, or actor-initialization check blocks the button from being clickable"
+        "Page is accessible from the sidebar navigation under an 'Automations' or 'Workflows' section",
+        "Five workflow cards are rendered with name, trigger, status, Run button, and last execution info",
+        "Last execution timestamp and status (success/error) are read from localStorage",
+        "Each card's status indicator reflects whether the workflow is active or inactive"
       ]
     },
     {
-      "id": "REQ-38",
-      "text": "Rewrite frontend/src/components/bootstrap/BootstrapGate.tsx so it never blocks or visually disables the LoginPage UI. BootstrapGate must detect when the current route is the login page (or when the user is unauthenticated) and render children directly without any loading spinner, overlay, or disabled wrapper. The gate must only intercept navigation to authenticated/protected routes. Unauthenticated users must always see and interact with the full login UI regardless of actor or identity initialization state.",
+      "id": "REQ-42",
+      "text": "Implement Workflow 1 – New Lead Submission: When a new lead is created in the Leads page (or a manual trigger is fired), execute the following sequence using the centralized config store values: (1) Validate required fields (name, email, service interest); (2) POST to the configured CRM Webhook URL with a deduplication check payload; (3) POST to the configured Automation Webhook URL with contact creation data including tags 'New Lead' and the service interest value; (4) Log the full lead data entry in the webhook log (tool name: 'new_lead_submission', all lead fields, timestamp); (5) Return a structured JSON response in the format { action_id, status, message, data_logged, next_steps }; (6) Display the automated follow-up message text in the result area: 'Thank you for contacting Quick Bee AI Growth Engine. Our team will review your request and contact you shortly.' The webhook POST must use Content-Type: application/json and Authorization header with the saved API Key.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "still not working, not able to login"
+          "WORKFLOW 1: NEW LEAD SUBMISSION",
+          "Validate lead fields (name, email, service interest)",
+          "Check for duplicate email in HubSpot",
+          "Log full lead data in Google Sheets",
+          "Return automated follow-up message"
         ]
       },
       "acceptanceCriteria": [
-        "Opening the app when unauthenticated immediately renders the LoginPage with no loading spinner blocking it",
-        "BootstrapGate does not render a spinner or error panel on the login route",
-        "BootstrapGate still shows a loading state for authenticated users accessing protected routes before the actor is ready",
-        "The Sign In button on LoginPage is interactable before the ICP actor has finished initializing"
+        "Workflow fires when a new lead is created or a manual Run is triggered from the workflow dashboard",
+        "Field validation runs before any POST is attempted; missing fields show an inline error",
+        "CRM Webhook URL receives a POST with lead data and deduplication flag",
+        "Automation Webhook URL receives a POST with contact creation payload including tags",
+        "Webhook log records the attempt with timestamp, URL, payload summary, and response status",
+        "Structured JSON response { action_id, status, message, data_logged, next_steps } is displayed in the workflow result area",
+        "Automated follow-up message text is rendered on success",
+        "Duplicate lead path updates the existing record rather than creating a new one (flag sent in payload)"
       ]
     },
     {
-      "id": "REQ-39",
-      "text": "Audit and fix the useInternetIdentity hook integration in LoginPage. Ensure the hook is imported from the correct immutable path (frontend/src/hooks/useInternetIdentity.ts), that the destructured login function and isLoggingIn / isAuthenticated / identity values are correctly consumed, and that a useEffect watches isAuthenticated / identity to trigger role-based navigation after login resolves. If the hook returns a promise from login(), await it before checking authentication state. Confirm the InternetIdentityProvider is wrapping the app in frontend/src/main.tsx so the hook has access to its context.",
+      "id": "REQ-43",
+      "text": "Implement Workflow 2 – Meeting Scheduling: Create a Meeting Scheduler UI panel (accessible from the workflow dashboard or leads detail panel) that: (1) Displays a 'Generate Booking Link' button which reads the configured Calendly URL from the centralized config store (add a 'Calendly URL' field to the Sales System Configuration page); (2) On click, composes a booking link and copies it to clipboard; (3) POSTs to the configured Automation Webhook URL with payload { tool: 'meeting_scheduling', calendly_url, lead_id, lead_email, timestamp } using the saved API Key as Authorization; (4) Displays a confirmation message with the booking link; (5) Logs the event in the webhook log; (6) Updates the associated lead's status to 'Meeting Scheduled' by calling the existing lead update mutation. If the Automation Webhook URL is not configured or its toggle is OFF, show the not-configured banner instead.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "still not working, not able to login"
+          "WORKFLOW 2: MEETING SCHEDULING",
+          "Generate Calendly booking link",
+          "Update lead status in HubSpot to 'Meeting Scheduled'"
         ]
       },
       "acceptanceCriteria": [
-        "No runtime errors about missing context or undefined hook values on the login page",
-        "isLoggingIn correctly reflects true while the Internet Identity popup is open",
-        "isAuthenticated transitions to true after the user completes authentication",
-        "A useEffect in LoginPage triggers navigation once isAuthenticated is true",
-        "InternetIdentityProvider is confirmed present in main.tsx wrapping the root app"
+        "A 'Calendly URL' configuration field is added to the Sales System Configuration page and persisted in the centralized config store",
+        "Generating a booking link copies the URL to the clipboard and shows a confirmation toast",
+        "Automation Webhook URL receives a POST with meeting scheduling payload",
+        "Lead status is updated to 'Meeting Scheduled' on successful webhook POST",
+        "Webhook log entry is created for the event",
+        "Not-configured banner is shown when Automation Webhook URL is empty or toggle is OFF"
       ]
     },
     {
-      "id": "REQ-40",
-      "text": "Ensure role-based post-login redirect works correctly in LoginPage. After login() resolves and the user is authenticated, query the user's role from the backend actor (or from the existing useQueries hooks). Redirect admin users to /admin-dashboard, manager users to /manager-dashboard, client users to /client-dashboard, and any other authenticated user or unresolved role to /dashboard as the safe default. If the role query is still loading, redirect to /dashboard immediately rather than waiting indefinitely.",
+      "id": "REQ-44",
+      "text": "Implement Workflow 3 – Payment Processing: Extend the existing payment success/failure flow so that when a payment success event occurs (Razorpay webhook or simulated success on PaymentSuccessPage): (1) POST to the Automation Webhook URL with payload { tool: 'payment_processing', status: 'paid', payment_id, lead_id, order_id, amount, invoice_ref, timestamp }; (2) Generate an invoice reference number (format: QBA-{timestamp}) and store it in the webhook log; (3) Display a success confirmation in the admin notification area with the invoice reference; (4) On payment failure, POST a failure payload { tool: 'payment_processing', status: 'failed', payment_id, error_message, timestamp } and display a user-visible error with retry instructions. All POSTs must use Content-Type: application/json and Authorization header with the saved API Key. Log both success and failure events in the webhook log.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-1"
         ],
         "quotes": [
-          "still not working, not able to login"
+          "WORKFLOW 3: PAYMENT PROCESSING",
+          "Generate invoice reference number",
+          "Notify Admin dashboard",
+          "If payment fails: Log failure, Send retry email, Notify Admin"
         ]
       },
       "acceptanceCriteria": [
-        "Admin users are redirected to /admin-dashboard after successful login",
-        "Manager users are redirected to /manager-dashboard after successful login",
-        "Client users are redirected to /client-dashboard after successful login",
-        "Users with no determined role are redirected to /dashboard",
-        "The redirect happens automatically without the user needing to click anything after authentication"
+        "PaymentSuccessPage fires the Automation Webhook URL POST with the structured payment payload on mount",
+        "Invoice reference number in format QBA-{timestamp} is generated and shown on the success page",
+        "Payment failure path fires a failure POST to the Automation Webhook URL",
+        "Both success and failure events appear in the Webhook Logs panel",
+        "If Automation Webhook URL is not configured or toggle is OFF, the POST is skipped and a warning is logged"
+      ]
+    },
+    {
+      "id": "REQ-45",
+      "text": "Create an Analytics Engine page at route /analytics-engine (accessible from the sidebar). The page must: (1) Display a 'Generate Report' form with a date range selector defaulting to the last 7 days; (2) On submit, POST to the configured Automation Webhook URL with payload { tool: 'analytics_engine', date_range: { start, end }, timestamp }; (3) Render a structured mock/simulated analytics report in the result area showing: Total Users, Sessions, Bounce Rate, Top Traffic Source, and Conversion Rate — either from the webhook response body or from static placeholder values with a note that live GA4 data requires the configured endpoint; (4) Below the metrics, display a 'Growth Summary' section with trend analysis text (growth/decline, drop-off insights, funnel suggestions, SEO tips) either from the webhook response or a templated placeholder; (5) Log the request/response in the webhook log. If Automation Webhook URL is not configured, show the not-configured banner.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "WORKFLOW 4: ANALYTICS ENGINE",
+          "Pull last 7 days data from Google Analytics 4",
+          "Extract: Total Users, Sessions, Bounce Rate, Top Traffic Source, Conversion Rate",
+          "Generate summary: Growth or decline trends, Drop-off insights, Funnel improvement suggestions, SEO optimization tips"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Route /analytics-engine is registered in App.tsx under the authenticated shell",
+        "Analytics Engine page is accessible from the sidebar navigation",
+        "Date range selector defaults to last 7 days",
+        "On form submit, POST is sent to Automation Webhook URL with the analytics engine payload",
+        "Metrics section renders Total Users, Sessions, Bounce Rate, Top Traffic Source, Conversion Rate",
+        "Growth Summary section renders trend analysis text",
+        "Webhook log entry is created for the request",
+        "Not-configured banner shown when Automation Webhook URL is empty or toggle is OFF"
+      ]
+    },
+    {
+      "id": "REQ-46",
+      "text": "Create an AI Content Creation page at route /content-creator (accessible from the sidebar). The page must: (1) Render a form with a keyword/topic text input and a 'Generate Content' button; (2) On submit, build an OpenAI-compatible POST request using the saved API Endpoint and API Key with a structured prompt requesting: SEO-optimized blog content (title, meta description, H1/H2 structure, CTA, internal linking suggestions), suggested social media captions with hashtags, a short LinkedIn version, and an Instagram carousel outline; (3) Display a loading state while the request is in progress; (4) Render the AI-generated content in clearly labelled sections: Blog Content, Social Media Captions, LinkedIn Post, Instagram Carousel; (5) Also POST the form payload to the Automation Webhook URL with { tool: 'ai_content_creation', keyword, timestamp }; (6) Provide a 'Copy' button for each section and an 'Export All' button that downloads the full content as a text file; (7) Show an error message if the AI API call or webhook call fails, specifying which endpoint failed. Show the not-configured banner if API credentials are missing.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "WORKFLOW 5: AI CONTENT CREATION",
+          "Generate SEO optimized blog content",
+          "Provide: Suggested social media captions, Hashtag recommendations, Short LinkedIn version, Instagram carousel outline"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Route /content-creator is registered in App.tsx under the authenticated shell",
+        "Page is accessible from the sidebar navigation",
+        "Form accepts a keyword/topic input and submits on button click",
+        "OpenAI-compatible POST is built with correct prompt structure using saved API Endpoint and API Key",
+        "Loading spinner is shown while awaiting the AI response",
+        "Result area renders four labelled sections: Blog Content, Social Media Captions, LinkedIn Post, Instagram Carousel",
+        "Each section has a Copy button and an Export All button triggers a text file download",
+        "Automation Webhook URL receives a POST with the content creation payload",
+        "Error message specifies which endpoint (AI API vs webhook) failed",
+        "Not-configured banner is shown when API Endpoint or API Key is missing"
+      ]
+    },
+    {
+      "id": "REQ-47",
+      "text": "Add a 'Calendly URL' field to the Sales System Configuration page (frontend/src/pages/SalesSystemConfigPage.tsx) alongside the existing integration fields. The field must have an ON/OFF toggle, persist to the centralized config store (AIConfigContext / WebhookConfigContext) with localStorage backing, survive page navigation, and display a Not Configured / Connected status badge. The value must be readable by the Meeting Scheduling workflow (REQ-43).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Calendly – Meeting Scheduling",
+          "Generate Calendly booking link"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Calendly URL field appears on the Sales System Configuration page",
+        "Field has an ON/OFF toggle",
+        "Value persists to localStorage via the centralized config store",
+        "Status badge shows Not Configured when empty, Connected when a URL is saved",
+        "Value is accessible via the config context in all workflow components"
+      ]
+    },
+    {
+      "id": "REQ-48",
+      "text": "Update the sidebar navigation (frontend/src/components/layout/SidebarNav.tsx) to include links to the new pages: 'Workflows' (pointing to the automation workflows dashboard from REQ-41), 'Analytics Engine' (/analytics-engine), and 'Content Creator' (/content-creator). These links must be visible to Admin and Manager roles. Also register the routes /analytics-engine and /content-creator in App.tsx nested under the authenticated shell route.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "WORKFLOW 4: ANALYTICS ENGINE",
+          "WORKFLOW 5: AI CONTENT CREATION"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Sidebar shows 'Workflows', 'Analytics Engine', and 'Content Creator' links for Admin and Manager roles",
+        "Routes /analytics-engine and /content-creator are registered in App.tsx under the authenticated shell",
+        "Navigating to each route renders the correct page component",
+        "Active route is highlighted in the sidebar"
+      ]
+    },
+    {
+      "id": "REQ-49",
+      "text": "Ensure all outgoing automation workflow POSTs return and display a structured JSON result in the format { action_id: string, status: 'success' | 'error' | 'pending_review', message: string, data_logged: boolean, next_steps: string } in the relevant workflow result panel. The action_id must be a UUID or timestamp-based unique identifier generated client-side. If the webhook response includes this structure, display it directly; otherwise, construct it from the HTTP response status and body. Display the JSON result in a styled code block or summary card beneath each workflow trigger button.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "OUTPUT FORMAT (MANDATORY)",
+          "Return all responses in JSON format",
+          "action_id, status, message, data_logged, next_steps"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Every workflow trigger (REQ-41 through REQ-46) displays a JSON result card after execution",
+        "action_id is a unique timestamp-based or UUID string",
+        "status reflects success, error, or pending_review based on HTTP response",
+        "data_logged is true when the event was written to the webhook log",
+        "next_steps text is shown when status is error or pending_review",
+        "Result is displayed in a styled card or code block in the UI"
+      ]
+    },
+    {
+      "id": "REQ-50",
+      "text": "Add role-based access control enforcement to the new workflow pages (REQ-41, REQ-45, REQ-46): Admin users have full access including Run triggers and configuration links. Manager users can view workflows and run triggers but cannot edit configuration. Client users are shown an access-denied message and redirected to /client-dashboard. Read the current user's role from the existing useQueries hooks and enforce these restrictions at the page component level.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Ensure role-based permissions for Admin / Manager / Client"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Admin users have full access to all workflow pages and Run buttons",
+        "Manager users can view and run workflows but configuration edit links are hidden",
+        "Client users attempting to access /analytics-engine, /content-creator, or the workflows dashboard are redirected to /client-dashboard with an access-denied message",
+        "Role is read from the existing useQueries hooks"
       ]
     }
   ],
   "constraints": [
-    "Do not modify frontend/src/hooks/useInternetIdentity.ts or frontend/src/hooks/useInternetIdentity.tsx — these are immutable",
-    "Do not modify frontend/src/main.tsx — this is immutable",
-    "Do not modify any file under frontend/src/components/ui — these are immutable",
-    "All Motoko logic must remain in backend/main.mo as a single actor"
+    "Do not integrate actual third-party APIs (HubSpot, Google Sheets, Mailchimp, Calendly, Stripe, PayPal, Tidio, GA4, Typeform, Notion, Pexels, Unsplash) directly — all external calls must go through the user-configured webhook URLs in the centralized config store",
+    "All new pages must be nested under the authenticated shell route in App.tsx",
+    "Do not modify files listed in frontend.immutablePaths",
+    "All config values must be read from and written to the existing AIConfigContext / WebhookConfigContext (localStorage-backed)",
+    "Backend Motoko actor must not be changed unless state migration is required"
   ],
   "nonGoals": [
-    "Adding new authentication providers beyond Internet Identity",
-    "Changing the visual design or branding of the login page beyond what is needed to fix the button",
-    "Modifying any backend Motoko logic for this fix",
-    "Changing any routes or pages other than LoginPage and BootstrapGate"
+    "Direct server-side integration with HubSpot, Google Sheets, Mailchimp, Calendly, Notion, GA4, Typeform, Pexels, or Unsplash APIs",
+    "Real-time WebSocket or push notification features",
+    "SMS or WhatsApp direct API calls (handled via webhook relay)",
+    "OAuth flows for third-party services",
+    "Multi-actor or microservices backend architecture"
   ],
   "imageRequirements": {
     "required": [],

@@ -18,9 +18,9 @@ export function useWebhookPost() {
 
   return useMutation<WebhookPostResult, Error, WebhookPostPayload>({
     mutationFn: async ({ toolName, formData }) => {
-      const url = config.webhookUrlEnabled && config.webhookUrl
+      const url = (config.webhookUrlEnabled && config.webhookUrl)
         ? config.webhookUrl
-        : config.automationWebhookUrlEnabled && config.automationWebhookUrl
+        : (config.automationWebhookUrlEnabled && config.automationWebhookUrl)
           ? config.automationWebhookUrl
           : null;
 

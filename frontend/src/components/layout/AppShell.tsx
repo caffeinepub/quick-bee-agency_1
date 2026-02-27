@@ -1,5 +1,5 @@
 import React from 'react';
-import SidebarNav from './SidebarNav';
+import { SidebarNav } from './SidebarNav';
 import TopNav from './TopNav';
 
 interface AppShellProps {

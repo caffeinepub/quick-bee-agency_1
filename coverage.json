@@ -1,57 +1,159 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-27T06:51:29.888Z",
+  "generatedAt": "2026-02-27T07:30:41.370Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 4,
+    "total": 10,
+    "implemented": 10,
     "items": [
       {
-        "id": "REQ-37",
-        "summary": "Perform a full rewrite of frontend/src/pages/LoginPage.tsx. The Sign In with Internet Identity button must: (1) never be disabled or have any condition preventing it from being clicked; (2) call the login() function from the useInternetIdentity hook on click; (3) display a visible loading spinner while isLoggingIn is true; (4) on successful authentication (identity becomes non-null / isAuthenticated becomes true), use TanStack Router's useNavigate to redirect to /dashboard (or /admin-dashboard, /manager-dashboard, /client-dashboard based on role if available); (5) display a user-visible inline error message if login() throws or authentication is cancelled. Remove every guard, disabled prop, or conditional render that could block the button before the actor is initialized.",
+        "id": "REQ-41",
+        "summary": "Create an Automation Workflows dashboard page (accessible from the sidebar under Automations) that displays the five core workflow cards: New Lead Submission, Meeting Scheduling, Payment Processing, Analytics Engine, and AI Content Creation. Each card must show the workflow name, trigger description, status indicator (Active/Inactive), a manual 'Run' button to trigger the workflow, and the last execution timestamp and result (success/error) from localStorage-persisted log entries.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/LoginPage.tsx"
+          "frontend/src/pages/WorkflowsPage.tsx",
+          "frontend/src/components/workflows/WorkflowCard.tsx",
+          "frontend/src/components/workflows/WorkflowResultDisplay.tsx",
+          "frontend/src/hooks/useWorkflowExecution.ts"
         ],
         "matchedFiles": [
-          "frontend/src/pages/LoginPage.tsx"
+          "frontend/src/pages/WorkflowsPage.tsx",
+          "frontend/src/components/workflows/WorkflowCard.tsx",
+          "frontend/src/components/workflows/WorkflowResultDisplay.tsx",
+          "frontend/src/hooks/useWorkflowExecution.ts"
         ]
       },
       {
-        "id": "REQ-38",
-        "summary": "Rewrite frontend/src/components/bootstrap/BootstrapGate.tsx so it never blocks or visually disables the LoginPage UI. BootstrapGate must detect when the current route is the login page (or when the user is unauthenticated) and render children directly without any loading spinner, overlay, or disabled wrapper. The gate must only intercept navigation to authenticated/protected routes. Unauthenticated users must always see and interact with the full login UI regardless of actor or identity initialization state.",
+        "id": "REQ-42",
+        "summary": "Implement Workflow 1 – New Lead Submission: When a new lead is created in the Leads page (or a manual trigger is fired), execute the following sequence using the centralized config store values: (1) Validate required fields (name, email, service interest); (2) POST to the configured CRM Webhook URL with a deduplication check payload; (3) POST to the configured Automation Webhook URL with contact creation data including tags 'New Lead' and the service interest value; (4) Log the full lead data entry in the webhook log (tool name: 'new_lead_submission', all lead fields, timestamp); (5) Return a structured JSON response in the format { action_id, status, message, data_logged, next_steps }; (6) Display the automated follow-up message text in the result area: 'Thank you for contacting Quick Bee AI Growth Engine. Our team will review your request and contact you shortly.' The webhook POST must use Content-Type: application/json and Authorization header with the saved API Key.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/bootstrap/BootstrapGate.tsx"
+          "frontend/src/hooks/useNewLeadSubmissionWorkflow.ts",
+          "frontend/src/pages/LeadsPage.tsx",
+          "frontend/src/pages/WorkflowsPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/bootstrap/BootstrapGate.tsx"
+          "frontend/src/hooks/useNewLeadSubmissionWorkflow.ts",
+          "frontend/src/pages/WorkflowsPage.tsx"
         ]
       },
       {
-        "id": "REQ-39",
-        "summary": "Audit and fix the useInternetIdentity hook integration in LoginPage. Ensure the hook is imported from the correct immutable path (frontend/src/hooks/useInternetIdentity.ts), that the destructured login function and isLoggingIn / isAuthenticated / identity values are correctly consumed, and that a useEffect watches isAuthenticated / identity to trigger role-based navigation after login resolves. If the hook returns a promise from login(), await it before checking authentication state. Confirm the InternetIdentityProvider is wrapping the app in frontend/src/main.tsx so the hook has access to its context.",
+        "id": "REQ-43",
+        "summary": "Implement Workflow 2 – Meeting Scheduling: Create a Meeting Scheduler UI panel (accessible from the workflow dashboard or leads detail panel) that: (1) Displays a 'Generate Booking Link' button which reads the configured Calendly URL from the centralized config store (add a 'Calendly URL' field to the Sales System Configuration page); (2) On click, composes a booking link and copies it to clipboard; (3) POSTs to the configured Automation Webhook URL with payload { tool: 'meeting_scheduling', calendly_url, lead_id, lead_email, timestamp } using the saved API Key as Authorization; (4) Displays a confirmation message with the booking link; (5) Logs the event in the webhook log; (6) Updates the associated lead's status to 'Meeting Scheduled' by calling the existing lead update mutation. If the Automation Webhook URL is not configured or its toggle is OFF, show the not-configured banner instead.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/LoginPage.tsx"
+          "frontend/src/pages/SalesSystemConfigPage.tsx",
+          "frontend/src/hooks/useMeetingSchedulingWorkflow.ts",
+          "frontend/src/components/leads/LeadDetailPanel.tsx",
+          "frontend/src/pages/WorkflowsPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/LoginPage.tsx"
+          "frontend/src/pages/SalesSystemConfigPage.tsx",
+          "frontend/src/hooks/useMeetingSchedulingWorkflow.ts",
+          "frontend/src/pages/WorkflowsPage.tsx"
         ]
       },
       {
-        "id": "REQ-40",
-        "summary": "Ensure role-based post-login redirect works correctly in LoginPage. After login() resolves and the user is authenticated, query the user's role from the backend actor (or from the existing useQueries hooks). Redirect admin users to /admin-dashboard, manager users to /manager-dashboard, client users to /client-dashboard, and any other authenticated user or unresolved role to /dashboard as the safe default. If the role query is still loading, redirect to /dashboard immediately rather than waiting indefinitely.",
+        "id": "REQ-44",
+        "summary": "Implement Workflow 3 – Payment Processing: Extend the existing payment success/failure flow so that when a payment success event occurs (Razorpay webhook or simulated success on PaymentSuccessPage): (1) POST to the Automation Webhook URL with payload { tool: 'payment_processing', status: 'paid', payment_id, lead_id, order_id, amount, invoice_ref, timestamp }; (2) Generate an invoice reference number (format: QBA-{timestamp}) and store it in the webhook log; (3) Display a success confirmation in the admin notification area with the invoice reference; (4) On payment failure, POST a failure payload { tool: 'payment_processing', status: 'failed', payment_id, error_message, timestamp } and display a user-visible error with retry instructions. All POSTs must use Content-Type: application/json and Authorization header with the saved API Key. Log both success and failure events in the webhook log.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/LoginPage.tsx"
+          "frontend/src/hooks/usePaymentProcessingWorkflow.ts",
+          "frontend/src/pages/PaymentSuccessPage.tsx",
+          "frontend/src/pages/PaymentFailurePage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/LoginPage.tsx"
+          "frontend/src/hooks/usePaymentProcessingWorkflow.ts",
+          "frontend/src/pages/PaymentSuccessPage.tsx",
+          "frontend/src/pages/PaymentFailurePage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-45",
+        "summary": "Create an Analytics Engine page at route /analytics-engine (accessible from the sidebar). The page must: (1) Display a 'Generate Report' form with a date range selector defaulting to the last 7 days; (2) On submit, POST to the configured Automation Webhook URL with payload { tool: 'analytics_engine', date_range: { start, end }, timestamp }; (3) Render a structured mock/simulated analytics report in the result area showing: Total Users, Sessions, Bounce Rate, Top Traffic Source, and Conversion Rate — either from the webhook response body or from static placeholder values with a note that live GA4 data requires the configured endpoint; (4) Below the metrics, display a 'Growth Summary' section with trend analysis text (growth/decline, drop-off insights, funnel suggestions, SEO tips) either from the webhook response or a templated placeholder; (5) Log the request/response in the webhook log. If Automation Webhook URL is not configured, show the not-configured banner.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/AnalyticsEnginePage.tsx",
+          "frontend/src/components/analytics/AnalyticsMetricsCard.tsx",
+          "frontend/src/components/analytics/GrowthSummaryPanel.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/AnalyticsEnginePage.tsx",
+          "frontend/src/components/analytics/AnalyticsMetricsCard.tsx",
+          "frontend/src/components/analytics/GrowthSummaryPanel.tsx"
+        ]
+      },
+      {
+        "id": "REQ-46",
+        "summary": "Create an AI Content Creation page at route /content-creator (accessible from the sidebar). The page must: (1) Render a form with a keyword/topic text input and a 'Generate Content' button; (2) On submit, build an OpenAI-compatible POST request using the saved API Endpoint and API Key with a structured prompt requesting: SEO-optimized blog content (title, meta description, H1/H2 structure, CTA, internal linking suggestions), suggested social media captions with hashtags, a short LinkedIn version, and an Instagram carousel outline; (3) Display a loading state while the request is in progress; (4) Render the AI-generated content in clearly labelled sections: Blog Content, Social Media Captions, LinkedIn Post, Instagram Carousel; (5) Also POST the form payload to the Automation Webhook URL with { tool: 'ai_content_creation', keyword, timestamp }; (6) Provide a 'Copy' button for each section and an 'Export All' button that downloads the full content as a text file; (7) Show an error message if the AI API call or webhook call fails, specifying which endpoint failed. Show the not-configured banner if API credentials are missing.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/ContentCreatorPage.tsx",
+          "frontend/src/components/content/ContentSectionCard.tsx",
+          "frontend/src/hooks/useAIContentGeneration.ts",
+          "frontend/src/utils/exportContent.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/ContentCreatorPage.tsx",
+          "frontend/src/components/content/ContentSectionCard.tsx",
+          "frontend/src/hooks/useAIContentGeneration.ts",
+          "frontend/src/utils/exportContent.ts"
+        ]
+      },
+      {
+        "id": "REQ-47",
+        "summary": "Add a 'Calendly URL' field to the Sales System Configuration page (frontend/src/pages/SalesSystemConfigPage.tsx) alongside the existing integration fields. The field must have an ON/OFF toggle, persist to the centralized config store (AIConfigContext / WebhookConfigContext) with localStorage backing, survive page navigation, and display a Not Configured / Connected status badge. The value must be readable by the Meeting Scheduling workflow (REQ-43).",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/contexts/AIConfigContext.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/contexts/AIConfigContext.tsx"
+        ]
+      },
+      {
+        "id": "REQ-48",
+        "summary": "Update the sidebar navigation (frontend/src/components/layout/SidebarNav.tsx) to include links to the new pages: 'Workflows' (pointing to the automation workflows dashboard from REQ-41), 'Analytics Engine' (/analytics-engine), and 'Content Creator' (/content-creator). These links must be visible to Admin and Manager roles. Also register the routes /analytics-engine and /content-creator in App.tsx nested under the authenticated shell route.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/layout/SidebarNav.tsx",
+          "frontend/src/App.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/layout/SidebarNav.tsx",
+          "frontend/src/App.tsx"
+        ]
+      },
+      {
+        "id": "REQ-49",
+        "summary": "Ensure all outgoing automation workflow POSTs return and display a structured JSON result in the format { action_id: string, status: 'success' | 'error' | 'pending_review', message: string, data_logged: boolean, next_steps: string } in the relevant workflow result panel. The action_id must be a UUID or timestamp-based unique identifier generated client-side. If the webhook response includes this structure, display it directly; otherwise, construct it from the HTTP response status and body. Display the JSON result in a styled code block or summary card beneath each workflow trigger button.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useWorkflowExecution.ts",
+          "frontend/src/components/workflows/WorkflowResultDisplay.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useWorkflowExecution.ts",
+          "frontend/src/components/workflows/WorkflowResultDisplay.tsx"
+        ]
+      },
+      {
+        "id": "REQ-50",
+        "summary": "Add role-based access control enforcement to the new workflow pages (REQ-41, REQ-45, REQ-46): Admin users have full access including Run triggers and configuration links. Manager users can view workflows and run triggers but cannot edit configuration. Client users are shown an access-denied message and redirected to /client-dashboard. Read the current user's role from the existing useQueries hooks and enforce these restrictions at the page component level.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/WorkflowsPage.tsx",
+          "frontend/src/pages/AnalyticsEnginePage.tsx",
+          "frontend/src/pages/ContentCreatorPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/WorkflowsPage.tsx",
+          "frontend/src/pages/AnalyticsEnginePage.tsx",
+          "frontend/src/pages/ContentCreatorPage.tsx"
         ]
       }
     ]
@@ -61,8 +163,29 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/bootstrap/BootstrapGate.tsx",
-    "frontend/src/pages/LoginPage.tsx",
+    "frontend/src/App.tsx",
+    "frontend/src/components/analytics/AnalyticsMetricsCard.tsx",
+    "frontend/src/components/analytics/GrowthSummaryPanel.tsx",
+    "frontend/src/components/content/ContentSectionCard.tsx",
+    "frontend/src/components/layout/AppShell.tsx",
+    "frontend/src/components/layout/SidebarNav.tsx",
+    "frontend/src/components/workflows/WorkflowCard.tsx",
+    "frontend/src/components/workflows/WorkflowResultDisplay.tsx",
+    "frontend/src/contexts/AIConfigContext.tsx",
+    "frontend/src/hooks/useAIContentGeneration.ts",
+    "frontend/src/hooks/useMeetingSchedulingWorkflow.ts",
+    "frontend/src/hooks/useNewLeadSubmissionWorkflow.ts",
+    "frontend/src/hooks/usePaymentProcessingWorkflow.ts",
+    "frontend/src/hooks/useWebhookPost.ts",
+    "frontend/src/hooks/useWorkflowExecution.ts",
+    "frontend/src/pages/AnalyticsEnginePage.tsx",
+    "frontend/src/pages/AutomationPage.tsx",
+    "frontend/src/pages/ContentCreatorPage.tsx",
+    "frontend/src/pages/PaymentFailurePage.tsx",
+    "frontend/src/pages/PaymentSuccessPage.tsx",
+    "frontend/src/pages/SalesSystemConfigPage.tsx",
+    "frontend/src/pages/WorkflowsPage.tsx",
+    "frontend/src/utils/exportContent.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",
