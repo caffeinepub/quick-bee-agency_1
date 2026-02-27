@@ -1,115 +1,188 @@
+import { useCallback } from 'react';
+import { toast } from 'sonner';
 import { useAIConfig } from '../contexts/AIConfigContext';
 import { useWebhookLog } from '../contexts/WebhookLogContext';
-
-interface LeadData {
-  id?: string | number;
-  name?: string;
-  email?: string;
-  phone?: string;
-  status?: string;
-  [key: string]: unknown;
-}
-
-interface PaymentData {
-  amount?: number;
-  orderId?: string;
-  leadId?: string | number;
-  [key: string]: unknown;
-}
-
-interface ProjectData {
-  projectId?: string | number;
-  serviceId?: string | number;
-  clientId?: string;
-  [key: string]: unknown;
-}
+import { generateActionId, postToWebhook } from './useWorkflowExecution';
+import type { WorkflowResult } from './useWorkflowExecution';
 
 export function useAutomationTriggers() {
   const { config } = useAIConfig();
-  const { addLogEntry } = useWebhookLog();
+  const { addLog } = useWebhookLog();
 
-  const postToAutomationWebhook = async (
-    type: string,
-    data: unknown,
-    authToken?: string,
-  ) => {
-    const url = config.automationWebhookUrlEnabled && config.automationWebhookUrl
-      ? config.automationWebhookUrl
-      : null;
-
-    if (!url) return;
-
-    const payload = { type, timestamp: Date.now(), data };
-    const payloadSummary = JSON.stringify(payload).slice(0, 200);
-    let statusCode: number | null = null;
-    let isSuccess = false;
-    let responseSummary = '';
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
-        },
-        body: JSON.stringify(payload),
-      });
-
-      statusCode = response.status;
-      isSuccess = response.ok;
-      try {
-        const rd = await response.json();
-        responseSummary = JSON.stringify(rd).slice(0, 200);
-      } catch {
-        responseSummary = String(response.status);
-      }
-
-      addLogEntry({ timestamp: Date.now(), url, eventName: type, payloadSummary, statusCode, responseSummary, isSuccess });
-
-      if (!response.ok) {
-        throw new Error(`Automation trigger "${type}" failed: ${response.status}`);
-      }
-    } catch (err) {
-      if (statusCode === null) {
-        addLogEntry({
-          timestamp: Date.now(), url, eventName: type, payloadSummary,
-          statusCode: null, responseSummary: err instanceof Error ? err.message : 'Network error', isSuccess: false,
-        });
-      }
-      throw err;
+  const triggerWhatsAppAutoReply = useCallback(async (data: Record<string, unknown>): Promise<WorkflowResult> => {
+    if (!config.whatsAppAutoReplyEnabled) {
+      return {
+        action_id: generateActionId(),
+        status: 'pending',
+        message: 'WhatsApp Auto-Reply is disabled',
+        data_logged: false,
+        next_steps: ['Enable WhatsApp Auto-Reply in Automation settings'],
+      };
     }
-  };
 
-  const triggerWhatsAppAutoReply = async (leadData: LeadData) => {
-    if (!config.whatsAppAutoReplyEnabled) return;
-    if (!config.automationWebhookUrlEnabled || !config.automationWebhookUrl) return;
-    const token = config.whatsAppTokenEnabled ? config.whatsAppToken : undefined;
-    await postToAutomationWebhook('whatsapp_auto_reply', leadData, token);
-  };
+    const url = config.automationWebhookUrl;
+    if (!url) {
+      toast.error('Automation Webhook URL is not configured');
+      return {
+        action_id: generateActionId(),
+        status: 'error',
+        message: 'Automation Webhook URL not configured',
+        data_logged: false,
+        next_steps: ['Configure Automation Webhook URL in Settings'],
+      };
+    }
 
-  const triggerProposalAutoSend = async (leadData: LeadData) => {
-    if (!config.proposalAutoSendEnabled) return;
-    if (!config.automationWebhookUrlEnabled || !config.automationWebhookUrl) return;
-    await postToAutomationWebhook('proposal_auto_send', leadData);
-  };
+    const payload = { event: 'whatsapp_auto_reply', ...data, timestamp: Date.now() };
+    const res = await postToWebhook(url, payload, config.apiKey, addLog, 'WhatsAppAutoReply');
 
-  const triggerLeadFollowUp = async (leadData: LeadData) => {
-    if (!config.leadFollowUpEnabled) return;
-    if (!config.automationWebhookUrlEnabled || !config.automationWebhookUrl) return;
-    await postToAutomationWebhook('lead_follow_up', leadData);
-  };
+    return {
+      action_id: generateActionId(),
+      status: res.ok ? 'success' : 'error',
+      message: res.ok ? 'WhatsApp auto-reply triggered' : `Failed: ${res.body.slice(0, 100)}`,
+      data_logged: true,
+      next_steps: res.ok ? ['Monitor delivery status'] : ['Check webhook URL and retry'],
+    };
+  }, [config, addLog]);
 
-  const triggerPaymentConfirmation = async (paymentData: PaymentData) => {
-    if (!config.paymentConfirmationEnabled) return;
-    if (!config.automationWebhookUrlEnabled || !config.automationWebhookUrl) return;
-    await postToAutomationWebhook('payment_confirmation', paymentData);
-  };
+  const triggerProposalAutoSend = useCallback(async (data: Record<string, unknown>): Promise<WorkflowResult> => {
+    if (!config.proposalAutoSendEnabled) {
+      return {
+        action_id: generateActionId(),
+        status: 'pending',
+        message: 'Proposal Auto-Send is disabled',
+        data_logged: false,
+        next_steps: ['Enable Proposal Auto-Send in Automation settings'],
+      };
+    }
 
-  const triggerProjectOnboarding = async (projectData: ProjectData) => {
-    if (!config.projectOnboardingEnabled) return;
-    if (!config.automationWebhookUrlEnabled || !config.automationWebhookUrl) return;
-    await postToAutomationWebhook('project_onboarding', projectData);
-  };
+    const url = config.automationWebhookUrl;
+    if (!url) {
+      toast.error('Automation Webhook URL is not configured');
+      return {
+        action_id: generateActionId(),
+        status: 'error',
+        message: 'Automation Webhook URL not configured',
+        data_logged: false,
+        next_steps: ['Configure Automation Webhook URL in Settings'],
+      };
+    }
+
+    const payload = { event: 'proposal_auto_send', ...data, timestamp: Date.now() };
+    const res = await postToWebhook(url, payload, config.apiKey, addLog, 'ProposalAutoSend');
+
+    return {
+      action_id: generateActionId(),
+      status: res.ok ? 'success' : 'error',
+      message: res.ok ? 'Proposal auto-send triggered' : `Failed: ${res.body.slice(0, 100)}`,
+      data_logged: true,
+      next_steps: res.ok ? ['Check email delivery'] : ['Check webhook URL and retry'],
+    };
+  }, [config, addLog]);
+
+  const triggerLeadFollowUp = useCallback(async (data: Record<string, unknown>): Promise<WorkflowResult> => {
+    if (!config.leadFollowUpEnabled) {
+      return {
+        action_id: generateActionId(),
+        status: 'pending',
+        message: 'Lead Follow-Up is disabled',
+        data_logged: false,
+        next_steps: ['Enable Lead Follow-Up in Automation settings'],
+      };
+    }
+
+    const url = config.automationWebhookUrl;
+    if (!url) {
+      toast.error('Automation Webhook URL is not configured');
+      return {
+        action_id: generateActionId(),
+        status: 'error',
+        message: 'Automation Webhook URL not configured',
+        data_logged: false,
+        next_steps: ['Configure Automation Webhook URL in Settings'],
+      };
+    }
+
+    const payload = { event: 'lead_follow_up', ...data, timestamp: Date.now() };
+    const res = await postToWebhook(url, payload, config.apiKey, addLog, 'LeadFollowUp');
+
+    return {
+      action_id: generateActionId(),
+      status: res.ok ? 'success' : 'error',
+      message: res.ok ? 'Lead follow-up triggered' : `Failed: ${res.body.slice(0, 100)}`,
+      data_logged: true,
+      next_steps: res.ok ? ['Monitor follow-up sequence'] : ['Check webhook URL and retry'],
+    };
+  }, [config, addLog]);
+
+  const triggerPaymentConfirmation = useCallback(async (data: Record<string, unknown>): Promise<WorkflowResult> => {
+    if (!config.paymentConfirmationEnabled) {
+      return {
+        action_id: generateActionId(),
+        status: 'pending',
+        message: 'Payment Confirmation is disabled',
+        data_logged: false,
+        next_steps: ['Enable Payment Confirmation in Automation settings'],
+      };
+    }
+
+    const url = config.automationWebhookUrl;
+    if (!url) {
+      toast.error('Automation Webhook URL is not configured');
+      return {
+        action_id: generateActionId(),
+        status: 'error',
+        message: 'Automation Webhook URL not configured',
+        data_logged: false,
+        next_steps: ['Configure Automation Webhook URL in Settings'],
+      };
+    }
+
+    const payload = { event: 'payment_confirmation', ...data, timestamp: Date.now() };
+    const res = await postToWebhook(url, payload, config.apiKey, addLog, 'PaymentConfirmation');
+
+    return {
+      action_id: generateActionId(),
+      status: res.ok ? 'success' : 'error',
+      message: res.ok ? 'Payment confirmation triggered' : `Failed: ${res.body.slice(0, 100)}`,
+      data_logged: true,
+      next_steps: res.ok ? ['Invoice will be generated'] : ['Check webhook URL and retry'],
+    };
+  }, [config, addLog]);
+
+  const triggerProjectOnboarding = useCallback(async (data: Record<string, unknown>): Promise<WorkflowResult> => {
+    if (!config.projectOnboardingEnabled) {
+      return {
+        action_id: generateActionId(),
+        status: 'pending',
+        message: 'Project Onboarding is disabled',
+        data_logged: false,
+        next_steps: ['Enable Project Onboarding in Automation settings'],
+      };
+    }
+
+    const url = config.automationWebhookUrl;
+    if (!url) {
+      toast.error('Automation Webhook URL is not configured');
+      return {
+        action_id: generateActionId(),
+        status: 'error',
+        message: 'Automation Webhook URL not configured',
+        data_logged: false,
+        next_steps: ['Configure Automation Webhook URL in Settings'],
+      };
+    }
+
+    const payload = { event: 'project_onboarding', ...data, timestamp: Date.now() };
+    const res = await postToWebhook(url, payload, config.apiKey, addLog, 'ProjectOnboarding');
+
+    return {
+      action_id: generateActionId(),
+      status: res.ok ? 'success' : 'error',
+      message: res.ok ? 'Project onboarding triggered' : `Failed: ${res.body.slice(0, 100)}`,
+      data_logged: true,
+      next_steps: res.ok ? ['Client will receive onboarding email'] : ['Check webhook URL and retry'],
+    };
+  }, [config, addLog]);
 
   return {
     triggerWhatsAppAutoReply,

@@ -9,10 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { AnalyticsMetricsCard } from '../components/analytics/AnalyticsMetricsCard';
 import { GrowthSummaryPanel } from '../components/analytics/GrowthSummaryPanel';
-import { WorkflowResultDisplay } from '../components/workflows/WorkflowResultDisplay';
+import WorkflowResultDisplay from '../components/workflows/WorkflowResultDisplay';
 import { useAIConfig } from '../contexts/AIConfigContext';
 import { generateActionId, postToWebhook, saveWorkflowExecution } from '../hooks/useWorkflowExecution';
-import type { WorkflowResult } from '../hooks/useWorkflowExecution';
+import type { WorkflowResult, WorkflowExecution } from '../hooks/useWorkflowExecution';
 import { useGetCallerUserRole } from '../hooks/useQueries';
 
 interface AnalyticsMetrics {
@@ -83,13 +83,16 @@ export default function AnalyticsEnginePage() {
       });
       const res: WorkflowResult = {
         action_id: actionId,
-        status: 'pending_review',
+        status: 'pending',
         message: 'Analytics report generated with simulated data. Configure Automation Webhook URL for live GA4 data.',
         data_logged: false,
-        next_steps: 'Configure your Automation Webhook URL in Sales System Configuration to pull real GA4 data.',
+        next_steps: [
+          'Configure your Automation Webhook URL in Sales System Configuration to pull real GA4 data.',
+        ],
       };
       setResult(res);
-      saveWorkflowExecution('analytics_engine', res);
+      const execution: WorkflowExecution = { timestamp: Date.now(), result: res };
+      saveWorkflowExecution('analytics_engine', execution);
       setIsLoading(false);
       return;
     }
@@ -103,6 +106,7 @@ export default function AnalyticsEnginePage() {
           timestamp: new Date().toISOString(),
         },
         config.apiKey,
+        undefined,
         'Analytics Engine'
       );
 
@@ -133,20 +137,22 @@ export default function AnalyticsEnginePage() {
         status: 'success',
         message: `Analytics report generated for ${dateRange.start} to ${dateRange.end}.`,
         data_logged: true,
-        next_steps: 'Review the metrics and growth summary below.',
+        next_steps: ['Review the metrics and growth summary below.'],
       };
       setResult(res);
-      saveWorkflowExecution('analytics_engine', res);
+      const execution: WorkflowExecution = { timestamp: Date.now(), result: res };
+      saveWorkflowExecution('analytics_engine', execution);
     } catch (err) {
       const res: WorkflowResult = {
         action_id: actionId,
         status: 'error',
         message: `Analytics Engine failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
         data_logged: false,
-        next_steps: 'Check your Automation Webhook URL configuration and try again.',
+        next_steps: ['Check your Automation Webhook URL configuration and try again.'],
       };
       setResult(res);
-      saveWorkflowExecution('analytics_engine', res);
+      const execution: WorkflowExecution = { timestamp: Date.now(), result: res };
+      saveWorkflowExecution('analytics_engine', execution);
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +185,7 @@ export default function AnalyticsEnginePage() {
         </Alert>
       )}
 
-      <Card className="card-glass border-border/50">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">Report Configuration</CardTitle>
         </CardHeader>

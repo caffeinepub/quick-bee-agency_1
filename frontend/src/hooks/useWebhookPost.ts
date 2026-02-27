@@ -5,90 +5,63 @@ import { useWebhookLog } from '../contexts/WebhookLogContext';
 interface WebhookPostPayload {
   toolName: string;
   formData: Record<string, unknown>;
-}
-
-interface WebhookPostResult {
-  status: number;
-  data: unknown;
+  timestamp?: number;
 }
 
 export function useWebhookPost() {
   const { config } = useAIConfig();
-  const { addLogEntry } = useWebhookLog();
+  const { addLog } = useWebhookLog();
 
-  return useMutation<WebhookPostResult, Error, WebhookPostPayload>({
-    mutationFn: async ({ toolName, formData }) => {
-      const url = (config.webhookUrlEnabled && config.webhookUrl)
+  return useMutation({
+    mutationFn: async (payload: WebhookPostPayload) => {
+      const url = config.automationWebhookUrlEnabled && config.automationWebhookUrl
+        ? config.automationWebhookUrl
+        : config.webhookUrlEnabled && config.webhookUrl
         ? config.webhookUrl
-        : (config.automationWebhookUrlEnabled && config.automationWebhookUrl)
-          ? config.automationWebhookUrl
-          : null;
+        : null;
 
-      if (!url) {
-        throw new Error('Webhook URL not configured. Please configure in Sales System Config.');
-      }
+      if (!url) throw new Error('No webhook URL configured');
 
-      const apiKey = config.apiKeyEnabled ? config.apiKey : '';
-      const payload = {
-        toolName,
-        timestamp: Date.now(),
-        ...formData,
+      const body = {
+        tool: payload.toolName,
+        data: payload.formData,
+        timestamp: payload.timestamp ?? Date.now(),
       };
 
-      const payloadSummary = JSON.stringify(payload).slice(0, 200);
-      let statusCode: number | null = null;
-      let responseSummary = '';
-      let isSuccess = false;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (config.apiKeyEnabled && config.apiKey) {
+        headers['Authorization'] = `Bearer ${config.apiKey}`;
+      }
+
+      const payloadStr = JSON.stringify(body);
 
       try {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}),
-          },
-          body: JSON.stringify(payload),
-        });
+        const res = await fetch(url, { method: 'POST', headers, body: payloadStr });
+        const responseText = await res.text().catch(() => '');
 
-        statusCode = response.status;
-        isSuccess = response.ok;
-
-        let responseData: unknown;
-        try {
-          responseData = await response.json();
-        } catch {
-          responseData = await response.text().catch(() => '');
-        }
-
-        responseSummary = JSON.stringify(responseData).slice(0, 200);
-
-        addLogEntry({
+        addLog({
           timestamp: Date.now(),
           url,
-          eventName: toolName,
-          payloadSummary,
-          statusCode,
-          responseSummary,
-          isSuccess,
+          eventName: payload.toolName,
+          payloadSummary: payloadStr.slice(0, 200),
+          statusCode: res.status,
+          responseSummary: responseText.slice(0, 200),
+          isError: !res.ok,
         });
 
-        if (!response.ok) {
-          throw new Error(`Webhook POST to ${url} failed: ${response.status} ${response.statusText}`);
-        }
-
-        return { status: response.status, data: responseData };
+        if (!res.ok) throw new Error(`Webhook failed with status ${res.status}`);
+        return responseText;
       } catch (err) {
-        if (statusCode === null) {
-          addLogEntry({
-            timestamp: Date.now(),
-            url,
-            eventName: toolName,
-            payloadSummary,
-            statusCode: null,
-            responseSummary: err instanceof Error ? err.message : 'Network error',
-            isSuccess: false,
-          });
-        }
+        const errMsg = err instanceof Error ? err.message : 'Network error';
+        addLog({
+          timestamp: Date.now(),
+          url,
+          eventName: payload.toolName,
+          payloadSummary: payloadStr.slice(0, 200),
+          statusCode: null,
+          responseSummary: errMsg.slice(0, 200),
+          isError: true,
+        });
         throw err;
       }
     },

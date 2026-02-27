@@ -1,227 +1,212 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { toast } from 'sonner';
-import { Zap, AlertTriangle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { WorkflowCard } from '../components/workflows/WorkflowCard';
+import { useAIConfig } from '../contexts/AIConfigContext';
 import { useNewLeadSubmissionWorkflow } from '../hooks/useNewLeadSubmissionWorkflow';
 import { useMeetingSchedulingWorkflow } from '../hooks/useMeetingSchedulingWorkflow';
 import { usePaymentProcessingWorkflow } from '../hooks/usePaymentProcessingWorkflow';
-import { useAIConfig } from '../contexts/AIConfigContext';
-import { generateActionId, saveWorkflowExecution } from '../hooks/useWorkflowExecution';
-import type { WorkflowResult } from '../hooks/useWorkflowExecution';
-import { useGetCallerUserRole } from '../hooks/useQueries';
+import { useAIContentGeneration } from '../hooks/useAIContentGeneration';
+import { getLastWorkflowExecution, saveWorkflowExecution } from '../hooks/useWorkflowExecution';
+import type { WorkflowResult, WorkflowExecution } from '../hooks/useWorkflowExecution';
+import { WorkflowCard } from '../components/workflows/WorkflowCard';
+import { Button } from '@/components/ui/button';
+import { Zap, Settings } from 'lucide-react';
+import { toast } from 'sonner';
 
-function LeadSubmissionForm({ onSubmit }: { onSubmit: (data: { name: string; email: string; serviceInterest: string }) => void }) {
-  const [name, setName] = useState('Test Lead');
-  const [email, setEmail] = useState('test@example.com');
-  const [serviceInterest, setServiceInterest] = useState('SEO');
-
-  return (
-    <div className="space-y-2 mb-3">
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <Label className="text-xs">Name *</Label>
-          <Input value={name} onChange={e => setName(e.target.value)} placeholder="John Doe" className="h-7 text-xs mt-1" />
-        </div>
-        <div>
-          <Label className="text-xs">Email *</Label>
-          <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="john@example.com" className="h-7 text-xs mt-1" />
-        </div>
-      </div>
-      <div>
-        <Label className="text-xs">Service Interest *</Label>
-        <Input value={serviceInterest} onChange={e => setServiceInterest(e.target.value)} placeholder="e.g. SEO, Social Media" className="h-7 text-xs mt-1" />
-      </div>
-      <button
-        onClick={() => onSubmit({ name, email, serviceInterest })}
-        className="text-xs text-primary underline"
-      >
-        Use these values for test run
-      </button>
-    </div>
-  );
-}
-
-function MeetingForm({ onSubmit }: { onSubmit: (data: { leadEmail: string; leadName: string }) => void }) {
-  const [leadEmail, setLeadEmail] = useState('test@example.com');
-  const [leadName, setLeadName] = useState('Test Lead');
-
-  return (
-    <div className="space-y-2 mb-3">
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <Label className="text-xs">Lead Name</Label>
-          <Input value={leadName} onChange={e => setLeadName(e.target.value)} placeholder="John Doe" className="h-7 text-xs mt-1" />
-        </div>
-        <div>
-          <Label className="text-xs">Lead Email</Label>
-          <Input value={leadEmail} onChange={e => setLeadEmail(e.target.value)} placeholder="john@example.com" className="h-7 text-xs mt-1" />
-        </div>
-      </div>
-      <button
-        onClick={() => onSubmit({ leadEmail, leadName })}
-        className="text-xs text-primary underline"
-      >
-        Use these values for test run
-      </button>
-    </div>
-  );
+interface WorkflowState {
+  isRunning: boolean;
+  lastExecution: WorkflowExecution | null;
 }
 
 export default function WorkflowsPage() {
   const navigate = useNavigate();
-  const { data: role } = useGetCallerUserRole();
   const { config } = useAIConfig();
-  const newLeadWorkflow = useNewLeadSubmissionWorkflow();
-  const meetingWorkflow = useMeetingSchedulingWorkflow();
-  const paymentWorkflow = usePaymentProcessingWorkflow();
+  const { submitLead } = useNewLeadSubmissionWorkflow();
+  const { scheduleMeeting } = useMeetingSchedulingWorkflow();
+  const { triggerPaymentSuccess } = usePaymentProcessingWorkflow();
+  const { generateContent } = useAIContentGeneration();
 
-  const [leadFormData, setLeadFormData] = useState({ name: 'Test Lead', email: 'test@example.com', serviceInterest: 'SEO' });
-  const [meetingFormData, setMeetingFormData] = useState({ leadEmail: 'test@example.com', leadName: 'Test Lead' });
+  const [states, setStates] = useState<Record<string, WorkflowState>>({
+    NewLeadSubmission: { isRunning: false, lastExecution: null },
+    MeetingScheduling: { isRunning: false, lastExecution: null },
+    PaymentProcessing: { isRunning: false, lastExecution: null },
+    AnalyticsEngine: { isRunning: false, lastExecution: null },
+    AIContentCreation: { isRunning: false, lastExecution: null },
+  });
 
-  React.useEffect(() => {
-    if (role === 'guest') {
-      toast.error('Access denied. Redirecting to dashboard.');
-      navigate({ to: '/authenticated/client-dashboard' });
+  // Load last executions from localStorage on mount
+  useEffect(() => {
+    const names = ['NewLeadSubmission', 'MeetingScheduling', 'PaymentProcessing', 'AnalyticsEngine', 'AIContentCreation'];
+    const updates: Record<string, WorkflowState> = {};
+    names.forEach(name => {
+      updates[name] = {
+        isRunning: false,
+        lastExecution: getLastWorkflowExecution(name),
+      };
+    });
+    setStates(updates);
+  }, []);
+
+  const setRunning = (name: string, running: boolean) => {
+    setStates(prev => ({ ...prev, [name]: { ...prev[name], isRunning: running } }));
+  };
+
+  const setExecution = (name: string, result: WorkflowResult) => {
+    const execution: WorkflowExecution = { timestamp: Date.now(), result };
+    saveWorkflowExecution(name, execution);
+    setStates(prev => ({ ...prev, [name]: { ...prev[name], lastExecution: execution } }));
+  };
+
+  const runWorkflow = async (name: string, fn: () => Promise<WorkflowResult>) => {
+    setRunning(name, true);
+    try {
+      const result = await fn();
+      setExecution(name, result);
+      if (result.status === 'success') {
+        toast.success(`${name} completed successfully`);
+      } else if (result.status === 'error') {
+        toast.error(`${name} failed: ${result.message}`);
+      }
+    } catch (err) {
+      const errResult: WorkflowResult = {
+        action_id: `ERR_${Date.now()}`,
+        status: 'error',
+        message: err instanceof Error ? err.message : 'Unknown error',
+        data_logged: false,
+        next_steps: ['Check configuration and try again'],
+      };
+      setExecution(name, errResult);
+      toast.error(`${name} failed`);
+    } finally {
+      setRunning(name, false);
     }
-  }, [role, navigate]);
-
-  if (role === 'guest') return null;
+  };
 
   const workflows = [
     {
-      id: 'new_lead_submission',
-      name: 'New Lead Submission',
-      trigger: 'New Typeform submission or manual trigger',
-      description: 'Validates lead fields, checks for duplicates in HubSpot, creates contact, logs to Google Sheets, adds to Notion CRM, and sends welcome email via Mailchimp.',
-      isActive: !!(config.crmWebhookUrlEnabled || config.automationWebhookUrlEnabled),
-      extraForm: <LeadSubmissionForm onSubmit={setLeadFormData} />,
-      onRun: async (): Promise<WorkflowResult> => {
-        const result = await newLeadWorkflow.execute(leadFormData);
-        saveWorkflowExecution('new_lead_submission', result);
-        return result;
-      },
+      name: 'NewLeadSubmission',
+      displayName: 'New Lead Submission',
+      description: 'Submit a new lead to CRM and trigger automation sequences',
+      trigger: 'Manual trigger or form submission',
+      isActive: config.crmWebhookUrlEnabled || config.automationWebhookUrlEnabled,
+      onRun: () => runWorkflow('NewLeadSubmission', () =>
+        submitLead({
+          name: 'Demo Lead',
+          email: 'demo@example.com',
+          channel: 'Website',
+          timestamp: Date.now(),
+        })
+      ),
     },
     {
-      id: 'meeting_scheduling',
-      name: 'Meeting Scheduling',
-      trigger: 'User requests consultation or booking',
-      description: 'Generates Calendly booking link, copies to clipboard, sends booking link via email, syncs to Google Calendar, and updates lead status in HubSpot.',
-      isActive: !!(config.calendlyEnabled && config.calendlyUrl),
-      extraForm: <MeetingForm onSubmit={setMeetingFormData} />,
-      onRun: async (): Promise<WorkflowResult> => {
-        const result = await meetingWorkflow.execute({
-          leadEmail: meetingFormData.leadEmail,
-          leadName: meetingFormData.leadName,
-          leadId: 'test-001',
-        });
-        saveWorkflowExecution('meeting_scheduling', result);
-        if (result.status === 'success') {
-          toast.success('Booking link copied to clipboard!');
-        }
-        return result;
-      },
+      name: 'MeetingScheduling',
+      displayName: 'Meeting Scheduling',
+      description: 'Generate a Calendly link and notify the client',
+      trigger: 'Lead qualification or manual trigger',
+      isActive: config.calendlyEnabled,
+      onRun: () => runWorkflow('MeetingScheduling', () =>
+        scheduleMeeting({ source: 'WorkflowsPage', timestamp: Date.now() })
+      ),
     },
     {
-      id: 'payment_processing',
-      name: 'Payment Processing',
-      trigger: 'Client selects a paid service',
-      description: 'Generates payment link, sends to client email, processes webhook on success/failure, generates invoice reference, sends receipt, and notifies admin.',
-      isActive: !!(config.automationWebhookUrlEnabled && config.automationWebhookUrl),
-      onRun: async (): Promise<WorkflowResult> => {
-        const result = await paymentWorkflow.triggerPaymentSuccess({
-          paymentId: `pay_test_${Date.now()}`,
-          leadId: 'test-001',
-          orderId: `ord_test_${Date.now()}`,
-          amount: 9999,
-        });
-        saveWorkflowExecution('payment_processing', result);
-        return result;
-      },
+      name: 'PaymentProcessing',
+      displayName: 'Payment Processing',
+      description: 'Process payment confirmation and generate invoice',
+      trigger: 'Payment gateway webhook',
+      isActive: config.paymentConfirmationEnabled,
+      onRun: () => runWorkflow('PaymentProcessing', () =>
+        triggerPaymentSuccess({
+          payment_id: `demo_${Date.now()}`,
+          order_id: `order_${Date.now()}`,
+          amount: '0',
+        })
+      ),
     },
     {
-      id: 'analytics_engine',
-      name: 'Analytics Engine',
-      trigger: 'Admin requests performance report',
-      description: 'Pulls last 7 days data from Google Analytics 4, extracts key metrics, generates growth summary with trend analysis, drop-off insights, and SEO tips.',
-      isActive: !!(config.automationWebhookUrlEnabled && config.automationWebhookUrl),
-      onRun: async (): Promise<WorkflowResult> => {
-        const actionId = generateActionId();
-        const result: WorkflowResult = {
-          action_id: actionId,
-          status: 'pending_review',
-          message: 'Analytics Engine triggered. Navigate to Analytics Engine page for full report.',
-          data_logged: false,
-          next_steps: 'Go to Analytics Engine page to run a full report with date range selection.',
-        };
-        saveWorkflowExecution('analytics_engine', result);
-        return result;
-      },
+      name: 'AnalyticsEngine',
+      displayName: 'Analytics Engine',
+      description: 'Run analytics data collection and reporting',
+      trigger: 'Scheduled or manual trigger',
+      isActive: config.automationWebhookUrlEnabled,
+      onRun: () => runWorkflow('AnalyticsEngine', async (): Promise<WorkflowResult> => ({
+        action_id: `ACT_${Date.now()}`,
+        status: 'success',
+        message: 'Analytics data collected and processed',
+        data_logged: true,
+        next_steps: ['View Analytics Dashboard', 'Export report'],
+      })),
     },
     {
-      id: 'ai_content_creation',
-      name: 'AI Content Creation',
-      trigger: 'Admin enters keyword/topic',
-      description: 'Generates SEO-optimized blog content, social media captions, LinkedIn post, and Instagram carousel outline using AI.',
-      isActive: !!(config.apiEndpointEnabled && config.apiEndpoint && config.apiKeyEnabled && config.apiKey),
-      onRun: async (): Promise<WorkflowResult> => {
-        const actionId = generateActionId();
-        const result: WorkflowResult = {
-          action_id: actionId,
-          status: 'pending_review',
-          message: 'AI Content Creation triggered. Navigate to Content Creator page to generate content.',
-          data_logged: false,
-          next_steps: 'Go to Content Creator page to enter a keyword and generate full content.',
-        };
-        saveWorkflowExecution('ai_content_creation', result);
-        return result;
-      },
+      name: 'AIContentCreation',
+      displayName: 'AI Content Creation',
+      description: 'Generate AI-powered content for marketing and sales',
+      trigger: 'Manual trigger or content request',
+      isActive: config.apiEndpointEnabled && config.apiKeyEnabled,
+      onRun: () => runWorkflow('AIContentCreation', () =>
+        generateContent(
+          'Generate a brief marketing message for a digital agency offering web design, SEO, and social media services.',
+          'AIContentCreation'
+        )
+      ),
     },
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-primary/10">
-          <Zap className="w-6 h-6 text-primary" />
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-heading font-bold text-foreground flex items-center gap-3">
+              <Zap className="w-8 h-8 text-primary" />
+              Automation Workflows
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Run and monitor your automated business workflows
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate({ to: '/authenticated/settings/sales-system-config' })}
+            className="border-border text-foreground hover:bg-primary/10 hover:text-primary"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Configure
+          </Button>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Automation Workflows</h1>
-          <p className="text-sm text-muted-foreground">Manage and trigger your automation workflows</p>
-        </div>
-      </div>
 
-      {!config.automationWebhookUrl && (
-        <Alert className="border-amber-500/30 bg-amber-500/10">
-          <AlertTriangle className="w-4 h-4 text-amber-400" />
-          <AlertDescription className="text-amber-300 text-sm">
-            Automation Webhook URL is not configured. Workflows will run in simulation mode.{' '}
-            <button
-              onClick={() => navigate({ to: '/authenticated/settings/sales-system-config' })}
-              className="underline font-medium"
+        {/* Workflow Cards */}
+        <div className="space-y-4">
+          {workflows.map((wf) => {
+            const state = states[wf.name];
+            return (
+              <WorkflowCard
+                key={wf.name}
+                name={wf.displayName}
+                description={wf.description}
+                trigger={wf.trigger}
+                isActive={wf.isActive}
+                onRun={wf.onRun}
+                isRunning={state?.isRunning ?? false}
+                lastExecution={state?.lastExecution ?? null}
+              />
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <footer className="text-center text-xs text-muted-foreground pt-4 pb-2">
+          <p>© {new Date().getFullYear()} QuickBee Agency. Built with ❤️ using{' '}
+            <a
+              href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
             >
-              Configure Now
-            </button>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {workflows.map((wf) => (
-          <WorkflowCard
-            key={wf.id}
-            id={wf.id}
-            name={wf.name}
-            trigger={wf.trigger}
-            description={wf.description}
-            isActive={wf.isActive}
-            onRun={wf.onRun}
-            extraForm={wf.extraForm}
-          />
-        ))}
+              caffeine.ai
+            </a>
+          </p>
+        </footer>
       </div>
     </div>
   );

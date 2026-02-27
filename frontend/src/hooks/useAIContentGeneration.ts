@@ -1,103 +1,108 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useAIConfig } from '../contexts/AIConfigContext';
-
-export interface ContentSections {
-  blogContent: string;
-  socialCaptions: string;
-  linkedinPost: string;
-  instagramCarousel: string;
-}
+import { useWebhookLog } from '../contexts/WebhookLogContext';
+import { generateActionId, postToWebhook, saveWorkflowExecution } from './useWorkflowExecution';
+import type { WorkflowResult } from './useWorkflowExecution';
 
 export function useAIContentGeneration() {
   const { config } = useAIConfig();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [content, setContent] = useState<ContentSections | null>(null);
+  const { addLog } = useWebhookLog();
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const generate = useCallback(async (keyword: string): Promise<ContentSections | null> => {
-    if (!config.apiEndpoint || !config.apiKey) {
-      setError('AI API endpoint and key are not configured. Please configure them in Settings.');
-      return null;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    const prompt = `You are an expert SEO content creator and social media strategist for Quick Bee AI Growth Engine.
-
-Generate comprehensive content for the keyword/topic: "${keyword}"
-
-Please provide the following sections, clearly labeled:
-
-## BLOG CONTENT
-Write an SEO-optimized blog post including:
-- Title (H1)
-- Meta description (150-160 characters)
-- Introduction paragraph
-- H2 sections with content
-- Call-to-action
-- Internal linking suggestions
-
-## SOCIAL MEDIA CAPTIONS
-Write 3 engaging social media captions with relevant hashtags for Facebook, Twitter, and general use.
-
-## LINKEDIN POST
-Write a professional LinkedIn article post (300-500 words) with a hook, value content, and CTA.
-
-## INSTAGRAM CAROUSEL
-Create an outline for a 5-7 slide Instagram carousel with slide titles and key points for each slide.`;
+  const generateContent = useCallback(async (prompt: string, toolName = 'AIContentGeneration'): Promise<WorkflowResult & { content: string }> => {
+    const actionId = generateActionId();
+    setIsGenerating(true);
 
     try {
-      const response = await fetch(config.apiEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${config.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.7,
-          max_tokens: 2000,
-        }),
+      if (!config.apiEndpoint || !config.apiEndpointEnabled || !config.apiKey || !config.apiKeyEnabled) {
+        return {
+          action_id: actionId,
+          status: 'error',
+          message: 'AI API credentials not configured',
+          data_logged: false,
+          next_steps: ['Configure API Endpoint and API Key in Settings'],
+          content: '',
+        };
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`,
+      };
+
+      const body = JSON.stringify({
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: prompt }],
       });
 
-      if (!response.ok) {
-        throw new Error(`AI API error: ${response.status} ${response.statusText}`);
+      const payloadSummary = body.slice(0, 200);
+
+      const res = await fetch(config.apiEndpoint, {
+        method: 'POST',
+        headers,
+        body,
+      });
+
+      const responseText = await res.text().catch(() => '');
+
+      addLog({
+        timestamp: Date.now(),
+        url: config.apiEndpoint,
+        eventName: toolName,
+        payloadSummary,
+        statusCode: res.status,
+        responseSummary: responseText.slice(0, 200),
+        isError: !res.ok,
+      });
+
+      if (!res.ok) {
+        throw new Error(`AI API failed with status ${res.status}`);
       }
 
-      const data = await response.json();
-      const rawText: string = data.choices?.[0]?.message?.content || data.choices?.[0]?.text || '';
-
-      if (!rawText) {
-        throw new Error('AI API returned empty response');
+      let content = '';
+      try {
+        const json = JSON.parse(responseText);
+        content = json?.choices?.[0]?.message?.content ?? responseText;
+      } catch {
+        content = responseText;
       }
 
-      const sections = parseContentSections(rawText);
-      setContent(sections);
-      return sections;
+      // Post to automation webhook if configured
+      if (config.automationWebhookUrlEnabled && config.automationWebhookUrl) {
+        const webhookPayload = {
+          event: toolName,
+          prompt: prompt.slice(0, 200),
+          content_length: content.length,
+          timestamp: Date.now(),
+        };
+        await postToWebhook(config.automationWebhookUrl, webhookPayload, config.apiKey, addLog, toolName);
+      }
+
+      const result = {
+        action_id: actionId,
+        status: 'success' as const,
+        message: 'Content generated successfully',
+        data_logged: true,
+        next_steps: ['Review generated content', 'Edit as needed', 'Export or use directly'],
+        content,
+      };
+
+      saveWorkflowExecution(toolName, { timestamp: Date.now(), result });
+      return result;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'AI API request failed';
-      setError(`AI API Error: ${msg}`);
-      return null;
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
+      return {
+        action_id: actionId,
+        status: 'error',
+        message: errMsg,
+        data_logged: false,
+        next_steps: ['Check API credentials', 'Verify endpoint URL', 'Try again'],
+        content: '',
+      };
     } finally {
-      setIsLoading(false);
+      setIsGenerating(false);
     }
-  }, [config]);
+  }, [config, addLog]);
 
-  return { generate, isLoading, error, content, setContent };
-}
-
-function parseContentSections(text: string): ContentSections {
-  const blogMatch = text.match(/##\s*BLOG CONTENT\s*([\s\S]*?)(?=##\s*SOCIAL MEDIA|$)/i);
-  const socialMatch = text.match(/##\s*SOCIAL MEDIA CAPTIONS\s*([\s\S]*?)(?=##\s*LINKEDIN|$)/i);
-  const linkedinMatch = text.match(/##\s*LINKEDIN POST\s*([\s\S]*?)(?=##\s*INSTAGRAM|$)/i);
-  const instagramMatch = text.match(/##\s*INSTAGRAM CAROUSEL\s*([\s\S]*?)$/i);
-
-  return {
-    blogContent: blogMatch?.[1]?.trim() || text,
-    socialCaptions: socialMatch?.[1]?.trim() || 'Social media captions not generated. Please try again.',
-    linkedinPost: linkedinMatch?.[1]?.trim() || 'LinkedIn post not generated. Please try again.',
-    instagramCarousel: instagramMatch?.[1]?.trim() || 'Instagram carousel not generated. Please try again.',
-  };
+  return { generateContent, isGenerating };
 }

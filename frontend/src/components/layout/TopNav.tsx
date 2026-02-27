@@ -1,35 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { Bell, Search, Settings, ChevronDown } from 'lucide-react';
-import { useGetCallerUserProfile, useGetCallerUserRole, useIsCallerAdmin, useGetMyNotifications } from '../../hooks/useQueries';
+import { useGetMyNotifications } from '../../hooks/useQueries';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 
 export default function TopNav() {
   const navigate = useNavigate();
-  const { data: userProfile } = useGetCallerUserProfile();
-  const { data: userRole } = useGetCallerUserRole();
-  const { data: isAdmin } = useIsCallerAdmin();
   const { data: notifications } = useGetMyNotifications();
   const [searchQuery, setSearchQuery] = useState('');
 
   const unreadCount = notifications?.filter(n => !n.isRead).length ?? 0;
-
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
-
-  const getRoleBadgeClass = () => {
-    if (isAdmin) return 'badge-primary';
-    return 'badge-cyan';
-  };
-
-  const getRoleLabel = () => {
-    if (isAdmin) return 'Admin';
-    const role = userRole as string | undefined;
-    if (role === 'user') return 'Member';
-    return role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Member';
-  };
 
   return (
     <header className="h-14 bg-card border-b border-border flex items-center px-6 gap-4 shrink-0 shadow-sm">
@@ -100,31 +81,27 @@ export default function TopNav() {
           </PopoverContent>
         </Popover>
 
-        {/* Settings (admin only) */}
-        {isAdmin && (
-          <button
-            onClick={() => navigate({ to: '/authenticated/settings' })}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-            title="Settings"
-          >
-            <Settings size={18} />
-          </button>
-        )}
+        {/* Settings */}
+        <button
+          onClick={() => navigate({ to: '/authenticated/settings' })}
+          className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+          title="Settings"
+        >
+          <Settings size={18} />
+        </button>
 
-        {/* User profile */}
+        {/* App branding */}
         <div className="flex items-center gap-2.5 pl-2 border-l border-border">
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="text-xs font-bold text-primary">
-              {userProfile?.name ? getInitials(userProfile.name) : '?'}
-            </span>
+            <img
+              src="/assets/generated/quickbee-logo.dim_256x256.png"
+              alt="QB"
+              className="w-6 h-6 rounded-full object-cover"
+            />
           </div>
           <div className="hidden sm:block">
-            <p className="text-sm font-semibold text-foreground leading-tight">
-              {userProfile?.name || 'User'}
-            </p>
-            <p className={`text-xs px-1.5 py-0.5 rounded-full inline-block font-medium ${getRoleBadgeClass()}`}>
-              {getRoleLabel()}
-            </p>
+            <p className="text-sm font-semibold text-foreground leading-tight">Quick Bee</p>
+            <p className="text-xs text-muted-foreground">AI Growth Engine</p>
           </div>
           <ChevronDown size={14} className="text-muted-foreground hidden sm:block" />
         </div>

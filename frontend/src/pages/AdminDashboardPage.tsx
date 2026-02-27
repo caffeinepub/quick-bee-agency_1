@@ -1,29 +1,14 @@
 import React from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useQueryClient } from '@tanstack/react-query';
-import { useGetCallerUserProfile, useGetCallerUserRole, useIsCallerAdmin, useGetAllLeads, useGetAllOrders, useGetAllProjects } from '../hooks/useQueries';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { LogOut, Users, TrendingUp, FolderOpen, CreditCard, Shield, BarChart3 } from 'lucide-react';
+import { useGetAllLeads, useGetAllOrders, useGetAllProjects } from '../hooks/useQueries';
+import { Card, CardContent } from '@/components/ui/card';
+import { Users, TrendingUp, FolderOpen, CreditCard, Shield, BarChart3 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
-  const { clear } = useInternetIdentity();
-  const queryClient = useQueryClient();
-  const { data: userProfile } = useGetCallerUserProfile();
-  const { data: userRole } = useGetCallerUserRole();
-  const { data: isAdmin } = useIsCallerAdmin();
   const { data: leads } = useGetAllLeads();
   const { data: orders } = useGetAllOrders();
   const { data: projects } = useGetAllProjects();
-
-  const handleLogout = async () => {
-    await clear();
-    queryClient.clear();
-    navigate({ to: '/' });
-  };
 
   const totalRevenue = orders?.reduce((sum, o) => sum + Number(o.amount), 0) ?? 0;
   const activeLeads = leads?.filter(l => l.status !== 'Closed' && l.status !== 'Lost').length ?? 0;
@@ -38,22 +23,13 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Shield size={20} className="text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-heading font-bold text-foreground">Admin Dashboard</h1>
-            <p className="text-sm text-muted-foreground">Welcome, {userProfile?.name || 'Admin'}</p>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Shield size={20} className="text-primary" />
         </div>
-        <div className="flex items-center gap-2">
-          <Badge className="badge-primary text-xs">Admin</Badge>
-          <Button variant="outline" size="sm" onClick={handleLogout} className="gap-1.5">
-            <LogOut size={14} />
-            Logout
-          </Button>
+        <div>
+          <h1 className="text-xl font-heading font-bold text-foreground">Admin Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Platform overview and management</p>
         </div>
       </div>
 

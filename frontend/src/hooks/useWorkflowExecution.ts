@@ -1,77 +1,36 @@
 import { useState, useCallback } from 'react';
+import { useWebhookLog } from '../contexts/WebhookLogContext';
 
 export interface WorkflowResult {
   action_id: string;
-  status: 'success' | 'error' | 'pending_review';
+  status: 'success' | 'error' | 'pending';
   message: string;
   data_logged: boolean;
-  next_steps: string;
+  next_steps: string[];
 }
 
-export interface WebhookLogEntry {
-  id: string;
-  timestamp: string;
-  url: string;
-  payloadSummary: string;
-  responseStatus: number | null;
-  status: 'success' | 'error';
-  workflowName: string;
+export interface WorkflowExecution {
+  timestamp: number;
+  result: WorkflowResult;
 }
-
-const WEBHOOK_LOG_KEY = 'webhook_logs';
-const WORKFLOW_EXECUTIONS_KEY = 'workflow_executions';
-const MAX_LOG_ENTRIES = 100;
-const MAX_EXECUTIONS_PER_WORKFLOW = 50;
 
 export function generateActionId(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `ACT_${Date.now()}_${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 }
 
-export function logWebhookEntry(entry: WebhookLogEntry): void {
+export function saveWorkflowExecution(workflowName: string, execution: WorkflowExecution): void {
   try {
-    const stored = localStorage.getItem(WEBHOOK_LOG_KEY);
-    const logs: WebhookLogEntry[] = stored ? JSON.parse(stored) : [];
-    logs.unshift(entry);
-    if (logs.length > MAX_LOG_ENTRIES) logs.splice(MAX_LOG_ENTRIES);
-    localStorage.setItem(WEBHOOK_LOG_KEY, JSON.stringify(logs));
+    localStorage.setItem(`workflow_${workflowName}_lastExecution`, JSON.stringify(execution));
   } catch {
     // ignore
   }
 }
 
-export function getWebhookLogs(): WebhookLogEntry[] {
+export function getLastWorkflowExecution(workflowName: string): WorkflowExecution | null {
   try {
-    const stored = localStorage.getItem(WEBHOOK_LOG_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveWorkflowExecution(workflowId: string, result: WorkflowResult): void {
-  try {
-    const stored = localStorage.getItem(WORKFLOW_EXECUTIONS_KEY);
-    const all: Record<string, WorkflowResult[]> = stored ? JSON.parse(stored) : {};
-    if (!all[workflowId]) all[workflowId] = [];
-    all[workflowId].unshift(result);
-    if (all[workflowId].length > MAX_EXECUTIONS_PER_WORKFLOW) {
-      all[workflowId].splice(MAX_EXECUTIONS_PER_WORKFLOW);
-    }
-    localStorage.setItem(WORKFLOW_EXECUTIONS_KEY, JSON.stringify(all));
-  } catch {
-    // ignore
-  }
-}
-
-export function getLastWorkflowExecution(workflowId: string): WorkflowResult | null {
-  try {
-    const stored = localStorage.getItem(WORKFLOW_EXECUTIONS_KEY);
-    if (!stored) return null;
-    const all: Record<string, WorkflowResult[]> = JSON.parse(stored);
-    return all[workflowId]?.[0] ?? null;
+    const raw = localStorage.getItem(`workflow_${workflowName}_lastExecution`);
+    if (!raw) return null;
+    return JSON.parse(raw);
   } catch {
     return null;
   }
@@ -80,72 +39,80 @@ export function getLastWorkflowExecution(workflowId: string): WorkflowResult | n
 export async function postToWebhook(
   url: string,
   payload: Record<string, unknown>,
-  apiKey: string,
-  workflowName: string
-): Promise<{ ok: boolean; status: number; body: string }> {
-  const logEntry: WebhookLogEntry = {
-    id: generateActionId(),
-    timestamp: new Date().toISOString(),
-    url,
-    payloadSummary: JSON.stringify(payload).substring(0, 200),
-    responseStatus: null,
-    status: 'error',
-    workflowName,
-  };
+  apiKey?: string,
+  addLog?: (entry: {
+    timestamp: number;
+    url: string;
+    eventName: string;
+    payloadSummary: string;
+    statusCode: number | null;
+    responseSummary: string;
+    isError: boolean;
+  }) => void,
+  eventName = 'webhook_post'
+): Promise<{ ok: boolean; status: number | null; body: string }> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+  const payloadStr = JSON.stringify(payload);
+  const payloadSummary = payloadStr.slice(0, 200);
 
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-      },
-      body: JSON.stringify(payload),
+    const res = await fetch(url, { method: 'POST', headers, body: payloadStr });
+    const body = await res.text().catch(() => '');
+    const responseSummary = body.slice(0, 200);
+
+    addLog?.({
+      timestamp: Date.now(),
+      url,
+      eventName,
+      payloadSummary,
+      statusCode: res.status,
+      responseSummary,
+      isError: !res.ok,
     });
 
-    const body = await response.text();
-    logEntry.responseStatus = response.status;
-    logEntry.status = response.ok ? 'success' : 'error';
-    logWebhookEntry(logEntry);
-    return { ok: response.ok, status: response.status, body };
+    return { ok: res.ok, status: res.status, body };
   } catch (err) {
-    logEntry.responseStatus = null;
-    logEntry.status = 'error';
-    logWebhookEntry(logEntry);
-    throw err;
+    const errMsg = err instanceof Error ? err.message : 'Network error';
+    addLog?.({
+      timestamp: Date.now(),
+      url,
+      eventName,
+      payloadSummary,
+      statusCode: null,
+      responseSummary: errMsg.slice(0, 200),
+      isError: true,
+    });
+    return { ok: false, status: null, body: errMsg };
   }
 }
 
 export function useWorkflowExecution() {
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<WorkflowResult | null>(null);
+  const { addLog } = useWebhookLog();
 
-  const execute = useCallback(async (
-    workflowId: string,
-    fn: () => Promise<WorkflowResult>
-  ): Promise<WorkflowResult> => {
+  const run = useCallback(async (fn: () => Promise<WorkflowResult>) => {
     setIsRunning(true);
-    setResult(null);
     try {
       const res = await fn();
       setResult(res);
-      saveWorkflowExecution(workflowId, res);
       return res;
     } catch (err) {
       const errResult: WorkflowResult = {
         action_id: generateActionId(),
         status: 'error',
-        message: err instanceof Error ? err.message : 'Unknown error occurred',
+        message: err instanceof Error ? err.message : 'Unknown error',
         data_logged: false,
-        next_steps: 'Check your configuration and try again.',
+        next_steps: ['Check configuration and try again'],
       };
       setResult(errResult);
-      saveWorkflowExecution(workflowId, errResult);
       return errResult;
     } finally {
       setIsRunning(false);
     }
   }, []);
 
-  return { isRunning, result, execute, setResult };
+  return { isRunning, result, run, addLog };
 }

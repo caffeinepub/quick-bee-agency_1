@@ -1,13 +1,14 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 19,
+  "projectStateVersion": 27,
   "summary": "AI agency platform (Quick Bee AI Growth Engine) with multi-step build: Lead Management CRM (Step 1), Automation Dashboard with webhook-based Sales System Configuration (Step 2). Features include downloadable exports, invoice/GST quote generation, automation controls, API integrations (Razorpay, WhatsApp Cloud API, OpenRouter/OpenAI, Supabase, Airtable, Resend, Google Sheets, PDF generator, HubSpot CRM, Mailchimp, Calendly, Stripe/PayPal, Tidio, Google Analytics 4, Typeform, Notion API), AI Smart Systems, and no-code configurable webhook automation engine. Five core automation workflows: New Lead Submission (Typeform → HubSpot → Sheets → Notion → Mailchimp), Meeting Scheduling (Calendly + Google Calendar + reminders), Payment Processing (Stripe/PayPal with invoice generation), Analytics Engine (GA4 reports), and AI Content Creation (SEO blog + social media captions).",
   "architectural_notes": [
     "All AI systems connect through external automation tools (e.g., Make.com) via webhook URLs — no direct backend API integration",
     "Webhook triggers must use POST method with proper JSON format and Authorization headers; responses must be checked for 200 status",
     "API credentials (Endpoint, Key, WhatsApp Token, Razorpay Key ID/Secret, Email API Key, CRM Webhook URL, Automation Webhook URL) must be persisted and included in all outbound requests",
     "Five core automation workflows: Lead Submission (Typeform→HubSpot→Sheets→Notion→Mailchimp), Meeting Scheduling (Calendly+GCal), Payment Processing (Stripe/PayPal), Analytics Engine (GA4), AI Content Creation (SEO blog+social)",
-    "All automation actions must return structured JSON: {action_id, status, message, data_logged, next_steps}; log every action to Google Sheets; retry failed webhooks once"
+    "All automation actions must return structured JSON: {action_id, status, message, data_logged, next_steps}; log every action to Google Sheets; retry failed webhooks once",
+    "Authentication is bypassed — app grants direct dashboard access without Internet Identity login; BootstrapGate and login guards must be removed or disabled"
   ],
   "known_issues": [
     "API settings fields not saving/sending correctly in Sales System Dashboard",
@@ -16,7 +17,6 @@
     "AI responses (OpenRouter/OpenAI) not displaying in dashboard",
     "Razorpay payment webhooks and WhatsApp auto-reply triggers not functioning correctly",
     "AI Smart Systems 'Launch Tool' buttons not opening functional tool UIs — tools are non-functional placeholders",
-    "Sign In button on login screen is non-functional / not working",
     "Services section not displaying catalog correctly and missing version-19-style options/UI"
   ],
   "isFixRequest": true,
@@ -348,6 +348,134 @@
         "REQ-50"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-perform-a-comprehensive-audit-and-fix-of-the-aiconfigcontext-frontend-src-contexts-aiconfigcontext-tsx-so-that-all-configuration-fields-api-endpoint-api-key-whatsapp-token-razorpay-key-id-razorpay-secret-email-api-key-crm-webhook-url-automation-webhook-url-and-calendly-url-are-correctly-read-from-localstorage-on-mount-written-to-localstorage-on-save-and-exposed-via-context-to-every-consuming-component-ensure-the-provider-is-wrapped-around-the-entire-app-in-app-tsx-all-field-values-and-their-on-off-toggle-states-must-survive-page-navigation-hot-reloads-and-component-re-renders",
+      "title": "Perform a comprehensive audit and fix of the AIConfigContext (frontend/src/contexts/AIConfigContext.tsx) so that all configuration fields — API Endpoint, API Key, WhatsApp Token, Razorpay Key ID, Razorpay Secret, Email API Key, CRM Webhook URL, Automation Webhook URL, and Calendly URL — are correctly read from localStorage on mount, written to localStorage on save, and exposed via context to every consuming component. Ensure the provider is wrapped around the entire app in App.tsx. All field values and their ON/OFF toggle states must survive page navigation, hot-reloads, and component re-renders.",
+      "reqIds": [
+        "REQ-51"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-salessystemconfigpage-frontend-src-pages-salessystemconfigpage-tsx-so-every-field-api-endpoint-api-key-whatsapp-token-razorpay-key-id-razorpay-secret-email-api-key-crm-webhook-url-automation-webhook-url-calendly-url-correctly-two-way-binds-to-the-aiconfigcontext-state-updates-on-input-change-and-commits-all-values-to-localstorage-when-the-save-configuration-button-is-clicked-each-field-must-display-a-not-configured-grey-connected-green-or-error-red-status-badge-based-on-the-last-known-call-result-the-crm-webhook-url-and-automation-webhook-url-fields-must-each-have-a-test-connection-button-that-sends-a-post-payload-type-test-timestamp-and-updates-the-badge-immediately-based-on-the-http-response-status",
+      "title": "Fix the SalesSystemConfigPage (frontend/src/pages/SalesSystemConfigPage.tsx) so every field — API Endpoint, API Key, WhatsApp Token, Razorpay Key ID, Razorpay Secret, Email API Key, CRM Webhook URL, Automation Webhook URL, Calendly URL — correctly two-way binds to the AIConfigContext state, updates on input change, and commits all values to localStorage when the 'Save Configuration' button is clicked. Each field must display a 'Not Configured' (grey), 'Connected' (green), or 'Error' (red) status badge based on the last known call result. The CRM Webhook URL and Automation Webhook URL fields must each have a 'Test Connection' button that sends a POST payload `{ type: 'test', timestamp }` and updates the badge immediately based on the HTTP response status.",
+      "reqIds": [
+        "REQ-52"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-five-automation-triggers-in-useautomationtriggers-ts-so-each-trigger-1-checks-the-corresponding-on-off-toggle-in-aiconfigcontext-before-proceeding-2-reads-the-correct-webhook-url-automationwebhookurl-or-crmwebhookurl-from-context-3-sends-a-post-request-with-content-type-application-json-and-authorization-bearer-apikey-headers-4-logs-the-attempt-in-webhooklogcontext-with-timestamp-url-payload-summary-http-status-and-response-body-summary-5-returns-a-structured-result-action-id-status-message-data-logged-next-steps-6-shows-a-user-visible-toast-error-if-the-post-fails-or-the-url-is-not-configured-the-five-triggers-are-whatsapp-auto-reply-fires-on-lead-create-update-proposal-auto-send-fires-when-lead-status-qualified-lead-follow-up-sequences-manual-or-scheduled-payment-confirmation-razorpay-success-and-project-onboarding-after-payment-success",
+      "title": "Fix the five automation triggers in useAutomationTriggers.ts so each trigger: (1) checks the corresponding ON/OFF toggle in AIConfigContext before proceeding; (2) reads the correct webhook URL (automationWebhookUrl or crmWebhookUrl) from context; (3) sends a POST request with `Content-Type: application/json` and `Authorization: Bearer <apiKey>` headers; (4) logs the attempt in WebhookLogContext with timestamp, URL, payload summary, HTTP status, and response body summary; (5) returns a structured result `{ action_id, status, message, data_logged, next_steps }`; (6) shows a user-visible toast error if the POST fails or the URL is not configured. The five triggers are: WhatsApp Auto-Reply (fires on lead create/update), Proposal Auto-Send (fires when lead status = 'Qualified'), Lead Follow-Up Sequences (manual or scheduled), Payment Confirmation (Razorpay success), and Project Onboarding (after payment success).",
+      "reqIds": [
+        "REQ-54"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-automationpage-frontend-src-pages-automationpage-tsx-so-every-toggle-whatsapp-auto-reply-proposal-auto-send-lead-follow-up-sequences-payment-confirmation-and-project-onboarding-reads-its-current-state-from-aiconfigcontext-and-writes-the-updated-toggle-state-back-to-aiconfigcontext-and-thereby-localstorage-when-clicked-when-a-toggle-is-off-no-webhook-or-api-call-from-that-automation-may-fire-when-on-the-automation-is-active-and-will-fire-on-its-trigger-condition-toggle-states-must-persist-across-page-navigation-and-app-reloads",
+      "title": "Fix the AutomationPage (frontend/src/pages/AutomationPage.tsx) so every toggle — WhatsApp Auto-Reply, Proposal Auto-Send, Lead Follow-Up Sequences, Payment Confirmation, and Project Onboarding — reads its current state from AIConfigContext and writes the updated toggle state back to AIConfigContext (and thereby localStorage) when clicked. When a toggle is OFF, no webhook or API call from that automation may fire. When ON, the automation is active and will fire on its trigger condition. Toggle states must persist across page navigation and app reloads.",
+      "reqIds": [
+        "REQ-55"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-webhooklogspage-frontend-src-pages-webhooklogspage-tsx-and-webhooklogcontext-frontend-src-contexts-webhooklogcontext-tsx-so-that-every-outgoing-webhook-and-ai-api-call-across-the-entire-app-is-logged-with-timestamp-target-url-event-tool-name-request-payload-summary-first-200-chars-http-response-status-code-and-response-body-summary-first-200-chars-log-entries-must-be-color-coded-green-for-2xx-and-red-for-non-2xx-or-network-errors-the-page-must-support-filtering-by-event-tool-name-and-by-status-success-error-and-provide-a-working-clear-logs-button-logs-must-persist-in-sessionstorage-for-the-current-browser-session",
+      "title": "Fix the WebhookLogsPage (frontend/src/pages/WebhookLogsPage.tsx) and WebhookLogContext (frontend/src/contexts/WebhookLogContext.tsx) so that every outgoing webhook and AI API call across the entire app is logged with: timestamp, target URL, event/tool name, request payload summary (first 200 chars), HTTP response status code, and response body summary (first 200 chars). Log entries must be color-coded green for 2xx and red for non-2xx or network errors. The page must support filtering by event/tool name and by status (success/error), and provide a working 'Clear Logs' button. Logs must persist in sessionStorage for the current browser session.",
+      "reqIds": [
+        "REQ-56"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-all-csv-and-pdf-export-functions-across-the-application-in-exportutils-ts-ensure-exportleadstocsv-produces-a-valid-rfc-4180-csv-string-with-a-header-row-and-triggers-a-browser-download-ensure-exportleadstocsv-for-selected-leads-also-works-ensure-pdf-html-export-for-proposals-and-invoices-generates-a-new-window-with-formatted-html-content-and-calls-window-print-to-trigger-the-browser-print-save-dialog-ensure-exportwhatsapplogstocsv-and-invoice-csv-exports-produce-valid-files-every-export-button-must-show-a-loading-spinner-while-generating-and-display-a-toast-error-message-if-the-export-throws-fix-any-typescript-type-errors-in-exportutils-ts",
+      "title": "Fix all CSV and PDF export functions across the application. In exportUtils.ts: ensure `exportLeadsToCSV` produces a valid RFC 4180 CSV string with a header row and triggers a browser download; ensure `exportLeadsToCSV` for selected leads also works; ensure PDF/HTML export for proposals and invoices generates a new window with formatted HTML content and calls `window.print()` to trigger the browser print/save dialog; ensure `exportWhatsAppLogsToCSV` and invoice CSV exports produce valid files. Every export button must show a loading spinner while generating and display a toast error message if the export throws. Fix any TypeScript type errors in exportUtils.ts.",
+      "reqIds": [
+        "REQ-57"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-paymentsuccesspage-and-paymentfailurepage-so-that-on-mount-they-correctly-invoke-the-payment-processing-workflow-on-success-call-triggerpaymentsuccess-from-usepaymentprocessingworkflow-with-payment-id-lead-id-order-id-and-amount-read-from-url-params-or-sessionstorage-on-failure-call-triggerpaymentfailure-each-call-must-post-to-the-automation-webhook-url-with-the-correct-payload-and-headers-generate-an-invoice-reference-in-the-format-qba-timestamp-display-the-invoice-reference-in-the-success-page-ui-and-log-both-success-and-failure-events-in-webhooklogcontext",
+      "title": "Fix the PaymentSuccessPage and PaymentFailurePage so that on mount they correctly invoke the payment processing workflow: on success call `triggerPaymentSuccess` from usePaymentProcessingWorkflow with payment_id, lead_id, order_id, and amount read from URL params or sessionStorage; on failure call `triggerPaymentFailure`. Each call must POST to the Automation Webhook URL with the correct payload and headers, generate an invoice reference in the format `QBA-{timestamp}`, display the invoice reference in the success page UI, and log both success and failure events in WebhookLogContext.",
+      "reqIds": [
+        "REQ-58"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-perform-a-clean-visual-remix-of-the-entire-frontend-with-a-cohesive-dark-gold-agency-aesthetic-deep-charcoal-near-black-backgrounds-0f0f0f-to-1a1a1a-warm-gold-amber-accents-f5a623-ffb347-for-primary-actions-and-highlights-crisp-white-typography-for-headings-subtle-card-borders-with-slight-glow-on-hover-and-consistent-rounded-corners-rounded-xl-apply-this-theme-globally-via-the-existing-css-custom-properties-in-frontend-index-css-and-frontend-src-index-css-update-tailwindcss-config-tokens-to-match-all-pages-cards-buttons-badges-and-nav-elements-must-use-this-theme-consistently-replace-any-leftover-blue-purple-accent-colours-with-the-gold-palette-ensure-the-overall-feel-is-fast-premium-and-agency-grade-with-smooth-tailwind-transitions-on-interactive-elements",
+      "title": "Perform a clean visual remix of the entire frontend with a cohesive dark-gold agency aesthetic: deep charcoal/near-black backgrounds (#0F0F0F to #1A1A1A), warm gold/amber accents (#F5A623, #FFB347) for primary actions and highlights, crisp white typography for headings, subtle card borders with slight glow on hover, and consistent rounded corners (rounded-xl). Apply this theme globally via the existing CSS custom properties in frontend/index.css and frontend/src/index.css. Update TailwindCSS config tokens to match. All pages, cards, buttons, badges, and nav elements must use this theme consistently. Replace any leftover blue/purple accent colours with the gold palette. Ensure the overall feel is fast, premium, and agency-grade with smooth Tailwind transitions on interactive elements.",
+      "reqIds": [
+        "REQ-59"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-audit-and-fix-all-typescript-compilation-errors-across-the-frontend-codebase-resolve-all-type-mismatches-missing-imports-incorrect-prop-types-and-unused-variable-errors-that-would-prevent-a-clean-tsc-noemit-run-pay-particular-attention-to-aiconfigcontext-type-exports-usequeries-hook-return-types-consumed-in-pages-workflowcard-and-workflowresultdisplay-prop-interfaces-exportutils-function-signatures-and-any-implicit-any-types-introduced-in-recent-workflow-hooks",
+      "title": "Audit and fix all TypeScript compilation errors across the frontend codebase. Resolve all type mismatches, missing imports, incorrect prop types, and unused variable errors that would prevent a clean `tsc --noEmit` run. Pay particular attention to: AIConfigContext type exports, useQueries hook return types consumed in pages, WorkflowCard and WorkflowResultDisplay prop interfaces, exportUtils function signatures, and any implicit `any` types introduced in recent workflow hooks.",
+      "reqIds": [
+        "REQ-60"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-workflowspage-frontend-src-pages-workflowspage-tsx-so-all-five-workflow-cards-new-lead-submission-meeting-scheduling-payment-processing-analytics-engine-ai-content-creation-render-correctly-with-their-name-trigger-description-active-inactive-status-indicator-reading-from-aiconfigcontext-toggle-states-a-functional-run-button-and-the-last-execution-timestamp-and-result-from-localstorage-when-run-is-clicked-execute-the-corresponding-workflow-hook-display-the-structured-json-result-action-id-status-message-data-logged-next-steps-in-a-styled-result-card-beneath-the-button-and-persist-the-execution-log-entry-to-localstorage-apply-role-based-access-admin-full-access-manager-can-run-but-cannot-edit-config-client-redirect-to-client-dashboard",
+      "title": "Fix the WorkflowsPage (frontend/src/pages/WorkflowsPage.tsx) so all five workflow cards — New Lead Submission, Meeting Scheduling, Payment Processing, Analytics Engine, AI Content Creation — render correctly with their name, trigger description, Active/Inactive status indicator (reading from AIConfigContext toggle states), a functional 'Run' button, and the last execution timestamp and result from localStorage. When 'Run' is clicked, execute the corresponding workflow hook, display the structured JSON result `{ action_id, status, message, data_logged, next_steps }` in a styled result card beneath the button, and persist the execution log entry to localStorage. Apply role-based access: Admin = full access; Manager = can run but cannot edit config; Client = redirect to /client-dashboard.",
+      "reqIds": [
+        "REQ-61"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-pages-loginpage-tsx-to-immediately-redirect-all-visitors-to-dashboard-without-displaying-any-login-ui-or-requiring-internet-identity-authentication-the-page-must-call-tanstack-router-s-navigate-to-dashboard-on-mount-so-no-user-ever-sees-or-interacts-with-the-sign-in-screen",
+      "title": "Rewrite frontend/src/pages/LoginPage.tsx to immediately redirect all visitors to /dashboard without displaying any login UI or requiring Internet Identity authentication. The page must call TanStack Router's navigate to /dashboard on mount, so no user ever sees or interacts with the sign-in screen.",
+      "reqIds": [
+        "REQ-72"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-app-tsx-so-that-the-root-index-route-and-any-unauthenticated-redirect-routes-point-directly-to-dashboard-instead-of-login-remove-or-bypass-any-route-guard-that-redirects-unauthenticated-users-away-from-protected-routes",
+      "title": "Update App.tsx so that the root/index route and any unauthenticated redirect routes point directly to /dashboard instead of /login. Remove or bypass any route guard that redirects unauthenticated users away from protected routes.",
+      "reqIds": [
+        "REQ-73"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-components-bootstrap-bootstrapgate-tsx-to-always-render-its-children-immediately-without-any-loading-spinner-overlay-actor-initialization-check-or-identity-check-the-gate-must-never-block-rendering-of-any-page-including-dashboard-pages-regardless-of-actor-or-identity-state",
+      "title": "Rewrite frontend/src/components/bootstrap/BootstrapGate.tsx to always render its children immediately without any loading spinner, overlay, actor-initialization check, or identity check. The gate must never block rendering of any page, including dashboard pages, regardless of actor or identity state.",
+      "reqIds": [
+        "REQ-74"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-sidebar-navigation-frontend-src-components-layout-sidebarnav-tsx-and-appshell-to-remove-the-logout-button-or-any-ui-that-prompts-users-to-log-in-or-log-out-since-authentication-is-no-longer-required-all-nav-items-that-were-previously-role-gated-must-be-visible-and-accessible-by-default",
+      "title": "Update the sidebar navigation (frontend/src/components/layout/SidebarNav.tsx) and AppShell to remove the logout button or any UI that prompts users to log in or log out, since authentication is no longer required. All nav items that were previously role-gated must be visible and accessible by default.",
+      "reqIds": [
+        "REQ-75"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-audit-all-page-components-that-perform-role-based-redirects-e-g-redirecting-to-client-dashboard-or-admin-dashboard-based-on-identity-and-remove-or-disable-those-redirects-so-every-page-renders-its-content-directly-without-checking-authentication-state-or-user-role",
+      "title": "Audit all page components that perform role-based redirects (e.g., redirecting to /client-dashboard or /admin-dashboard based on identity) and remove or disable those redirects so every page renders its content directly without checking authentication state or user role.",
+      "reqIds": [
+        "REQ-76"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-pages-automationpage-tsx-so-every-toggle-whatsapp-auto-reply-proposal-auto-send-lead-follow-up-sequences-payment-confirmation-and-project-onboarding-reads-its-current-on-off-state-directly-from-aiconfigcontext-the-localstorage-backed-centralized-config-store-and-writes-the-updated-toggle-state-back-to-aiconfigcontext-when-clicked-the-toggle-ui-must-reflect-the-persisted-value-on-initial-render-after-page-navigation-and-after-a-full-app-reload-when-a-toggle-is-off-its-corresponding-automation-must-not-fire-any-webhook-calls-api-calls-or-ui-triggers-when-a-toggle-is-on-the-automation-is-active-and-fires-on-its-designated-trigger-condition",
+      "title": "Rewrite frontend/src/pages/AutomationPage.tsx so every toggle — WhatsApp Auto-Reply, Proposal Auto-Send, Lead Follow-Up Sequences, Payment Confirmation, and Project Onboarding — reads its current ON/OFF state directly from AIConfigContext (the localStorage-backed centralized config store) and writes the updated toggle state back to AIConfigContext when clicked. The toggle UI must reflect the persisted value on initial render, after page navigation, and after a full app reload. When a toggle is OFF, its corresponding automation must not fire any webhook calls, API calls, or UI triggers. When a toggle is ON, the automation is active and fires on its designated trigger condition.",
+      "reqIds": [
+        "REQ-77"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -470,20 +598,6 @@
       "status": "pending"
     },
     {
-      "id": "AR-18",
-      "summary": "Fix the Sign In button on the login screen so it correctly authenticates and redirects the user",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-24",
-      "summary": "Fix the Sign In button on the LoginPage (frontend/src/pages/LoginPage.tsx) so that clicking it correctly triggers the Internet Identity authentication flow, waits for authentication to complete, and then redirects the authenticated user to the appropriate dashboard route. The button must show a loading/spinner state while the authentication is in progress. If authentication fails or is cancelled, display a user-visible error message. Ensure the button is not disabled or unbound from its click handler.",
-      "reqIds": [
-        "REQ-30"
-      ],
-      "status": "pending"
-    },
-    {
       "id": "AR-25",
       "summary": "Fix the Services section to display the catalog/service list correctly and restore the UI options/layout as they appeared in version 19",
       "reqIds": [],
@@ -559,6 +673,116 @@
       "id": "AR-37",
       "summary": "Add global automation rules: validate all data before processing, prevent duplicate records, log every action in Google Sheets, return structured JSON output ({action_id, status, message, data_logged, next_steps}), handle API timeouts gracefully, retry failed webhooks once, and enforce role-based permissions for Admin/Manager/Client",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-40",
+      "summary": "Fix all six AI Generator tool pages — ServiceRecommendationPage, ProposalGeneratorPage, PricingStrategyPage, ClosingScriptsPage, FollowUpMessagesPage, LeadQualificationPage — so that on form submission they: (1) read apiEndpoint and apiKey from AIConfigContext; (2) build a valid OpenAI-compatible POST request body with the correct `model`, `messages` array and role/content structure; (3) set `Content-Type: application/json` and `Authorization: Bearer <apiKey>` headers; (4) await the response, extract `choices[0].message.content`, and render it in the result area; (5) also POST the form payload to the Automation Webhook URL (if configured and toggled ON) with tool name and timestamp; (6) show a loading spinner while both requests are in-flight; (7) show a user-visible error message that names the failed endpoint (AI API or Webhook) if either call fails. If apiEndpoint or apiKey is not set, display the AICredentialBanner instead of attempting the call.",
+      "reqIds": [
+        "REQ-53"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-41",
+      "summary": "Fix all six AI Generator tool pages (ServiceRecommendationPage, ProposalGeneratorPage, PricingStrategyPage, ClosingScriptsPage, FollowUpMessagesPage, LeadQualificationPage) so that on form submission they: (1) read apiEndpoint and apiKey from AIConfigContext; (2) build a valid OpenAI-compatible POST request body with the correct model, messages array, and role/content structure; (3) set Content-Type: application/json and Authorization: Bearer <apiKey> headers; (4) await the response, extract choices[0].message.content, and render it in the result area; (5) also POST the form payload to the Automation Webhook URL (if configured and toggled ON) with tool name and timestamp; (6) show a loading spinner while both requests are in-flight; (7) show a user-visible error message that names the failed endpoint (AI API or Webhook) if either call fails. If apiEndpoint or apiKey is not set, display the AICredentialBanner instead of attempting the call.",
+      "reqIds": [
+        "REQ-62"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-42",
+      "summary": "Perform a comprehensive audit and fix of AIConfigContext (frontend/src/contexts/AIConfigContext.tsx) to ensure all fields — API Endpoint, API Key, WhatsApp Token, Razorpay Key ID, Razorpay Secret, Email API Key, CRM Webhook URL, Automation Webhook URL, Calendly URL — and their ON/OFF toggle states are correctly read from localStorage on mount, written back to localStorage on every save, and exposed via context to all consuming components. Ensure the AIConfigProvider is wrapping the entire app in App.tsx. Values and toggle states must survive page navigation, hot-reloads, and component re-renders without resetting to defaults.",
+      "reqIds": [
+        "REQ-63"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-43",
+      "summary": "Fix the SalesSystemConfigPage (frontend/src/pages/SalesSystemConfigPage.tsx) so every field — API Endpoint, API Key, WhatsApp Token, Razorpay Key ID, Razorpay Secret, Email API Key, CRM Webhook URL, Automation Webhook URL, Calendly URL — correctly two-way binds to AIConfigContext local state, updates on every input change event, and persists all values to localStorage when the Save Configuration button is clicked. Each field must show a Not Configured (grey), Connected (green), or Error (red) status badge. The CRM Webhook URL and Automation Webhook URL fields must each have a working Test Connection button that POSTs { type: 'test', timestamp } and updates the badge immediately based on the HTTP response status.",
+      "reqIds": [
+        "REQ-64"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-44",
+      "summary": "Fix the five automation triggers in useAutomationTriggers.ts so each trigger: (1) checks its corresponding ON/OFF toggle in AIConfigContext before proceeding and silently skips if OFF; (2) reads the correct webhook URL (automationWebhookUrl or crmWebhookUrl) from context; (3) sends a POST request with Content-Type: application/json and Authorization: Bearer <apiKey> headers; (4) logs the attempt in WebhookLogContext with timestamp, URL, payload summary, HTTP status, and response body summary; (5) returns a structured result { action_id, status, message, data_logged, next_steps }; (6) shows a user-visible toast error if the POST fails or the URL is not configured. Triggers: WhatsApp Auto-Reply (lead create/update), Proposal Auto-Send (lead status = Qualified), Lead Follow-Up Sequences, Payment Confirmation (Razorpay success), Project Onboarding (after payment success).",
+      "reqIds": [
+        "REQ-65"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-45",
+      "summary": "Fix the AutomationPage (frontend/src/pages/AutomationPage.tsx) so every toggle — WhatsApp Auto-Reply, Proposal Auto-Send, Lead Follow-Up Sequences, Payment Confirmation, and Project Onboarding — reads its current ON/OFF state from AIConfigContext and writes the updated state back to AIConfigContext (persisting to localStorage) when clicked. When a toggle is OFF, its corresponding automation must not fire any webhook calls, API calls, or UI triggers. Toggle states must survive page navigation and full app reloads.",
+      "reqIds": [
+        "REQ-66"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-46",
+      "summary": "Fix the WebhookLogsPage (frontend/src/pages/WebhookLogsPage.tsx) and WebhookLogContext (frontend/src/contexts/WebhookLogContext.tsx) so that every outgoing webhook and AI API call is logged with: timestamp, target URL, event/tool name, request payload summary (first 200 chars), HTTP response status code, and response body summary (first 200 chars). Log entries must be colour-coded green for 2xx and red for non-2xx or network errors. The page must support filtering by event/tool name and by status (success/error) and provide a working Clear Logs button. Logs must persist in sessionStorage for the current browser session.",
+      "reqIds": [
+        "REQ-67"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-47",
+      "summary": "Fix all CSV and PDF export functions in frontend/src/utils/exportUtils.ts: ensure exportLeadsToCSV produces a valid RFC 4180 CSV with a header row and triggers a browser download for both all-leads and selected-leads variants; ensure PDF/HTML export for proposals and invoices opens a new window with formatted HTML content and calls window.print(); ensure exportWhatsAppLogsToCSV and invoice CSV exports produce valid files and trigger downloads. Every export button across the app must show a loading/spinner state while generating and display a toast error message if the export throws. Fix all TypeScript type errors in exportUtils.ts.",
+      "reqIds": [
+        "REQ-68"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-48",
+      "summary": "Fix the PaymentSuccessPage and PaymentFailurePage so that on mount they correctly invoke the payment processing workflow. On success, call triggerPaymentSuccess from usePaymentProcessingWorkflow with payment_id, lead_id, order_id, and amount read from URL params or sessionStorage. On failure, call triggerPaymentFailure with the relevant params. Each call must POST to the Automation Webhook URL with the correct payload and headers, generate an invoice reference in the format QBA-{timestamp}, display the invoice reference prominently in the success page UI, and log both success and failure events in WebhookLogContext.",
+      "reqIds": [
+        "REQ-69"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-49",
+      "summary": "Audit and fix all TypeScript compilation errors across the frontend codebase so that running tsc --noEmit completes with zero errors. Specifically resolve: type mismatches and missing exports in AIConfigContext; incorrect or missing prop types on WorkflowCard and WorkflowResultDisplay; implicit any types in useAutomationTriggers.ts, useNewLeadSubmissionWorkflow.ts, useMeetingSchedulingWorkflow.ts, and usePaymentProcessingWorkflow.ts; incorrect return-type consumption of useQueries hooks in page components; and any remaining unused-variable or missing-import errors introduced by recent workflow and export changes.",
+      "reqIds": [
+        "REQ-70"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-50",
+      "summary": "Fix the WorkflowsPage (frontend/src/pages/WorkflowsPage.tsx) so all five workflow cards — New Lead Submission, Meeting Scheduling, Payment Processing, Analytics Engine, AI Content Creation — render correctly with their name, trigger description, Active/Inactive status indicator (reading from AIConfigContext toggle states), a functional Run button, and the last execution timestamp and result from localStorage. When Run is clicked, execute the corresponding workflow hook, display the structured JSON result { action_id, status, message, data_logged, next_steps } in a styled result card beneath the button, and persist the execution log entry to localStorage. Apply role-based access: Admin = full access; Manager = can run but cannot edit config; Client = redirect to /client-dashboard.",
+      "reqIds": [
+        "REQ-71"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-52",
+      "summary": "Remove the login requirement — bypass authentication entirely and give users direct access to the dashboard without needing to sign in via Internet Identity",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-54",
+      "summary": "Audit frontend/src/contexts/AIConfigContext.tsx to verify that the five automation toggle fields — whatsappAutoReplyEnabled, proposalAutoSendEnabled, leadFollowUpEnabled, paymentConfirmationEnabled, and projectOnboardingEnabled — are correctly defined in the context type, initialized by reading from localStorage on provider mount, and persisted to localStorage whenever their values change or when saveConfig is called. Expose a dedicated setter (or extend the existing saveConfig/updateField API) so that AutomationPage can update each toggle independently without overwriting other config fields.",
+      "reqIds": [
+        "REQ-78"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-55",
+      "summary": "Audit frontend/src/hooks/useAutomationTriggers.ts to confirm that each of the five trigger functions — triggerWhatsAppAutoReply, triggerProposalAutoSend, triggerLeadFollowUp, triggerPaymentConfirmation, and triggerProjectOnboarding — reads the corresponding toggle field from AIConfigContext at call time and returns early (without making any network request) when the toggle is OFF. Each trigger must also read the correct webhook URL and API Key from AIConfigContext and include the correct headers (Content-Type: application/json, Authorization: Bearer <apiKey>) when the toggle is ON.",
+      "reqIds": [
+        "REQ-79"
+      ],
       "status": "pending"
     }
   ],

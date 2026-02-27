@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Download, FileText, Loader2, Shield } from 'lucide-react';
+import { Download, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useActor } from '../hooks/useActor';
-import { useIsCallerAdmin } from '../hooks/useQueries';
 import { toast } from 'sonner';
 
 function downloadFile(content: string, filename: string, mimeType: string) {
@@ -35,157 +34,149 @@ const EXPORT_MODULES: ExportModule[] = [
   { id: 'payments', label: 'Payment Logs', description: 'All payment transactions and statuses', formats: ['CSV', 'JSON'] },
   { id: 'whatsapp', label: 'WhatsApp Logs', description: 'Message delivery logs and statuses', formats: ['CSV', 'JSON'] },
   { id: 'services', label: 'Services Catalog', description: 'All services with pricing tiers', formats: ['CSV', 'JSON'] },
-  { id: 'projects', label: 'Projects Data', description: 'All client projects and statuses', formats: ['CSV', 'JSON'] },
-  { id: 'crm', label: 'CRM Activities', description: 'All CRM pipeline activities', formats: ['CSV', 'JSON'] },
+  { id: 'projects', label: 'Projects', description: 'All project records and statuses', formats: ['CSV', 'JSON'] },
 ];
 
 export default function DataExportCenterPage() {
   const { actor } = useActor();
-  const { data: isAdmin, isLoading: adminLoading } = useIsCallerAdmin();
-  const [exportingAll, setExportingAll] = useState(false);
-  const [exportingModule, setExportingModule] = useState<string | null>(null);
+  const [loadingExport, setLoadingExport] = useState<string | null>(null);
 
-  if (adminLoading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 space-y-4">
-        <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
-          <Shield className="w-8 h-8 text-destructive" />
-        </div>
-        <h2 className="text-xl font-bold font-display text-foreground">Access Denied</h2>
-        <p className="text-muted-foreground text-sm">Admin access required for data export.</p>
-      </div>
-    );
-  }
-
-  const handleModuleExport = async (moduleId: string, format: string) => {
-    if (!actor) { toast.error('Not authenticated'); return; }
-    setExportingModule(`${moduleId}-${format}`);
+  const handleExport = async (moduleId: string, format: string) => {
+    if (!actor) {
+      toast.error('Backend not available');
+      return;
+    }
+    const key = `${moduleId}-${format}`;
+    setLoadingExport(key);
     try {
-      const ts = getTimestamp();
       let data: unknown[] = [];
-      let filename = '';
-
       switch (moduleId) {
-        case 'leads': data = await actor.getAllLeads(); filename = `leads_${ts}`; break;
-        case 'invoices': data = await actor.getAllInvoices(); filename = `invoices_${ts}`; break;
-        case 'payments': data = await actor.getAllPaymentLogs(); filename = `payment_logs_${ts}`; break;
-        case 'whatsapp': data = await actor.getAllWhatsAppLogs(); filename = `whatsapp_logs_${ts}`; break;
-        case 'services': data = await actor.getAllServices(); filename = `services_${ts}`; break;
-        case 'projects': data = await actor.getAllProjects(); filename = `projects_${ts}`; break;
-        case 'crm': data = await actor.getAllCRMActivities(); filename = `crm_activities_${ts}`; break;
-        default: break;
+        case 'leads':
+          data = await actor.getAllLeads().catch(() => []);
+          break;
+        case 'invoices':
+          data = await actor.getAllInvoices().catch(() => []);
+          break;
+        case 'payments':
+          data = await actor.getAllPaymentLogs().catch(() => []);
+          break;
+        case 'whatsapp':
+          data = await actor.getAllWhatsAppLogs().catch(() => []);
+          break;
+        case 'services':
+          data = await actor.getAllServices().catch(() => []);
+          break;
+        case 'projects':
+          data = await actor.getAllProjects().catch(() => []);
+          break;
+        default:
+          data = [];
       }
 
+      const ts = getTimestamp();
       if (format === 'JSON') {
         const content = JSON.stringify(data, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2);
-        downloadFile(content, `${filename}.json`, 'application/json');
+        downloadFile(content, `${moduleId}-export-${ts}.json`, 'application/json');
       } else {
         if (data.length === 0) {
           toast.info('No data to export');
           return;
         }
-        const keys = Object.keys(data[0] as object);
-        const rows = [keys.join(',')];
-        data.forEach((item: unknown) => {
-          const row = keys.map(k => {
-            const val = (item as Record<string, unknown>)[k];
-            return typeof val === 'bigint' ? val.toString() : String(val ?? '');
-          });
-          rows.push(row.join(','));
-        });
-        downloadFile(rows.join('\n'), `${filename}.csv`, 'text/csv');
+        const headers = Object.keys(data[0] as object);
+        const rows = (data as Record<string, unknown>[]).map(row =>
+          headers.map(h => {
+            const val = row[h];
+            if (val === null || val === undefined) return '';
+            if (typeof val === 'bigint') return val.toString();
+            if (typeof val === 'object') return JSON.stringify(val);
+            return String(val);
+          }).join(',')
+        );
+        const csv = [headers.join(','), ...rows].join('\n');
+        downloadFile(csv, `${moduleId}-export-${ts}.csv`, 'text/csv');
       }
       toast.success(`${moduleId} exported as ${format}`);
-    } catch (err: unknown) {
-      toast.error(`Export failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } catch (err) {
+      toast.error('Export failed');
     } finally {
-      setExportingModule(null);
+      setLoadingExport(null);
     }
   };
 
-  const handleExportAll = async () => {
-    if (!actor) { toast.error('Not authenticated'); return; }
-    setExportingAll(true);
+  const handleFullExport = async () => {
+    if (!actor) {
+      toast.error('Backend not available');
+      return;
+    }
+    setLoadingExport('full');
     try {
-      const [leads, invoices, paymentLogs, whatsappLogs, services, projects, crmActivities] = await Promise.allSettled([
-        actor.getAllLeads(),
-        actor.getAllInvoices(),
-        actor.getAllPaymentLogs(),
-        actor.getAllWhatsAppLogs(),
-        actor.getAllServices(),
-        actor.getAllProjects(),
-        actor.getAllCRMActivities(),
+      const [leads, invoices, payments, whatsapp, services, projects] = await Promise.all([
+        actor.getAllLeads().catch(() => []),
+        actor.getAllInvoices().catch(() => []),
+        actor.getAllPaymentLogs().catch(() => []),
+        actor.getAllWhatsAppLogs().catch(() => []),
+        actor.getAllServices().catch(() => []),
+        actor.getAllProjects().catch(() => []),
       ]);
-
-      const allData = {
-        leads: leads.status === 'fulfilled' ? leads.value : [],
-        invoices: invoices.status === 'fulfilled' ? invoices.value : [],
-        paymentLogs: paymentLogs.status === 'fulfilled' ? paymentLogs.value : [],
-        whatsappLogs: whatsappLogs.status === 'fulfilled' ? whatsappLogs.value : [],
-        services: services.status === 'fulfilled' ? services.value : [],
-        projects: projects.status === 'fulfilled' ? projects.value : [],
-        crmActivities: crmActivities.status === 'fulfilled' ? crmActivities.value : [],
-        exportedAt: new Date().toISOString(),
-      };
-
-      const content = JSON.stringify(allData, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2);
-      downloadFile(content, `quickbee_full_export_${getTimestamp()}.json`, 'application/json');
+      const fullData = { leads, invoices, payments, whatsapp, services, projects };
+      const content = JSON.stringify(fullData, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2);
+      downloadFile(content, `full-platform-export-${getTimestamp()}.json`, 'application/json');
       toast.success('Full platform export complete');
-    } catch {
-      toast.error('Export failed');
+    } catch (err) {
+      toast.error('Full export failed');
     } finally {
-      setExportingAll(false);
+      setLoadingExport(null);
     }
   };
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-4xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-display text-foreground">Data Export Center</h1>
-          <p className="text-muted-foreground text-sm mt-1">Export platform data in various formats</p>
+          <h1 className="text-2xl font-bold font-display text-foreground flex items-center gap-2">
+            <Download className="w-6 h-6" /> Data Export Center
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">Export platform data in CSV or JSON format</p>
         </div>
-        <Button onClick={handleExportAll} disabled={exportingAll} className="gap-2">
-          {exportingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-          Export All
+        <Button
+          onClick={handleFullExport}
+          disabled={loadingExport === 'full'}
+          className="gap-2"
+        >
+          {loadingExport === 'full' ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Download className="w-4 h-4" />
+          )}
+          Full Export
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {EXPORT_MODULES.map((mod) => (
           <Card key={mod.id} className="glass border-border/50">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-display flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-primary" />
-                  {mod.label}
-                </CardTitle>
-              </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-display flex items-center gap-2">
+                <FileText className="w-4 h-4 text-primary" />
+                {mod.label}
+              </CardTitle>
               <p className="text-xs text-muted-foreground">{mod.description}</p>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2">
                 {mod.formats.map((fmt) => {
                   const key = `${mod.id}-${fmt}`;
-                  const isExporting = exportingModule === key;
+                  const isLoading = loadingExport === key;
                   return (
                     <Button
                       key={fmt}
-                      size="sm"
                       variant="outline"
-                      disabled={isExporting || !!exportingModule}
-                      onClick={() => handleModuleExport(mod.id, fmt)}
-                      className="gap-1 text-xs"
+                      size="sm"
+                      onClick={() => handleExport(mod.id, fmt)}
+                      disabled={!!loadingExport}
+                      className="gap-1.5 text-xs"
                     >
-                      {isExporting ? (
+                      {isLoading ? (
                         <Loader2 className="w-3 h-3 animate-spin" />
                       ) : (
                         <Download className="w-3 h-3" />

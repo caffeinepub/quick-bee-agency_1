@@ -4,7 +4,7 @@ import { CheckCircle, Home, FolderOpen, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { usePaymentProcessingWorkflow } from '../hooks/usePaymentProcessingWorkflow';
-import { WorkflowResultDisplay } from '../components/workflows/WorkflowResultDisplay';
+import WorkflowResultDisplay from '../components/workflows/WorkflowResultDisplay';
 import type { WorkflowResult } from '../hooks/useWorkflowExecution';
 
 export default function PaymentSuccessPage() {
@@ -19,25 +19,26 @@ export default function PaymentSuccessPage() {
     triggered.current = true;
 
     const params = new URLSearchParams(window.location.search);
-    const paymentId = params.get('payment_id') || sessionStorage.getItem('payment_id') || undefined;
-    const leadId = params.get('lead_id') || sessionStorage.getItem('lead_id') || undefined;
-    const orderId = params.get('order_id') || sessionStorage.getItem('order_id') || undefined;
-    const amount = params.get('amount') ? Number(params.get('amount')) : undefined;
+    const payment_id = params.get('payment_id') || sessionStorage.getItem('payment_id') || undefined;
+    const lead_id = params.get('lead_id') || sessionStorage.getItem('lead_id') || undefined;
+    const order_id = params.get('order_id') || sessionStorage.getItem('order_id') || undefined;
+    const amountRaw = params.get('amount');
+    const amount = amountRaw ? String(amountRaw) : undefined;
 
-    triggerPaymentSuccess({ paymentId, leadId, orderId, amount }).then(result => {
+    triggerPaymentSuccess({ payment_id, lead_id, order_id, amount }).then(result => {
       setInvoiceRef(result.invoiceRef);
       setWorkflowResult(result);
     });
   }, [triggerPaymentSuccess]);
 
   return (
-    <div className="min-h-screen mesh-bg flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="max-w-md w-full space-y-6">
-        <Card className="card-glass border-emerald-500/30">
+        <Card className="bg-card border-green-500/30">
           <CardContent className="pt-8 pb-6 text-center space-y-4">
             <div className="flex justify-center">
-              <div className="p-4 rounded-full bg-emerald-500/10 border border-emerald-500/30">
-                <CheckCircle className="w-12 h-12 text-emerald-400" />
+              <div className="p-4 rounded-full bg-green-500/10 border border-green-500/30">
+                <CheckCircle className="w-12 h-12 text-green-400" />
               </div>
             </div>
             <div>
@@ -47,11 +48,11 @@ export default function PaymentSuccessPage() {
               </p>
             </div>
             {invoiceRef && (
-              <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
+              <div className="bg-muted/30 rounded-lg p-3 border border-border">
                 <div className="flex items-center justify-center gap-2 text-sm">
                   <Receipt className="w-4 h-4 text-primary" />
                   <span className="text-muted-foreground">Invoice Reference:</span>
-                  <span className="font-mono font-bold text-foreground">{invoiceRef}</span>
+                  <span className="font-mono font-bold text-primary">{invoiceRef}</span>
                 </div>
               </div>
             )}
@@ -65,8 +66,8 @@ export default function PaymentSuccessPage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => navigate({ to: '/authenticated' })}
-                className="w-full border-border/50"
+                onClick={() => navigate({ to: '/authenticated/dashboard' })}
+                className="w-full border-border"
               >
                 <Home className="w-4 h-4 mr-2" />
                 Go to Dashboard

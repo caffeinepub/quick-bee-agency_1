@@ -1,78 +1,75 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, Clock, Database, ArrowRight } from 'lucide-react';
 import type { WorkflowResult } from '../../hooks/useWorkflowExecution';
 
 interface WorkflowResultDisplayProps {
-  result: WorkflowResult;
+  result: WorkflowResult | null;
 }
 
 export function WorkflowResultDisplay({ result }: WorkflowResultDisplayProps) {
-  const statusConfig = {
-    success: {
-      color: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
-      badgeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-      icon: <CheckCircle className="w-4 h-4 text-emerald-400" />,
-      label: 'Success',
-    },
-    error: {
-      color: 'bg-red-500/10 border-red-500/30 text-red-400',
-      badgeClass: 'bg-red-500/20 text-red-400 border-red-500/30',
-      icon: <XCircle className="w-4 h-4 text-red-400" />,
-      label: 'Error',
-    },
-    pending_review: {
-      color: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
-      badgeClass: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-      icon: <Clock className="w-4 h-4 text-amber-400" />,
-      label: 'Pending Review',
-    },
-  };
+  if (!result) return null;
 
-  const cfg = statusConfig[result.status];
+  const isSuccess = result.status === 'success';
+  const isError = result.status === 'error';
 
   return (
-    <Card className={`border ${cfg.color} mt-3`}>
-      <CardHeader className="pb-2 pt-3 px-4">
-        <CardTitle className="text-sm font-semibold flex items-center gap-2">
-          {cfg.icon}
-          Execution Result
-          <span className={`ml-auto text-xs px-2 py-0.5 rounded-full border font-medium ${cfg.badgeClass}`}>
-            {cfg.label}
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="px-4 pb-3 space-y-2 text-xs">
-        <div className="flex items-start gap-2">
-          <span className="text-muted-foreground font-medium w-24 shrink-0">Action ID:</span>
-          <span className="font-mono text-foreground/80 break-all">{result.action_id}</span>
-        </div>
-        <div className="flex items-start gap-2">
-          <span className="text-muted-foreground font-medium w-24 shrink-0">Message:</span>
-          <span className="text-foreground/90">{result.message}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground font-medium w-24 shrink-0">Data Logged:</span>
-          <span className="flex items-center gap-1">
-            <Database className="w-3 h-3" />
-            {result.data_logged ? (
-              <span className="text-emerald-400">Yes</span>
+    <Card className={`border ${isSuccess ? 'border-green-500/30 bg-green-500/5' : isError ? 'border-destructive/30 bg-destructive/5' : 'border-yellow-500/30 bg-yellow-500/5'}`}>
+      <CardContent className="p-4 space-y-3">
+        {/* Status Row */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            {isSuccess ? (
+              <CheckCircle className="w-4 h-4 text-green-400" />
+            ) : isError ? (
+              <XCircle className="w-4 h-4 text-destructive" />
             ) : (
-              <span className="text-muted-foreground">No</span>
+              <Clock className="w-4 h-4 text-yellow-400" />
             )}
-          </span>
+            <Badge
+              className={isSuccess
+                ? 'bg-green-500/20 text-green-400 border-green-500/30 text-xs'
+                : isError
+                ? 'bg-red-500/20 text-red-400 border-red-500/30 text-xs'
+                : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs'
+              }
+            >
+              {result.status.toUpperCase()}
+            </Badge>
+            <span className="text-xs text-muted-foreground font-mono">{result.action_id}</span>
+          </div>
+          <Badge
+            className={result.data_logged
+              ? 'bg-green-500/20 text-green-400 border-green-500/30 text-xs'
+              : 'bg-gray-500/20 text-gray-400 border-gray-500/30 text-xs'
+            }
+          >
+            <Database className="w-3 h-3 mr-1" />
+            {result.data_logged ? 'Logged' : 'Not Logged'}
+          </Badge>
         </div>
-        {result.next_steps && (
-          <div className="flex items-start gap-2">
-            <span className="text-muted-foreground font-medium w-24 shrink-0">Next Steps:</span>
-            <span className="flex items-start gap-1 text-foreground/80">
-              <ArrowRight className="w-3 h-3 mt-0.5 shrink-0" />
-              {result.next_steps}
-            </span>
+
+        {/* Message */}
+        <p className="text-sm text-foreground">{result.message}</p>
+
+        {/* Next Steps */}
+        {result.next_steps && result.next_steps.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Next Steps</p>
+            <ul className="space-y-1">
+              {result.next_steps.map((step, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <ArrowRight className="w-3 h-3 mt-0.5 text-primary shrink-0" />
+                  {step}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </CardContent>
     </Card>
   );
 }
+
+export default WorkflowResultDisplay;

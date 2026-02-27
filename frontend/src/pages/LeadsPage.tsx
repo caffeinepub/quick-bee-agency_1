@@ -23,7 +23,6 @@ import {
   useGetMyPaymentLinks,
 } from '../hooks/useQueries';
 import { Lead, PaymentLink } from '../backend';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import LeadFilterPanel, { LeadFilters } from '../components/leads/LeadFilterPanel';
 import LeadTableView, { SortField, SortDir } from '../components/leads/LeadTableView';
 import LeadExportToolbar from '../components/leads/LeadExportToolbar';
@@ -31,7 +30,7 @@ import LeadDetailPanel from '../components/leads/LeadDetailPanel';
 import IntegrationPanel from '../components/leads/IntegrationPanel';
 import AutomationLogsPanel from '../components/leads/AutomationLogsPanel';
 import QualificationBadge from '../components/leads/QualificationBadge';
-import { AutomationLog } from '../utils/exportUtils';
+import type { AutomationLog } from '../utils/exportUtils';
 import {
   Dialog,
   DialogContent,
@@ -50,6 +49,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import PaymentLinkDialog from '../components/leads/PaymentLinkDialog';
+import { useWebhookLog } from '../contexts/WebhookLogContext';
 
 // ─── Create Lead Dialog ───────────────────────────────────────────────────────
 
@@ -188,16 +188,6 @@ function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) {
 
 const STATUS_COLUMNS = ['New Lead', 'Contacted', 'Qualified', 'Proposal Sent', 'Negotiation', 'Won', 'Lost'];
 
-const columnColors: Record<string, string> = {
-  'New Lead': 'border-t-blue-400',
-  'Contacted': 'border-t-purple-400',
-  'Qualified': 'border-t-green-400',
-  'Proposal Sent': 'border-t-yellow-400',
-  'Negotiation': 'border-t-orange-400',
-  'Won': 'border-t-emerald-400',
-  'Lost': 'border-t-red-400',
-};
-
 interface KanbanCardProps {
   lead: Lead;
   onClick: () => void;
@@ -209,11 +199,11 @@ interface KanbanCardProps {
 function KanbanCard({ lead, onClick, onDelete, onCreatePaymentLink, isAdmin }: KanbanCardProps) {
   return (
     <div
-      className="bg-card border rounded-lg p-3 cursor-pointer hover:shadow-md transition-all group"
+      className="bg-card border border-border rounded-lg p-3 cursor-pointer hover:shadow-md transition-all group"
       onClick={onClick}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="font-medium text-sm leading-tight">{lead.name}</div>
+        <div className="font-medium text-sm leading-tight text-foreground">{lead.name}</div>
         <QualificationBadge score={Number(lead.qualificationScore)} />
       </div>
       <div className="text-xs text-muted-foreground mb-2 truncate">{lead.email}</div>
@@ -246,6 +236,7 @@ function KanbanCard({ lead, onClick, onDelete, onCreatePaymentLink, isAdmin }: K
 
 export default function LeadsPage() {
   const { data: isAdmin } = useIsCallerAdmin();
+  const { logs: webhookLogs } = useWebhookLog();
 
   // Always call both hooks unconditionally — select data based on isAdmin below
   const { data: allLeads = [], isLoading: allLeadsLoading } = useGetAllLeads();
@@ -269,7 +260,6 @@ export default function LeadsPage() {
   const [integrationOpen, setIntegrationOpen] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
   const [paymentLinkDialogOpen, setPaymentLinkDialogOpen] = useState(false);
-  // Store the full PaymentLink object (not just a string)
   const [selectedPaymentLink, setSelectedPaymentLink] = useState<PaymentLink | null>(null);
 
   // Selection state
@@ -283,6 +273,20 @@ export default function LeadsPage() {
   // Sort state
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  // Convert webhook logs to AutomationLog format for the panel
+  const automationLogs: AutomationLog[] = useMemo(() => {
+    return webhookLogs.map(log => ({
+      id: log.id,
+      timestamp: log.timestamp,
+      eventName: log.eventName,
+      url: log.url,
+      payloadSummary: log.payloadSummary,
+      statusCode: log.statusCode,
+      responseSummary: log.responseSummary,
+      isError: log.isError,
+    }));
+  }, [webhookLogs]);
 
   // Filtered & sorted leads
   const filteredLeads = useMemo(() => {
@@ -367,24 +371,11 @@ export default function LeadsPage() {
   };
 
   const handleCreatePaymentLink = async (lead: Lead) => {
-    // Create a new payment link and find the resulting object from the refreshed list
     await createPaymentLink.mutateAsync({ leadId: lead.id, amount: BigInt(0) });
-    // Find the existing payment link for this lead (if any) to show in dialog
     const existingLink = paymentLinks.find(pl => pl.leadId === lead.id) ?? null;
     setSelectedPaymentLink(existingLink);
     setPaymentLinkDialogOpen(true);
   };
-
-  // Mock automation logs (backend doesn't expose getAutomationLogs yet)
-  const mockLogs: AutomationLog[] = useMemo(() => {
-    return leads.slice(0, 5).map((lead, i) => ({
-      id: BigInt(i + 1),
-      leadId: lead.id,
-      eventType: ['whatsapp_reply', 'email_sent', 'lead_qualified', 'payment_confirmed', 'proposal_sent'][i % 5],
-      status: ['success', 'pending', 'failed', 'success', 'success'][i % 5],
-      timestamp: lead.createdAt,
-    }));
-  }, [leads]);
 
   const kanbanLeads = useMemo(() => {
     const map: Record<string, Lead[]> = {};
@@ -404,36 +395,49 @@ export default function LeadsPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Lead Management</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {filteredLeads.length} leads · {leads.filter(l => l.status === 'Won').length} won
+          <h1 className="text-2xl font-bold text-foreground">Lead Management</h1>
+          <p className="text-sm text-muted-foreground">
+            {isLoading ? 'Loading...' : `${leads.length} total leads`}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* View Toggle */}
-          <div className="flex items-center border rounded-lg overflow-hidden">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLogsOpen(true)}
+            className="gap-2"
+          >
+            <Activity className="h-4 w-4" />
+            Automation Logs
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIntegrationOpen(true)}
+            className="gap-2"
+          >
+            <Zap className="h-4 w-4" />
+            Integrations
+          </Button>
+          <div className="flex items-center border border-border rounded-lg overflow-hidden">
             <button
-              className={`px-3 py-1.5 text-sm flex items-center gap-1.5 transition-colors ${view === 'table' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+              className={`p-2 ${view === 'table' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
               onClick={() => setView('table')}
+              title="Table View"
             >
-              <List className="h-4 w-4" /> Table
+              <List className="h-4 w-4" />
             </button>
             <button
-              className={`px-3 py-1.5 text-sm flex items-center gap-1.5 transition-colors ${view === 'kanban' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+              className={`p-2 ${view === 'kanban' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
               onClick={() => setView('kanban')}
+              title="Kanban View"
             >
-              <LayoutGrid className="h-4 w-4" /> Kanban
+              <LayoutGrid className="h-4 w-4" />
             </button>
           </div>
-
-          <Button variant="outline" size="sm" onClick={() => setIntegrationOpen(true)} className="gap-2 h-8">
-            <Zap className="h-3.5 w-3.5" /> Integrations
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setLogsOpen(true)} className="gap-2 h-8">
-            <Activity className="h-3.5 w-3.5" /> Logs
-          </Button>
-          <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-2 h-8">
-            <Plus className="h-3.5 w-3.5" /> Add Lead
+          <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+            <Plus className="h-4 w-4" />
+            Add Lead
           </Button>
         </div>
       </div>
@@ -441,15 +445,18 @@ export default function LeadsPage() {
       {/* Export Toolbar */}
       <LeadExportToolbar leads={filteredLeads} selectedIds={selectedIds} />
 
-      {/* Filter Panel */}
+      {/* Filters — no `leads` prop, the component doesn't accept it */}
       <LeadFilterPanel filters={filters} onFiltersChange={setFilters} />
 
       {/* Content */}
       {isLoading ? (
         <div className="space-y-3">
-          {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-xl" />
+          ))}
         </div>
       ) : view === 'table' ? (
+        /* LeadTableView does not accept onDeleteLead / onCreatePaymentLink */
         <LeadTableView
           leads={filteredLeads}
           selectedIds={selectedIds}
@@ -461,31 +468,30 @@ export default function LeadsPage() {
           onSortChange={handleSortChange}
         />
       ) : (
-        /* Kanban View */
-        <div className="overflow-x-auto pb-4">
-          <div className="flex gap-4 min-w-max">
+        <div className="overflow-x-auto">
+          <div className="flex gap-4 min-w-max pb-4">
             {STATUS_COLUMNS.map(col => (
-              <div key={col} className="w-64 shrink-0">
-                <div className={`bg-card border-t-2 ${columnColors[col]} rounded-xl p-3`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-semibold">{col}</span>
-                    <Badge variant="secondary" className="text-xs">{kanbanLeads[col]?.length ?? 0}</Badge>
-                  </div>
-                  <div className="space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto">
-                    {kanbanLeads[col]?.map(lead => (
-                      <KanbanCard
-                        key={String(lead.id)}
-                        lead={lead}
-                        onClick={() => handleLeadClick(lead)}
-                        onDelete={() => handleDeleteLead(lead.id)}
-                        onCreatePaymentLink={() => handleCreatePaymentLink(lead)}
-                        isAdmin={!!isAdmin}
-                      />
-                    ))}
-                    {kanbanLeads[col]?.length === 0 && (
-                      <div className="text-center py-6 text-xs text-muted-foreground">No leads</div>
-                    )}
-                  </div>
+              <div key={col} className="w-64 flex-shrink-0">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-foreground">{col}</h3>
+                  <Badge variant="outline" className="text-xs">{kanbanLeads[col]?.length ?? 0}</Badge>
+                </div>
+                <div className="space-y-2">
+                  {(kanbanLeads[col] ?? []).map(lead => (
+                    <KanbanCard
+                      key={String(lead.id)}
+                      lead={lead}
+                      onClick={() => handleLeadClick(lead)}
+                      onDelete={() => handleDeleteLead(lead.id)}
+                      onCreatePaymentLink={() => handleCreatePaymentLink(lead)}
+                      isAdmin={!!isAdmin}
+                    />
+                  ))}
+                  {(kanbanLeads[col] ?? []).length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground text-xs border border-dashed border-border rounded-lg">
+                      No leads
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -496,10 +502,11 @@ export default function LeadsPage() {
       {/* Dialogs & Panels */}
       <CreateLeadDialog open={createOpen} onOpenChange={setCreateOpen} />
 
+      {/* LeadDetailPanel only accepts lead, open, onOpenChange */}
       <LeadDetailPanel
-        lead={detailLead}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+        lead={detailLead}
       />
 
       <IntegrationPanel
@@ -510,15 +517,16 @@ export default function LeadsPage() {
       <AutomationLogsPanel
         open={logsOpen}
         onOpenChange={setLogsOpen}
-        leadId={null}
-        logs={mockLogs}
+        logs={automationLogs}
       />
 
-      <PaymentLinkDialog
-        open={paymentLinkDialogOpen}
-        onOpenChange={setPaymentLinkDialogOpen}
-        paymentLink={selectedPaymentLink}
-      />
+      {selectedPaymentLink && (
+        <PaymentLinkDialog
+          open={paymentLinkDialogOpen}
+          onOpenChange={setPaymentLinkDialogOpen}
+          paymentLink={selectedPaymentLink}
+        />
+      )}
     </div>
   );
 }

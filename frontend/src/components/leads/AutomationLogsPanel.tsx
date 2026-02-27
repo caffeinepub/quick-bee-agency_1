@@ -17,8 +17,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { AutomationLog, exportAutomationLogsToCSV } from '../../utils/exportUtils';
-import { Download, Search, Activity } from 'lucide-react';
+import { Download, Search, Activity, CheckCircle, XCircle, Clock } from 'lucide-react';
+import type { AutomationLog } from '../../utils/exportUtils';
+import { exportAutomationLogsToCSV } from '../../utils/exportUtils';
 
 interface AutomationLogsPanelProps {
   open: boolean;
@@ -27,31 +28,25 @@ interface AutomationLogsPanelProps {
   logs: AutomationLog[];
 }
 
-const statusStyles: Record<string, string> = {
-  success: 'bg-green-100 text-green-800 border-green-200',
-  pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  failed: 'bg-red-100 text-red-800 border-red-200',
-};
-
 export default function AutomationLogsPanel({ open, onOpenChange, leadId, logs }: AutomationLogsPanelProps) {
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
-    let result = leadId != null ? logs.filter(l => l.leadId === leadId) : logs;
+    let result = logs;
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(l =>
-        l.eventType.toLowerCase().includes(q) ||
-        l.status.toLowerCase().includes(q)
+        l.eventName.toLowerCase().includes(q) ||
+        l.url.toLowerCase().includes(q) ||
+        l.payloadSummary.toLowerCase().includes(q) ||
+        l.responseSummary.toLowerCase().includes(q)
       );
     }
     return result;
-  }, [logs, leadId, search]);
+  }, [logs, search]);
 
-  const formatDate = (ts: bigint) =>
-    new Date(Number(ts) / 1_000_000).toLocaleString('en-IN');
-
-  const timestamp = new Date().toISOString().slice(0, 10);
+  const formatDate = (ts: number) =>
+    new Date(ts).toLocaleString('en-IN');
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -71,7 +66,7 @@ export default function AutomationLogsPanel({ open, onOpenChange, leadId, logs }
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by event type or status..."
+              placeholder="Search by event name, URL, or payload..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-8 h-9"
@@ -80,7 +75,7 @@ export default function AutomationLogsPanel({ open, onOpenChange, leadId, logs }
           <Button
             variant="outline"
             size="sm"
-            onClick={() => exportAutomationLogsToCSV(filtered, `automation-logs-${timestamp}.csv`)}
+            onClick={() => exportAutomationLogsToCSV(filtered)}
             className="gap-2 h-9 shrink-0"
           >
             <Download className="h-3.5 w-3.5" />
@@ -99,23 +94,36 @@ export default function AutomationLogsPanel({ open, onOpenChange, leadId, logs }
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead>Event Type</TableHead>
+                  <TableHead>Event</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Lead ID</TableHead>
+                  <TableHead>Code</TableHead>
                   <TableHead>Timestamp</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map(log => (
-                  <TableRow key={String(log.id)}>
-                    <TableCell className="font-medium text-sm">{log.eventType}</TableCell>
+                  <TableRow key={log.id}>
+                    <TableCell className="font-medium text-sm max-w-[160px] truncate">{log.eventName}</TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${statusStyles[log.status] ?? 'bg-gray-100 text-gray-700'}`}>
-                        {log.status}
+                      {log.isError ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
+                          <XCircle className="h-3 w-3" />Error
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                          <CheckCircle className="h-3 w-3" />Success
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {log.statusCode ?? '—'}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatDate(log.timestamp)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">#{String(log.leadId)}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{formatDate(log.timestamp)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

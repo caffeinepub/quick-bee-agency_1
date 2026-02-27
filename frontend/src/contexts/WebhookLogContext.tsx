@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 export interface WebhookLogEntry {
   id: string;
@@ -8,61 +8,66 @@ export interface WebhookLogEntry {
   payloadSummary: string;
   statusCode: number | null;
   responseSummary: string;
-  isSuccess: boolean;
+  isError: boolean;
 }
 
 interface WebhookLogContextType {
   logs: WebhookLogEntry[];
-  addLogEntry: (entry: Omit<WebhookLogEntry, 'id'>) => void;
+  addLog: (entry: Omit<WebhookLogEntry, 'id'>) => void;
   clearLogs: () => void;
-  getFilteredLogs: (filters: { eventType?: string; status?: 'success' | 'error' }) => WebhookLogEntry[];
+}
+
+const STORAGE_KEY = 'qba_webhook_logs';
+const MAX_LOGS = 500;
+
+function loadLogs(): WebhookLogEntry[] {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function saveLogs(logs: WebhookLogEntry[]): void {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(logs.slice(0, MAX_LOGS)));
+  } catch {
+    // ignore
+  }
 }
 
 const WebhookLogContext = createContext<WebhookLogContextType | null>(null);
 
-export function WebhookLogProvider({ children }: { children: ReactNode }) {
-  const [logs, setLogs] = useState<WebhookLogEntry[]>(() => {
-    try {
-      const stored = sessionStorage.getItem('quickbee-webhook-logs');
-      if (stored) return JSON.parse(stored);
-    } catch { /* ignore */ }
-    return [];
-  });
+export function WebhookLogProvider({ children }: { children: React.ReactNode }) {
+  const [logs, setLogs] = useState<WebhookLogEntry[]>(loadLogs);
 
-  const addLogEntry = (entry: Omit<WebhookLogEntry, 'id'>) => {
+  useEffect(() => {
+    saveLogs(logs);
+  }, [logs]);
+
+  const addLog = useCallback((entry: Omit<WebhookLogEntry, 'id'>) => {
     const newEntry: WebhookLogEntry = {
       ...entry,
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     };
-    setLogs(prev => {
-      const updated = [newEntry, ...prev].slice(0, 500); // keep last 500
-      try { sessionStorage.setItem('quickbee-webhook-logs', JSON.stringify(updated)); } catch { /* ignore */ }
-      return updated;
-    });
-  };
+    setLogs(prev => [newEntry, ...prev].slice(0, MAX_LOGS));
+  }, []);
 
-  const clearLogs = () => {
+  const clearLogs = useCallback(() => {
     setLogs([]);
-    try { sessionStorage.removeItem('quickbee-webhook-logs'); } catch { /* ignore */ }
-  };
-
-  const getFilteredLogs = (filters: { eventType?: string; status?: 'success' | 'error' }) => {
-    return logs.filter(log => {
-      if (filters.eventType && filters.eventType !== 'all' && log.eventName !== filters.eventType) return false;
-      if (filters.status === 'success' && !log.isSuccess) return false;
-      if (filters.status === 'error' && log.isSuccess) return false;
-      return true;
-    });
-  };
+    try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+  }, []);
 
   return (
-    <WebhookLogContext.Provider value={{ logs, addLogEntry, clearLogs, getFilteredLogs }}>
+    <WebhookLogContext.Provider value={{ logs, addLog, clearLogs }}>
       {children}
     </WebhookLogContext.Provider>
   );
 }
 
-export function useWebhookLog() {
+export function useWebhookLog(): WebhookLogContextType {
   const ctx = useContext(WebhookLogContext);
   if (!ctx) throw new Error('useWebhookLog must be used within WebhookLogProvider');
   return ctx;

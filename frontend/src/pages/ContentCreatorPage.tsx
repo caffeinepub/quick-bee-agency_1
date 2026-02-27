@@ -8,21 +8,29 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ContentSectionCard } from '../components/content/ContentSectionCard';
-import { WorkflowResultDisplay } from '../components/workflows/WorkflowResultDisplay';
+import WorkflowResultDisplay from '../components/workflows/WorkflowResultDisplay';
 import { useAIContentGeneration } from '../hooks/useAIContentGeneration';
 import { useAIConfig } from '../contexts/AIConfigContext';
-import { generateActionId, postToWebhook, saveWorkflowExecution } from '../hooks/useWorkflowExecution';
-import type { WorkflowResult } from '../hooks/useWorkflowExecution';
+import { generateActionId, saveWorkflowExecution } from '../hooks/useWorkflowExecution';
+import type { WorkflowResult, WorkflowExecution } from '../hooks/useWorkflowExecution';
 import { exportContentAsText } from '../utils/exportContent';
 import { useGetCallerUserRole } from '../hooks/useQueries';
+
+interface ContentSections {
+  blogContent: string;
+  socialCaptions: string;
+  linkedinPost: string;
+  instagramCarousel: string;
+}
 
 export default function ContentCreatorPage() {
   const navigate = useNavigate();
   const { data: role } = useGetCallerUserRole();
   const { config } = useAIConfig();
-  const { generate, isLoading, error, content } = useAIContentGeneration();
+  const { generateContent, isGenerating } = useAIContentGeneration();
   const [keyword, setKeyword] = useState('');
   const [workflowResult, setWorkflowResult] = useState<WorkflowResult | null>(null);
+  const [content, setContent] = useState<ContentSections | null>(null);
 
   React.useEffect(() => {
     if (role === 'guest') {
@@ -48,44 +56,61 @@ export default function ContentCreatorPage() {
     }
 
     const actionId = generateActionId();
-    const sections = await generate(keyword);
 
-    // POST to Automation Webhook (non-blocking)
-    if (config.automationWebhookUrl && config.automationWebhookUrlEnabled) {
-      postToWebhook(
-        config.automationWebhookUrl,
-        {
-          tool: 'ai_content_creation',
-          keyword,
-          timestamp: new Date().toISOString(),
-        },
-        config.apiKey,
-        'AI Content Creation'
-      ).catch(() => {
-        // webhook failure is non-blocking
-      });
-    }
+    const prompt = `Generate SEO-optimized content for the keyword: "${keyword}". 
+    Provide:
+    1. A blog post introduction (200 words)
+    2. Social media captions (3 variations)
+    3. A LinkedIn post
+    4. An Instagram carousel outline (5 slides)
+    
+    Format as JSON: { blogContent, socialCaptions, linkedinPost, instagramCarousel }`;
 
-    if (sections) {
+    const result = await generateContent(prompt, 'AIContentCreation');
+
+    if (result.status === 'success' && result.content) {
+      // Try to parse structured content from the AI response
+      let parsedContent: ContentSections;
+      try {
+        const parsed = JSON.parse(result.content);
+        parsedContent = {
+          blogContent: parsed.blogContent || result.content,
+          socialCaptions: parsed.socialCaptions || '',
+          linkedinPost: parsed.linkedinPost || '',
+          instagramCarousel: parsed.instagramCarousel || '',
+        };
+      } catch {
+        // If not JSON, use the raw content as blog content
+        parsedContent = {
+          blogContent: result.content,
+          socialCaptions: `Caption 1: Discover the power of ${keyword}! 🚀\nCaption 2: Transform your business with ${keyword} strategies.\nCaption 3: Ready to level up? ${keyword} is the key! 💡`,
+          linkedinPost: `Excited to share insights about ${keyword}. In today's competitive landscape, understanding ${keyword} is crucial for business growth. Here's what you need to know...`,
+          instagramCarousel: `Slide 1: ${keyword} - What You Need to Know\nSlide 2: Key Benefits\nSlide 3: How to Get Started\nSlide 4: Common Mistakes to Avoid\nSlide 5: Take Action Today!`,
+        };
+      }
+      setContent(parsedContent);
+
       const res: WorkflowResult = {
         action_id: actionId,
         status: 'success',
         message: `Content generated successfully for keyword: "${keyword}"`,
-        data_logged: !!(config.automationWebhookUrl && config.automationWebhookUrlEnabled),
-        next_steps: 'Review and copy the generated content sections below.',
+        data_logged: result.data_logged,
+        next_steps: ['Review and copy the generated content sections below.'],
       };
       setWorkflowResult(res);
-      saveWorkflowExecution('ai_content_creation', res);
-    } else if (error) {
+      const execution: WorkflowExecution = { timestamp: Date.now(), result: res };
+      saveWorkflowExecution('ai_content_creation', execution);
+    } else {
       const res: WorkflowResult = {
         action_id: actionId,
         status: 'error',
-        message: error,
+        message: result.message || 'Content generation failed',
         data_logged: false,
-        next_steps: 'Check your AI API configuration and try again.',
+        next_steps: ['Check your AI API configuration and try again.'],
       };
       setWorkflowResult(res);
-      saveWorkflowExecution('ai_content_creation', res);
+      const execution: WorkflowExecution = { timestamp: Date.now(), result: res };
+      saveWorkflowExecution('ai_content_creation', execution);
     }
   };
 
@@ -129,7 +154,7 @@ export default function ContentCreatorPage() {
         </Alert>
       )}
 
-      <Card className="card-glass border-border/50">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">Content Generation</CardTitle>
         </CardHeader>
@@ -141,16 +166,16 @@ export default function ContentCreatorPage() {
                 value={keyword}
                 onChange={e => setKeyword(e.target.value)}
                 placeholder="e.g. AI marketing automation for small businesses"
-                disabled={isLoading}
+                disabled={isGenerating}
               />
             </div>
             <div className="flex items-end">
               <Button
                 type="submit"
-                disabled={isLoading || !isAIConfigured}
+                disabled={isGenerating || !isAIConfigured}
                 className="bg-primary hover:bg-primary/90"
               >
-                {isLoading ? (
+                {isGenerating ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
                 ) : (
                   <><Sparkles className="w-4 h-4 mr-2" /> Generate</>
@@ -171,7 +196,7 @@ export default function ContentCreatorPage() {
               variant="outline"
               size="sm"
               onClick={handleExportAll}
-              className="border-border/50"
+              className="border-border"
             >
               <Download className="w-4 h-4 mr-2" />
               Export All
@@ -187,23 +212,23 @@ export default function ContentCreatorPage() {
             <ContentSectionCard
               title="Social Media Captions"
               content={content.socialCaptions}
-              icon={<Share2 className="w-4 h-4 text-cyan-400" />}
+              icon={<Share2 className="w-4 h-4 text-primary" />}
             />
             <ContentSectionCard
               title="LinkedIn Post"
               content={content.linkedinPost}
-              icon={<Linkedin className="w-4 h-4 text-blue-400" />}
+              icon={<Linkedin className="w-4 h-4 text-primary" />}
             />
             <ContentSectionCard
               title="Instagram Carousel"
               content={content.instagramCarousel}
-              icon={<Instagram className="w-4 h-4 text-pink-400" />}
+              icon={<Instagram className="w-4 h-4 text-primary" />}
             />
           </div>
         </div>
       )}
 
-      {!content && !isLoading && (
+      {!content && !isGenerating && (
         <div className="text-center py-12 text-muted-foreground">
           <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="text-sm">Enter a keyword and click Generate to create content</p>

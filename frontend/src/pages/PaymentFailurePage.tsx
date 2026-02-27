@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { XCircle, Home, ShoppingCart, RefreshCw } from 'lucide-react';
+import { XCircle, Home, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { usePaymentProcessingWorkflow } from '../hooks/usePaymentProcessingWorkflow';
-import { WorkflowResultDisplay } from '../components/workflows/WorkflowResultDisplay';
+import WorkflowResultDisplay from '../components/workflows/WorkflowResultDisplay';
 import type { WorkflowResult } from '../hooks/useWorkflowExecution';
 
 export default function PaymentFailurePage() {
@@ -18,22 +18,23 @@ export default function PaymentFailurePage() {
     triggered.current = true;
 
     const params = new URLSearchParams(window.location.search);
-    const paymentId = params.get('payment_id') || sessionStorage.getItem('payment_id') || undefined;
-    const errorMessage = params.get('error') || 'Payment was declined or cancelled';
+    const payment_id = params.get('payment_id') || sessionStorage.getItem('payment_id') || undefined;
+    const order_id = params.get('order_id') || sessionStorage.getItem('order_id') || undefined;
+    const lead_id = params.get('lead_id') || sessionStorage.getItem('lead_id') || undefined;
 
-    triggerPaymentFailure({ paymentId, errorMessage }).then(result => {
+    triggerPaymentFailure({ payment_id, lead_id, order_id }).then(result => {
       setWorkflowResult(result);
     });
   }, [triggerPaymentFailure]);
 
   return (
-    <div className="min-h-screen mesh-bg flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="max-w-md w-full space-y-6">
-        <Card className="card-glass border-red-500/30">
+        <Card className="bg-card border-destructive/30">
           <CardContent className="pt-8 pb-6 text-center space-y-4">
             <div className="flex justify-center">
-              <div className="p-4 rounded-full bg-red-500/10 border border-red-500/30">
-                <XCircle className="w-12 h-12 text-red-400" />
+              <div className="p-4 rounded-full bg-destructive/10 border border-destructive/30">
+                <XCircle className="w-12 h-12 text-destructive" />
               </div>
             </div>
             <div>
@@ -52,8 +53,8 @@ export default function PaymentFailurePage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => navigate({ to: '/authenticated' })}
-                className="w-full border-border/50"
+                onClick={() => navigate({ to: '/authenticated/dashboard' })}
+                className="w-full border-border"
               >
                 <Home className="w-4 h-4 mr-2" />
                 Go to Dashboard

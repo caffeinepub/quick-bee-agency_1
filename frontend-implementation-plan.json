@@ -1,290 +1,58 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Automation Engine Workflows + Integration Pages (HubSpot, Mailchimp, Calendly, Stripe/PayPal, Typeform, Notion, GA4, AI Content)",
+  "title": "Fix Automation Page toggles to reliably enable/disable each automation",
   "requirements": [
     {
-      "id": "REQ-41",
-      "summary": "Create Automation Workflows dashboard page displaying five core workflow cards with status, Run button, and execution history from localStorage",
+      "id": "REQ-77",
+      "summary": "Rewrite AutomationPage.tsx to read and write toggle state directly from AIConfigContext with proper localStorage persistence and immediate UI reflection",
       "acceptanceCriteria": [
-        "Page is accessible from the sidebar navigation under an 'Automations' or 'Workflows' section",
-        "Five workflow cards are rendered with name, trigger, status, Run button, and last execution info",
-        "Last execution timestamp and status (success/error) are read from localStorage",
-        "Each card's status indicator reflects whether the workflow is active or inactive"
+        "Each of the five toggle switches on AutomationPage reads its initial ON/OFF state from AIConfigContext (backed by localStorage) on mount.",
+        "Clicking a toggle calls the appropriate AIConfigContext setter and immediately updates both the UI and localStorage.",
+        "After navigating away from AutomationPage and returning, each toggle displays the last-saved state.",
+        "After a full browser refresh, each toggle displays the last-saved state.",
+        "When a toggle is set to OFF, its corresponding automation (WhatsApp Auto-Reply, Proposal Auto-Send, Lead Follow-Up Sequences, Payment Confirmation, Project Onboarding) does not fire any webhook POST, API call, or UI trigger.",
+        "When a toggle is set to ON, the automation becomes active and fires when its trigger condition is met."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/WorkflowsPage.tsx",
-          "operation": "create",
-          "description": "Create the Automation Workflows dashboard page that renders five workflow cards (New Lead Submission, Meeting Scheduling, Payment Processing, Analytics Engine, AI Content Creation). Each card displays workflow name, trigger description, active/inactive status badge, manual Run button, and last execution timestamp/result read from localStorage. Include role-based access enforcement: Admin sees all controls, Manager can view and run workflows, Client is redirected to /client-dashboard. Use existing useQueries hooks to fetch user role."
-        },
-        {
-          "path": "frontend/src/components/workflows/WorkflowCard.tsx",
-          "operation": "create",
-          "description": "Create a reusable WorkflowCard component that renders a single workflow with name, trigger description, status badge (Active/Inactive read from config context), Run button (triggers workflow execution callback), and a result panel showing last execution timestamp and status (success/error) from localStorage. Include loading state while running and display structured JSON result after execution."
-        },
-        {
-          "path": "frontend/src/components/workflows/WorkflowResultDisplay.tsx",
-          "operation": "create",
-          "description": "Create a component that displays structured workflow execution results in format { action_id, status, message, data_logged, next_steps }. Render the result as a styled card or code block with appropriate status colors (success=green, error=red, pending_review=amber). Show all fields clearly labeled."
-        },
-        {
-          "path": "frontend/src/hooks/useWorkflowExecution.ts",
-          "operation": "create",
-          "description": "Create a custom hook that manages workflow execution state, generates unique action_id (timestamp-based or UUID), makes POST requests to configured webhook URLs, logs results to webhook log context, persists execution history to localStorage (key: workflow_executions, max 50 entries per workflow), and returns structured JSON result. Include error handling and retry logic."
+          "path": "frontend/src/pages/AutomationPage.tsx",
+          "operation": "modify",
+          "description": "Rewrite the AutomationPage component to use AIConfigContext for reading and writing all five automation toggle states. Each toggle (WhatsApp Auto-Reply via whatsappAutoReplyEnabled, Proposal Auto-Send via proposalAutoSendEnabled, Lead Follow-Up Sequences via leadFollowUpEnabled, Payment Confirmation via paymentConfirmationEnabled, and Project Onboarding via projectOnboardingEnabled) must read its initial value from the context on mount and call the appropriate context setter when clicked. Ensure the UI reflects the persisted state immediately and after page navigation or full reload. Remove any local state management for toggles and rely exclusively on AIConfigContext."
         }
       ]
     },
     {
-      "id": "REQ-42",
-      "summary": "Implement Workflow 1 – New Lead Submission with validation, CRM/Automation webhook POSTs, logging, and automated follow-up message display",
+      "id": "REQ-78",
+      "summary": "Audit and fix AIConfigContext to ensure all five automation toggle fields are properly typed, initialized from localStorage, and persisted on every update",
       "acceptanceCriteria": [
-        "Workflow fires when a new lead is created or a manual Run is triggered from the workflow dashboard",
-        "Field validation runs before any POST is attempted; missing fields show an inline error",
-        "CRM Webhook URL receives a POST with lead data and deduplication flag",
-        "Automation Webhook URL receives a POST with contact creation payload including tags",
-        "Webhook log records the attempt with timestamp, URL, payload summary, and response status",
-        "Structured JSON response { action_id, status, message, data_logged, next_steps } is displayed in the workflow result area",
-        "Automated follow-up message text is rendered on success",
-        "Duplicate lead path updates the existing record rather than creating a new one (flag sent in payload)"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useNewLeadSubmissionWorkflow.ts",
-          "operation": "create",
-          "description": "Create a hook that executes the New Lead Submission workflow. On trigger: (1) Validate required fields (name, email, service interest) and return inline error if missing; (2) Read CRM Webhook URL and Automation Webhook URL from AIConfigContext; (3) POST to CRM Webhook URL with payload { lead: {name, email, ...}, deduplication: true } using Authorization header with saved API Key; (4) POST to Automation Webhook URL with payload { tool: 'new_lead_submission', contact: {...}, tags: ['New Lead', serviceInterest], timestamp }; (5) Log both requests to WebhookLogContext with full payload summary and response status; (6) Generate structured JSON result { action_id: uuid(), status: 'success'|'error', message, data_logged: true, next_steps }; (7) Return success message: 'Thank you for contacting Quick Bee AI Growth Engine. Our team will review your request and contact you shortly.' Handle not-configured state by showing banner instead of making requests."
-        },
-        {
-          "path": "frontend/src/pages/LeadsPage.tsx",
-          "operation": "modify",
-          "description": "Wire the New Lead Submission workflow into the lead creation flow. After a new lead is successfully created via the createLead mutation, automatically trigger useNewLeadSubmissionWorkflow with the new lead data. Display the workflow result (success message or error) in a toast notification. Ensure the workflow does not block the UI or lead creation process."
-        },
-        {
-          "path": "frontend/src/pages/WorkflowsPage.tsx",
-          "operation": "modify",
-          "description": "Wire the New Lead Submission workflow card to trigger on manual Run button click. Pass a test lead payload or prompt user for required fields (name, email, service interest) in a small inline form. Display the structured JSON result in the WorkflowResultDisplay component below the card after execution completes."
-        }
-      ]
-    },
-    {
-      "id": "REQ-43",
-      "summary": "Implement Workflow 2 – Meeting Scheduling with Calendly URL generation, clipboard copy, webhook POST, and lead status update",
-      "acceptanceCriteria": [
-        "A 'Calendly URL' configuration field is added to the Sales System Configuration page and persisted in the centralized config store",
-        "Generating a booking link copies the URL to the clipboard and shows a confirmation toast",
-        "Automation Webhook URL receives a POST with meeting scheduling payload",
-        "Lead status is updated to 'Meeting Scheduled' on successful webhook POST",
-        "Webhook log entry is created for the event",
-        "Not-configured banner is shown when Automation Webhook URL is empty or toggle is OFF"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/SalesSystemConfigPage.tsx",
-          "operation": "modify",
-          "description": "Add a 'Calendly URL' input field with an ON/OFF toggle to the Sales System Configuration page. Position it alongside existing integration fields. Persist the value to AIConfigContext (localStorage-backed) with the key calendly_url. Display a status badge showing 'Not Configured' when empty or 'Connected' when a URL is saved. Ensure the field survives page navigation and is accessible via the config context."
-        },
-        {
-          "path": "frontend/src/hooks/useMeetingSchedulingWorkflow.ts",
-          "operation": "create",
-          "description": "Create a hook that executes the Meeting Scheduling workflow. On trigger: (1) Read Calendly URL from AIConfigContext; (2) If missing or toggle OFF, return error and do not proceed; (3) Compose booking link (use Calendly URL as-is or append lead email as query param if provided); (4) Copy booking link to clipboard using navigator.clipboard.writeText; (5) POST to Automation Webhook URL with payload { tool: 'meeting_scheduling', calendly_url, lead_id, lead_email, timestamp } using Authorization header with saved API Key; (6) Log the request to WebhookLogContext; (7) Call updateLead mutation to set lead status to 'Meeting Scheduled'; (8) Return structured JSON result { action_id, status: 'success', message: 'Booking link generated and copied', data_logged: true, next_steps: 'Share the link with the lead' }. Show not-configured banner if Automation Webhook URL is missing or toggle is OFF."
-        },
-        {
-          "path": "frontend/src/components/leads/LeadDetailPanel.tsx",
-          "operation": "modify",
-          "description": "Add a 'Generate Meeting Link' button to the LeadDetailPanel that triggers useMeetingSchedulingWorkflow with the current lead's ID and email. Display the generated booking link in a text input or card with a copy button. Show a success toast when the link is copied to clipboard. Render the structured JSON result from the workflow execution below the button."
-        },
-        {
-          "path": "frontend/src/pages/WorkflowsPage.tsx",
-          "operation": "modify",
-          "description": "Wire the Meeting Scheduling workflow card to trigger on manual Run button click. Prompt user for lead_id and lead_email in a small inline form or use a test lead. Display the structured JSON result and confirmation message in the WorkflowResultDisplay component below the card."
-        }
-      ]
-    },
-    {
-      "id": "REQ-44",
-      "summary": "Implement Workflow 3 – Payment Processing with success/failure webhook POSTs, invoice generation, and notification",
-      "acceptanceCriteria": [
-        "PaymentSuccessPage fires the Automation Webhook URL POST with the structured payment payload on mount",
-        "Invoice reference number in format QBA-{timestamp} is generated and shown on the success page",
-        "Payment failure path fires a failure POST to the Automation Webhook URL",
-        "Both success and failure events appear in the Webhook Logs panel",
-        "If Automation Webhook URL is not configured or toggle is OFF, the POST is skipped and a warning is logged"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/usePaymentProcessingWorkflow.ts",
-          "operation": "create",
-          "description": "Create a hook that executes the Payment Processing workflow. Expose two functions: triggerPaymentSuccess and triggerPaymentFailure. On success: (1) Generate invoice reference number in format QBA-{timestamp}; (2) POST to Automation Webhook URL with payload { tool: 'payment_processing', status: 'paid', payment_id, lead_id, order_id, amount, invoice_ref, timestamp } using Authorization header with saved API Key; (3) Log request to WebhookLogContext; (4) Return structured JSON result with invoice reference and success message. On failure: (1) POST to Automation Webhook URL with payload { tool: 'payment_processing', status: 'failed', payment_id, error_message, timestamp }; (2) Log request; (3) Return structured JSON result with error and retry instructions. If Automation Webhook URL is not configured or toggle is OFF, skip POST and log a warning to WebhookLogContext."
-        },
-        {
-          "path": "frontend/src/pages/PaymentSuccessPage.tsx",
-          "operation": "modify",
-          "description": "On component mount, trigger usePaymentProcessingWorkflow.triggerPaymentSuccess with payment details extracted from URL params or sessionStorage (payment_id, lead_id, order_id, amount). Display the generated invoice reference number (format: QBA-{timestamp}) prominently on the page. Show the structured JSON result in a success card. Clear the cart after the workflow completes."
-        },
-        {
-          "path": "frontend/src/pages/PaymentFailurePage.tsx",
-          "operation": "modify",
-          "description": "On component mount, trigger usePaymentProcessingWorkflow.triggerPaymentFailure with payment_id and error_message extracted from URL params or sessionStorage. Display the structured JSON result in an error card with retry instructions. Provide a button to return to the cart or dashboard."
-        }
-      ]
-    },
-    {
-      "id": "REQ-45",
-      "summary": "Create Analytics Engine page with date range selector, webhook POST, and mock/simulated report display including metrics and growth summary",
-      "acceptanceCriteria": [
-        "Route /analytics-engine is registered in App.tsx under the authenticated shell",
-        "Analytics Engine page is accessible from the sidebar navigation",
-        "Date range selector defaults to last 7 days",
-        "On form submit, POST is sent to Automation Webhook URL with the analytics engine payload",
-        "Metrics section renders Total Users, Sessions, Bounce Rate, Top Traffic Source, Conversion Rate",
-        "Growth Summary section renders trend analysis text",
-        "Webhook log entry is created for the request",
-        "Not-configured banner shown when Automation Webhook URL is empty or toggle is OFF"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/AnalyticsEnginePage.tsx",
-          "operation": "create",
-          "description": "Create the Analytics Engine page at route /analytics-engine. Render a form with a date range selector (using shadcn/ui DateRangePicker or similar) defaulting to the last 7 days. On submit, POST to Automation Webhook URL (read from AIConfigContext) with payload { tool: 'analytics_engine', date_range: { start, end }, timestamp } using Authorization header with saved API Key. Log request to WebhookLogContext. Parse the webhook response body or use static placeholder values to render a metrics section displaying: Total Users, Sessions, Bounce Rate, Top Traffic Source, Conversion Rate. Below metrics, display a Growth Summary section with trend analysis text (growth/decline, drop-off insights, funnel suggestions, SEO tips) from the response or a templated placeholder. Include a note that live GA4 data requires the configured endpoint. Show not-configured banner if Automation Webhook URL is missing or toggle is OFF. Include role-based access: Admin full access, Manager view and run, Client redirected to /client-dashboard."
-        },
-        {
-          "path": "frontend/src/components/analytics/AnalyticsMetricsCard.tsx",
-          "operation": "create",
-          "description": "Create a component that displays analytics metrics in a grid of cards. Each card shows a metric label (e.g., Total Users), value, and an icon. Use placeholder values if the webhook response does not include metrics. Style cards using shadcn/ui Card component with appropriate spacing and typography."
-        },
-        {
-          "path": "frontend/src/components/analytics/GrowthSummaryPanel.tsx",
-          "operation": "create",
-          "description": "Create a component that displays the Growth Summary section. Render trend analysis text in a styled card with sections for growth/decline trends, drop-off insights, funnel improvement suggestions, and SEO optimization tips. If no data is provided, show a templated placeholder message indicating that live data requires a configured endpoint."
-        }
-      ]
-    },
-    {
-      "id": "REQ-46",
-      "summary": "Create AI Content Creation page with keyword input, OpenAI-compatible API call, structured content display, and export functionality",
-      "acceptanceCriteria": [
-        "Route /content-creator is registered in App.tsx under the authenticated shell",
-        "Page is accessible from the sidebar navigation",
-        "Form accepts a keyword/topic input and submits on button click",
-        "OpenAI-compatible POST is built with correct prompt structure using saved API Endpoint and API Key",
-        "Loading spinner is shown while awaiting the AI response",
-        "Result area renders four labelled sections: Blog Content, Social Media Captions, LinkedIn Post, Instagram Carousel",
-        "Each section has a Copy button and an Export All button triggers a text file download",
-        "Automation Webhook URL receives a POST with the content creation payload",
-        "Error message specifies which endpoint (AI API vs webhook) failed",
-        "Not-configured banner is shown when API Endpoint or API Key is missing"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/ContentCreatorPage.tsx",
-          "operation": "create",
-          "description": "Create the AI Content Creation page at route /content-creator. Render a form with a keyword/topic text input and a 'Generate Content' button. On submit: (1) Read API Endpoint and API Key from AIConfigContext; (2) If missing, show not-configured banner and stop; (3) Build an OpenAI-compatible POST request with a structured prompt requesting SEO-optimized blog content (title, meta description, H1/H2 structure, CTA, internal linking suggestions), suggested social media captions with hashtags, a short LinkedIn version, and an Instagram carousel outline; (4) Show loading spinner while awaiting response; (5) Parse the AI response and render four labelled sections: Blog Content, Social Media Captions, LinkedIn Post, Instagram Carousel; (6) POST to Automation Webhook URL with payload { tool: 'ai_content_creation', keyword, timestamp }; (7) Log both requests to WebhookLogContext; (8) Provide a Copy button for each section (using navigator.clipboard.writeText) and an Export All button that downloads the full content as a text file. Show error message specifying which endpoint (AI API vs webhook) failed. Include role-based access: Admin full access, Manager view and run, Client redirected to /client-dashboard."
-        },
-        {
-          "path": "frontend/src/components/content/ContentSectionCard.tsx",
-          "operation": "create",
-          "description": "Create a reusable component that displays a single content section (e.g., Blog Content) with a label, the generated text, and a Copy button. Use shadcn/ui Card component with appropriate styling. Handle copy-to-clipboard action and show a success toast when content is copied."
-        },
-        {
-          "path": "frontend/src/hooks/useAIContentGeneration.ts",
-          "operation": "create",
-          "description": "Create a custom hook that builds and executes the OpenAI-compatible POST request for content generation. Read API Endpoint and API Key from AIConfigContext. Construct the prompt with sections for blog content, social captions, LinkedIn post, and Instagram carousel outline. Return parsed sections as an object { blogContent, socialCaptions, linkedinPost, instagramCarousel }. Include error handling for API failures and return structured error messages."
-        },
-        {
-          "path": "frontend/src/utils/exportContent.ts",
-          "operation": "create",
-          "description": "Create a utility function exportContentAsText that accepts an object with content sections and generates a formatted text file download. Use a Blob with type text/plain and trigger a download via a temporary anchor element. Include section headers and formatting for readability."
-        }
-      ]
-    },
-    {
-      "id": "REQ-47",
-      "summary": "Add Calendly URL field to Sales System Configuration page with toggle, localStorage persistence, and status badge",
-      "acceptanceCriteria": [
-        "Calendly URL field appears on the Sales System Configuration page",
-        "Field has an ON/OFF toggle",
-        "Value persists to localStorage via the centralized config store",
-        "Status badge shows Not Configured when empty, Connected when a URL is saved",
-        "Value is accessible via the config context in all workflow components"
+        "AIConfigContext type includes boolean fields for all five automation toggles.",
+        "On provider mount the toggle values are read from localStorage and used as initial state.",
+        "Updating a single toggle via the context API persists only that field's change to localStorage without resetting other config values.",
+        "All consuming components (AutomationPage, useAutomationTriggers) receive the correct live toggle values from context."
       ],
       "file_operations": [
         {
           "path": "frontend/src/contexts/AIConfigContext.tsx",
           "operation": "modify",
-          "description": "Add calendly_url and calendly_enabled fields to the AIConfig interface and state. Include getter/setter methods (getCalendlyUrl, setCalendlyUrl, getCalendlyEnabled, setCalendlyEnabled) with localStorage persistence. Ensure the Calendly URL is accessible to all workflow components via the context."
+          "description": "Audit the AIConfigContext to verify that the AIConfig type includes boolean fields for whatsappAutoReplyEnabled, proposalAutoSendEnabled, leadFollowUpEnabled, paymentConfirmationEnabled, and projectOnboardingEnabled. Ensure the provider initializes these fields by reading from localStorage on mount (using a default value of false if not present). Verify that the saveConfig or updateField functions correctly persist individual toggle changes to localStorage without overwriting other config fields. Expose individual setter functions or a generic updateField helper so that AutomationPage can update each toggle independently. Ensure all changes trigger a re-render and persist immediately."
         }
       ]
     },
     {
-      "id": "REQ-48",
-      "summary": "Update sidebar navigation and App.tsx to include Workflows, Analytics Engine, and Content Creator links and routes",
+      "id": "REQ-79",
+      "summary": "Audit useAutomationTriggers to ensure each trigger function checks its corresponding toggle from AIConfigContext and returns early when disabled",
       "acceptanceCriteria": [
-        "Sidebar shows 'Workflows', 'Analytics Engine', and 'Content Creator' links for Admin and Manager roles",
-        "Routes /analytics-engine and /content-creator are registered in App.tsx under the authenticated shell",
-        "Navigating to each route renders the correct page component",
-        "Active route is highlighted in the sidebar"
+        "When the corresponding AIConfigContext toggle is OFF, calling the trigger function makes no fetch/XHR request and returns without error.",
+        "When the corresponding toggle is ON and the webhook URL is configured, the trigger fires a POST with Content-Type: application/json and Authorization: Bearer <apiKey> headers.",
+        "A user-visible toast error is displayed if the POST fails or the URL is not configured while the toggle is ON.",
+        "Each trigger logs the attempt in WebhookLogContext regardless of success or failure."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/layout/SidebarNav.tsx",
+          "path": "frontend/src/hooks/useAutomationTriggers.ts",
           "operation": "modify",
-          "description": "Add three new navigation links to the sidebar under the 'Automations' group: 'Workflows' (route: /workflows), 'Analytics Engine' (route: /analytics-engine), and 'Content Creator' (route: /content-creator). Make these links visible only to Admin and Manager roles using the existing role-based visibility logic. Ensure the active route is highlighted using the existing active-route styling."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Register three new routes nested under the authenticated shell route: /workflows (WorkflowsPage), /analytics-engine (AnalyticsEnginePage), and /content-creator (ContentCreatorPage). Use TanStack Router's route configuration to define these routes. Ensure routes are protected by the BootstrapGate and accessible only to authenticated users."
-        }
-      ]
-    },
-    {
-      "id": "REQ-49",
-      "summary": "Ensure all workflow POSTs return and display structured JSON result in format { action_id, status, message, data_logged, next_steps }",
-      "acceptanceCriteria": [
-        "Every workflow trigger (REQ-41 through REQ-46) displays a JSON result card after execution",
-        "action_id is a unique timestamp-based or UUID string",
-        "status reflects success, error, or pending_review based on HTTP response",
-        "data_logged is true when the event was written to the webhook log",
-        "next_steps text is shown when status is error or pending_review",
-        "Result is displayed in a styled card or code block in the UI"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/hooks/useWorkflowExecution.ts",
-          "operation": "modify",
-          "description": "Ensure the useWorkflowExecution hook generates a unique action_id (using crypto.randomUUID() or Date.now()) for every workflow execution. Construct the structured JSON result object { action_id, status: 'success'|'error'|'pending_review', message, data_logged: true|false, next_steps } based on the HTTP response status and body. If the webhook response includes this structure, use it directly; otherwise, construct it from the response. Return the result object to be displayed by WorkflowResultDisplay."
-        },
-        {
-          "path": "frontend/src/components/workflows/WorkflowResultDisplay.tsx",
-          "operation": "modify",
-          "description": "Ensure the WorkflowResultDisplay component accepts a result prop in format { action_id, status, message, data_logged, next_steps }. Render the result in a styled card with appropriate status colors (success=green, error=red, pending_review=amber). Display all fields clearly labeled: Action ID, Status, Message, Data Logged, Next Steps. Use shadcn/ui Card and Badge components for styling."
-        }
-      ]
-    },
-    {
-      "id": "REQ-50",
-      "summary": "Add role-based access control enforcement to workflow pages: Admin full access, Manager view/run, Client access-denied redirect",
-      "acceptanceCriteria": [
-        "Admin users have full access to all workflow pages and Run buttons",
-        "Manager users can view and run workflows but configuration edit links are hidden",
-        "Client users attempting to access /analytics-engine, /content-creator, or the workflows dashboard are redirected to /client-dashboard with an access-denied message",
-        "Role is read from the existing useQueries hooks"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/WorkflowsPage.tsx",
-          "operation": "modify",
-          "description": "Add role-based access control enforcement at the page component level. Use useGetCallerUserRole hook to read the current user's role. If the role is 'guest', redirect to /client-dashboard with an access-denied toast message. If the role is 'user' (Manager), hide configuration edit links but allow view and Run buttons. If the role is 'admin', show all controls including configuration links. Implement the redirect using the TanStack Router navigate function."
-        },
-        {
-          "path": "frontend/src/pages/AnalyticsEnginePage.tsx",
-          "operation": "modify",
-          "description": "Add role-based access control enforcement at the page component level. Use useGetCallerUserRole hook to read the current user's role. If the role is 'guest', redirect to /client-dashboard with an access-denied toast message. If the role is 'user' (Manager), allow view and run functionality. If the role is 'admin', show full access. Implement the redirect using the TanStack Router navigate function."
-        },
-        {
-          "path": "frontend/src/pages/ContentCreatorPage.tsx",
-          "operation": "modify",
-          "description": "Add role-based access control enforcement at the page component level. Use useGetCallerUserRole hook to read the current user's role. If the role is 'guest', redirect to /client-dashboard with an access-denied toast message. If the role is 'user' (Manager), allow view and run functionality. If the role is 'admin', show full access. Implement the redirect using the TanStack Router navigate function."
+          "description": "Audit the useAutomationTriggers hook to confirm that each of the five trigger functions (triggerWhatsAppAutoReply, triggerProposalAutoSend, triggerLeadFollowUp, triggerPaymentConfirmation, triggerProjectOnboarding) reads its corresponding toggle field from AIConfigContext at call time. If the toggle is OFF, the function must return early without making any network request. When the toggle is ON, verify the function reads the correct webhook URL and API key from AIConfigContext, constructs the POST request with Content-Type: application/json and Authorization: Bearer <apiKey> headers, and logs the attempt to WebhookLogContext. Display a toast error if the URL is missing or the request fails while the toggle is ON."
         }
       ]
     }

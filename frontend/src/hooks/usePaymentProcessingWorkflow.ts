@@ -1,113 +1,96 @@
 import { useCallback } from 'react';
 import { useAIConfig } from '../contexts/AIConfigContext';
-import { generateActionId, logWebhookEntry, postToWebhook } from './useWorkflowExecution';
+import { useWebhookLog } from '../contexts/WebhookLogContext';
+import { generateActionId, postToWebhook, saveWorkflowExecution } from './useWorkflowExecution';
 import type { WorkflowResult } from './useWorkflowExecution';
-
-interface PaymentSuccessInput {
-  paymentId?: string;
-  leadId?: string;
-  orderId?: string;
-  amount?: number;
-}
-
-interface PaymentFailureInput {
-  paymentId?: string;
-  errorMessage?: string;
-}
 
 export function usePaymentProcessingWorkflow() {
   const { config } = useAIConfig();
+  const { addLog } = useWebhookLog();
 
-  const triggerPaymentSuccess = useCallback(async (input: PaymentSuccessInput): Promise<WorkflowResult & { invoiceRef: string }> => {
-    const actionId = generateActionId();
+  const triggerPaymentSuccess = useCallback(async (data: {
+    payment_id?: string;
+    lead_id?: string;
+    order_id?: string;
+    amount?: string;
+  }): Promise<WorkflowResult & { invoiceRef: string }> => {
     const invoiceRef = `QBA-${Date.now()}`;
-    let dataLogged = false;
+    const actionId = generateActionId();
 
-    if (config.automationWebhookUrl && config.automationWebhookUrlEnabled) {
-      try {
-        await postToWebhook(
-          config.automationWebhookUrl,
-          {
-            tool: 'payment_processing',
-            status: 'paid',
-            payment_id: input.paymentId,
-            lead_id: input.leadId,
-            order_id: input.orderId,
-            amount: input.amount,
-            invoice_ref: invoiceRef,
-            timestamp: new Date().toISOString(),
-          },
-          config.apiKey,
-          'Payment Processing (Success)'
-        );
-        dataLogged = true;
-      } catch {
-        // log handled in postToWebhook
-      }
-    } else {
-      logWebhookEntry({
-        id: generateActionId(),
-        timestamp: new Date().toISOString(),
-        url: config.automationWebhookUrl || 'not configured',
-        payloadSummary: 'Automation webhook not configured or disabled - payment success skipped',
-        responseStatus: null,
-        status: 'error',
-        workflowName: 'Payment Processing (Success)',
-      });
+    const url = config.automationWebhookUrl;
+    if (!url) {
+      const result = {
+        action_id: actionId,
+        status: 'success' as const,
+        message: `Payment recorded. Invoice: ${invoiceRef}`,
+        data_logged: false,
+        next_steps: ['Configure Automation Webhook URL to enable notifications'],
+        invoiceRef,
+      };
+      saveWorkflowExecution('PaymentProcessing', { timestamp: Date.now(), result });
+      return result;
     }
 
-    return {
+    const payload = {
+      event: 'payment_success',
+      invoice_ref: invoiceRef,
+      ...data,
+      timestamp: Date.now(),
+    };
+
+    const res = await postToWebhook(url, payload, config.apiKey, addLog, 'PaymentSuccess');
+
+    const result = {
       action_id: actionId,
-      status: 'success',
-      message: `Payment confirmed. Invoice reference: ${invoiceRef}`,
-      data_logged: dataLogged,
-      next_steps: 'Receipt confirmation has been queued. Check your email for the invoice.',
+      status: res.ok ? 'success' as const : 'error' as const,
+      message: res.ok
+        ? `Payment confirmed. Invoice: ${invoiceRef}`
+        : `Payment recorded but notification failed: ${res.body.slice(0, 100)}`,
+      data_logged: res.ok,
+      next_steps: res.ok
+        ? ['Invoice has been generated', 'Client will receive confirmation']
+        : ['Check webhook configuration'],
       invoiceRef,
     };
-  }, [config]);
 
-  const triggerPaymentFailure = useCallback(async (input: PaymentFailureInput): Promise<WorkflowResult> => {
+    saveWorkflowExecution('PaymentProcessing', { timestamp: Date.now(), result });
+    return result;
+  }, [config, addLog]);
+
+  const triggerPaymentFailure = useCallback(async (data: {
+    payment_id?: string;
+    lead_id?: string;
+    order_id?: string;
+  }): Promise<WorkflowResult> => {
     const actionId = generateActionId();
-    let dataLogged = false;
 
-    if (config.automationWebhookUrl && config.automationWebhookUrlEnabled) {
-      try {
-        await postToWebhook(
-          config.automationWebhookUrl,
-          {
-            tool: 'payment_processing',
-            status: 'failed',
-            payment_id: input.paymentId,
-            error_message: input.errorMessage,
-            timestamp: new Date().toISOString(),
-          },
-          config.apiKey,
-          'Payment Processing (Failure)'
-        );
-        dataLogged = true;
-      } catch {
-        // log handled in postToWebhook
-      }
-    } else {
-      logWebhookEntry({
-        id: generateActionId(),
-        timestamp: new Date().toISOString(),
-        url: config.automationWebhookUrl || 'not configured',
-        payloadSummary: 'Automation webhook not configured or disabled - payment failure skipped',
-        responseStatus: null,
+    const url = config.automationWebhookUrl;
+    if (!url) {
+      return {
+        action_id: actionId,
         status: 'error',
-        workflowName: 'Payment Processing (Failure)',
-      });
+        message: 'Payment failed. Webhook not configured.',
+        data_logged: false,
+        next_steps: ['Configure Automation Webhook URL', 'Retry payment'],
+      };
     }
+
+    const payload = {
+      event: 'payment_failure',
+      ...data,
+      timestamp: Date.now(),
+    };
+
+    const res = await postToWebhook(url, payload, config.apiKey, addLog, 'PaymentFailure');
 
     return {
       action_id: actionId,
       status: 'error',
-      message: `Payment failed: ${input.errorMessage || 'Unknown error'}`,
-      data_logged: dataLogged,
-      next_steps: 'Please retry the payment or contact support. A retry email has been queued.',
+      message: res.ok ? 'Payment failure logged' : `Failed to log payment failure: ${res.body.slice(0, 100)}`,
+      data_logged: res.ok,
+      next_steps: ['Retry payment', 'Contact support if issue persists'],
     };
-  }, [config]);
+  }, [config, addLog]);
 
   return { triggerPaymentSuccess, triggerPaymentFailure };
 }
