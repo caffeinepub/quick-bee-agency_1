@@ -1,168 +1,77 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add Full Quick Bee Agency Service Catalog with Direct Payment & Fix Login Sign In Button",
+  "title": "Fix Internet Identity login flow — deep diagnosis and full rewrite",
   "requirements": [
     {
-      "id": "REQ-25",
-      "summary": "Populate the Services page with the complete Quick Bee Agency 2026 Master Service Price List organized into 7 categories with pricing tiers, features, and Indian Rupee formatting",
+      "id": "REQ-37",
+      "summary": "Complete rewrite of LoginPage.tsx to ensure the Sign In button is always clickable, calls login() from useInternetIdentity hook, displays loading state, redirects to role-based dashboard on success, and shows inline error messages on failure",
       "acceptanceCriteria": [
-        "All 7 service categories are displayed with their correct services and INR tier prices",
-        "A category filter tab bar allows browsing by individual category",
-        "Each service card shows name, category, all pricing tiers, and the 16 features list",
-        "Prices are formatted in Indian Rupee notation with correct comma separators"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/data/masterServiceCatalog.ts",
-          "operation": "create",
-          "description": "Create a TypeScript data file exporting the complete Quick Bee Agency 2026 Master Service Price List. Define types for ServiceCategory, PricingTierInfo (with tierName, priceINR as number, and features as string array), and MasterService (with name, category, subcategory, description, tiers array, and features array). Export 7 category arrays: webDevelopmentServices (12 services), appDevelopmentServices (8 services), aiAutomationServices (8 services), digitalMarketingServices (8 services), brandingCreativeServices (7 services), saasAdvancedTechServices (8 services), and businessSetupServices (6 services). Each service must include all three pricing tiers (Student/Business/Premium or Starter/Growth/Enterprise) with INR prices as numbers and 16 features where applicable. Also export a SERVICE_CATEGORIES constant array defining category metadata with id, name, emoji, and description for each of the 7 categories."
-        },
-        {
-          "path": "frontend/src/pages/ServicesPage.tsx",
-          "operation": "modify",
-          "description": "Replace the current service listing implementation with a comprehensive master catalog view. Import the masterServiceCatalog data. Add state for activeCategory filter (default 'all'). Render a horizontal scrollable category filter tab bar at the top showing all 7 categories plus an 'All Services' option with emoji indicators matching the source data. Filter the displayed services based on activeCategory. For each service, render a card showing: service name, category badge, subcategory, and all three pricing tiers in a horizontal layout. Each tier must display the tier name (e.g., Student/Business/Premium), the price formatted in Indian Rupee notation using Intl.NumberFormat with locale 'en-IN' and currency 'INR' (e.g., ₹1,20,000), and an expandable/collapsible features list (show first 3 features by default with 'Show all 16 features' toggle). Keep existing admin controls (create/edit/delete dialogs) but ensure they don't interfere with the catalog view. Use Tailwind CSS for responsive grid layout (1 column mobile, 2 tablet, 3 desktop). Add category count badges to each filter tab."
-        },
-        {
-          "path": "frontend/src/utils/formatCurrency.ts",
-          "operation": "create",
-          "description": "Create a utility function formatINR(amount: number): string that formats a number as Indian Rupee currency using Intl.NumberFormat with options { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }. This ensures proper comma separators in Indian notation (e.g., ₹1,20,000 instead of ₹120,000). Export as default function."
-        }
-      ]
-    },
-    {
-      "id": "REQ-26",
-      "summary": "Add 30 individual service packages with flat INR pricing to the Services page as a separate 'Individual Packages' section or tab",
-      "acceptanceCriteria": [
-        "All 30 individual packages appear on the Services page under an 'Individual Packages' section or tab",
-        "Each card displays the flat price, category, sub-category, and 16 features",
-        "Features list is expandable/collapsible on the card",
-        "Cards are sorted by price ascending by default"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/data/individualPackages.ts",
-          "operation": "create",
-          "description": "Create a TypeScript data file defining the IndividualPackage type with fields: id (string), name (string), priceINR (number), category (string), subcategory (string), description (string), and features (string array of 16 items). Export an array of 30 individual packages sorted by price ascending: Website Development (₹999), Sales Funnel Setup (₹1,099), WhatsApp Automation (₹1,199), AI Chatbot Setup (₹1,299), Landing Pages (₹1,399), SEO Setup (₹1,499), Social Media Management (₹1,599), Instagram Growth System (₹1,699), Lead Generation System (₹1,799), Branding Kit (₹1,899), Logo Design (₹1,999), Video Editing (₹2,099), AI Content Creation (₹2,199), Email Marketing Setup (₹2,299), LinkedIn Outreach System (₹2,399), E-commerce Store Setup (₹2,499), No-Code App Development (₹2,599), Automation Setup (₹2,699), CRM Setup (₹2,799), AI Proposal Generator (₹2,899), Pricing Strategy Consulting (₹2,999), Funnel Optimization (₹3,099), Copywriting Service (₹3,199), Reels Script Creation (₹3,299), AI Image Generation (₹3,399), T-Shirt POD Setup (₹3,499), Etsy Automation (₹3,599), Affiliate Marketing System (₹3,699), Notion Dashboard Setup (₹3,799), Analytics Dashboard Setup (₹3,899). Each package must include its 16 listed features from the source data, assigned to appropriate category and subcategory strings."
-        },
-        {
-          "path": "frontend/src/pages/ServicesPage.tsx",
-          "operation": "modify",
-          "description": "Add a top-level view mode toggle (Tabs component from shadcn/ui) with three options: 'Service Catalog', 'Individual Packages', and 'Maintenance Plans'. Import individualPackages data. When 'Individual Packages' tab is active, render a responsive card grid displaying all 30 packages sorted by price ascending. Each card must show: package name as heading, flat price formatted with formatINR utility, category and subcategory badges, and a collapsible features section (initially collapsed, expand on click to show all 16 features as a bulleted list). Add a sort control dropdown allowing users to sort by price (ascending/descending) or name (A-Z). Use consistent card styling with the master catalog view. Ensure proper spacing and responsive breakpoints."
-        }
-      ]
-    },
-    {
-      "id": "REQ-27",
-      "summary": "Add Monthly Maintenance & Subscription plans to the Services page as a dedicated 'Maintenance Plans' section with 5 plan categories and price ranges",
-      "acceptanceCriteria": [
-        "All maintenance plan categories and tiers are displayed with monthly price ranges",
-        "Each plan card lists its included features",
-        "Plans are grouped clearly under their respective categories",
-        "A 'Maintenance Plans' section or tab is accessible from the Services page navigation"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/data/maintenancePlans.ts",
-          "operation": "create",
-          "description": "Create a TypeScript data file defining MaintenancePlanTier type with fields: tierName (string), minPriceINR (number), maxPriceINR (number), features (string array), and description (string). Define MaintenancePlanCategory type with fields: categoryId (string), categoryName (string), icon (string), tiers (MaintenancePlanTier array). Export an array of 5 maintenance plan categories: (1) Website Maintenance with tiers Basic (₹999–₹2,999/mo), Business (₹3,999–₹7,999/mo), Premium/AI/3D (₹10,000–₹35,000/mo); (2) App Maintenance with tiers Basic (₹2,999–₹6,999/mo), Growth (₹8,000–₹20,000/mo), Enterprise (₹25,000–₹75,000/mo); (3) AI Automation Maintenance with tiers Basic (₹2,999–₹7,999/mo), Advanced (₹10,000–₹30,000/mo); (4) Marketing & Growth Retainer with tiers Starter (₹4,999–₹12,000/mo), Growth (₹15,000–₹40,000/mo), Premium (₹50,000–₹1,50,000/mo); (5) SaaS & Backend Retainer with tiers Business (₹15,000–₹35,000/mo), Enterprise (₹40,000–₹1,20,000/mo). Each tier must include its full list of included features from the user's source data. Add a helper function formatPriceRange(min: number, max: number): string that returns formatted range like '₹2,999–₹7,999/mo' using the formatINR utility."
-        },
-        {
-          "path": "frontend/src/pages/ServicesPage.tsx",
-          "operation": "modify",
-          "description": "Extend the view mode Tabs to include the 'Maintenance Plans' option. Import maintenancePlans data and formatPriceRange helper. When 'Maintenance Plans' tab is active, render the 5 plan categories in a vertical layout. For each category, display: category name with icon, a grid of tier cards within that category. Each tier card must show: tier name, monthly price range formatted with formatPriceRange, and a bulleted list of all included features. Use Accordion component from shadcn/ui to allow collapsing/expanding each category section for better space management. Style tier cards with distinct background colors or borders to differentiate Basic/Growth/Enterprise tiers. Ensure responsive layout adapts from single column on mobile to multi-column on desktop."
-        }
-      ]
-    },
-    {
-      "id": "REQ-28",
-      "summary": "Add 3 Master Agency Plans (Spark, Surge, Titan) to the Services page as a prominently styled 'Agency Plans' section with color-coded badges",
-      "acceptanceCriteria": [
-        "Three master agency plan cards appear in an 'Agency Plans' section with the correct price ranges and tier descriptions",
-        "Spark card has a green badge, Surge has blue, Titan has purple",
-        "Plans are visually prominent and distinct from individual service cards"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/data/agencyPlans.ts",
-          "operation": "create",
-          "description": "Create a TypeScript data file defining AgencyPlan type with fields: planId (string), planName (string), emoji (string), minPriceINR (number), maxPriceINR (number or null for unlimited), targetAudience (string), description (string), features (string array), badgeColor ('green' | 'blue' | 'purple'). Export an array of 3 master agency plans: (1) Spark Plan with emoji 🟢, minPrice ₹4,999, maxPrice ₹25,000, targetAudience 'Student/Beginner/Idea Stage', badgeColor 'green', and features list from source data; (2) Surge Plan with emoji 🔵, minPrice ₹30,000, maxPrice ₹1,20,000, targetAudience 'Local & National Business Growth', badgeColor 'blue', and features; (3) Titan Plan with emoji 🟣, minPrice ₹1,50,000, maxPrice ₹5,00,000 (or null for unlimited/+ notation), targetAudience 'National/Global/Enterprise Clients', badgeColor 'purple', and features. Include detailed descriptions and comprehensive feature lists for each plan."
-        },
-        {
-          "path": "frontend/src/pages/ServicesPage.tsx",
-          "operation": "modify",
-          "description": "Add a fourth tab option 'Agency Plans' to the view mode Tabs. Import agencyPlans data. When 'Agency Plans' tab is active, render a hero section with heading 'Master Agency Plans' and subtitle explaining the tiered approach. Display the 3 plans in a horizontal layout (stacked on mobile). Each plan card must be prominently styled with: large emoji indicator at top, plan name as heading, color-coded badge (green for Spark using bg-green-500, blue for Surge using bg-blue-500, purple for Titan using bg-purple-500) positioned at top-right corner of card, price range formatted with formatINR and displayed prominently, target audience description in italic, and bulleted feature list. Apply distinct card styling with larger padding, shadow effects, and hover animations to make these plans stand out from regular service cards. Use Card component from shadcn/ui with custom Tailwind classes for the badge positioning and color theming."
-        }
-      ]
-    },
-    {
-      "id": "REQ-29",
-      "summary": "Add direct 'Buy Now' or 'Select & Pay' buttons to all service, package, plan, and maintenance cards with tier selection and cart/checkout integration",
-      "acceptanceCriteria": [
-        "Every service/package/plan card has a 'Buy Now' or 'Select & Pay' button",
-        "Tiered service cards show a tier selector (Student/Business/Premium or equivalent) before the button",
-        "Clicking the button adds the item at the selected tier price to the cart and navigates to checkout",
-        "If Razorpay is configured, the Razorpay payment flow is initiated directly",
-        "Selected tier label and price are correctly passed to cart/checkout"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/services/TierSelector.tsx",
-          "operation": "create",
-          "description": "Create a reusable TierSelector component that accepts props: tiers (array of {tierName: string, priceINR: number}), selectedTier (string), onTierChange (callback). Render a segmented control or radio button group (using RadioGroup from shadcn/ui) displaying all tier options with their names and formatted prices. Highlight the selected tier. Use responsive design to stack vertically on mobile and horizontally on desktop. Export as default component."
-        },
-        {
-          "path": "frontend/src/components/services/BuyNowButton.tsx",
-          "operation": "create",
-          "description": "Create a BuyNowButton component accepting props: itemName (string), itemPrice (number), tierLabel (string | undefined), onBuyNow (callback), disabled (boolean), isLoading (boolean). Render a prominent Button from shadcn/ui with text 'Buy Now' or 'Select & Pay'. Show a loading spinner icon when isLoading is true. Disable the button when disabled prop is true. On click, invoke the onBuyNow callback. Style with primary button colors and larger size for prominence. Export as default component."
-        },
-        {
-          "path": "frontend/src/hooks/useDirectPurchase.ts",
-          "operation": "create",
-          "description": "Create a custom hook useDirectPurchase that encapsulates the purchase flow logic. The hook should: (1) import useCart hook and useNavigate from TanStack Router; (2) import useIsRazorpayConfigured query hook; (3) expose a handlePurchase function that accepts itemName, itemPrice, tierLabel (optional); (4) inside handlePurchase, add the item to cart using cart.addItem with a generated unique ID, itemName, itemPrice as unit price, quantity 1, and tierLabel in metadata if provided; (5) check if Razorpay is configured using the query result; (6) if Razorpay is configured, implement a direct Razorpay checkout flow (script loading, order creation via backend if needed, and Razorpay modal); (7) if Razorpay is not configured, navigate to '/checkout' using router navigation; (8) handle loading states and errors with toast notifications. Return { handlePurchase, isProcessing } from the hook. This hook abstracts the payment method decision logic."
-        },
-        {
-          "path": "frontend/src/pages/ServicesPage.tsx",
-          "operation": "modify",
-          "description": "Import TierSelector, BuyNowButton, and useDirectPurchase hook. For each service card in the Service Catalog view: add state to track selectedTier (default to first tier). Render TierSelector component below the service description, passing the service's tiers array and selectedTier state. Below TierSelector, render BuyNowButton passing the service name, selected tier price, selected tier label, and handlePurchase callback from useDirectPurchase hook. For Individual Packages view: each package card should render BuyNowButton directly (no tier selector needed) with package name, flat price, undefined tier label. For Maintenance Plans view: each tier card should render BuyNowButton with tier name, midpoint of price range as itemPrice, and tier name as tierLabel. For Agency Plans view: each plan card should render BuyNowButton with plan name, minPrice as itemPrice, and plan targetAudience as tierLabel. Ensure all buttons are consistently styled and positioned at the bottom of each card."
-        },
-        {
-          "path": "frontend/src/cart/useCart.ts",
-          "operation": "modify",
-          "description": "Extend the CartItem type to include an optional tierLabel field (string | undefined) for storing the selected pricing tier information. Update the addItem function to accept and store tierLabel in the cart item metadata. Ensure tierLabel is persisted in localStorage along with other cart data. Update any cart display logic to show the tierLabel alongside item name if present (e.g., 'Website Development - Business Tier'). Maintain backward compatibility with existing cart items that don't have tierLabel."
-        },
-        {
-          "path": "frontend/src/pages/CheckoutPage.tsx",
-          "operation": "modify",
-          "description": "Update the order summary display to show tierLabel for each cart item if it exists. Format as 'Item Name (Tier Label)' or 'Item Name - Tier Label' for clarity. Ensure the tierLabel is visible in the itemized list before the price. Maintain existing Stripe and Razorpay integration logic without modification, ensuring cart items with tierLabel are correctly passed to the payment backend functions."
-        }
-      ]
-    },
-    {
-      "id": "REQ-30",
-      "summary": "Fix the Sign In button on the LoginPage to correctly trigger Internet Identity authentication with loading state and error handling",
-      "acceptanceCriteria": [
-        "Clicking the Sign In button on the login screen triggers the Internet Identity login flow",
-        "A loading/spinner state is shown on the button while authentication is in progress",
-        "After successful authentication, the user is redirected to their dashboard",
-        "If authentication fails or is cancelled, a visible error message is shown",
-        "The button is fully functional and not disabled by default"
+        "Visiting the login page shows the Sign In with Internet Identity button in a clickable, enabled state immediately",
+        "Clicking the button invokes the Internet Identity popup/flow without any error",
+        "A spinner or loading indicator is visible while authentication is in progress",
+        "After successful authentication, the user is automatically redirected to the appropriate dashboard route",
+        "If the user cancels or authentication fails, an inline error message is shown on the login page",
+        "No disabled prop, loading guard, or actor-initialization check blocks the button from being clickable"
       ],
       "file_operations": [
         {
           "path": "frontend/src/pages/LoginPage.tsx",
           "operation": "modify",
-          "description": "Review and fix the Sign In button implementation. Ensure the button's onClick handler correctly calls the login() function from useInternetIdentity hook. Add local state isAuthenticating (boolean) that is set to true when login() is called and false when it completes or errors. Wrap the login() call in try-catch to handle errors. On error, display a toast notification using toast.error() from sonner with the error message. While isAuthenticating is true, disable the button and show a Loader2 spinner icon (from lucide-react) with spin animation alongside or replacing the button text. Update button text to 'Signing In...' during authentication. After successful login (no error thrown), the existing useEffect watching identity changes should handle navigation to dashboard. Remove any premature disabled={true} attributes on the button. Ensure the button has proper aria-label and is keyboard accessible. Test that the button responds immediately to clicks without any delay."
-        },
+          "description": "Rewrite the entire LoginPage component to ensure the Sign In with Internet Identity button is never disabled and calls login() from the useInternetIdentity hook immediately on click. Remove any guards or conditions that prevent the button from being clickable. Display a visible loading spinner while isLoggingIn is true. Add a useEffect that watches isAuthenticated and identity to trigger role-based navigation once authentication completes. Implement inline error state display if login() throws or authentication is cancelled. Ensure the component imports useInternetIdentity from frontend/src/hooks/useInternetIdentity.ts and useNavigate from @tanstack/react-router. Query the user's role using useGetCallerUserRole from frontend/src/hooks/useQueries.ts and redirect admin users to /admin-dashboard, manager users to /manager-dashboard, client users to /client-dashboard, and fallback to /dashboard for others. If role is still loading after authentication, redirect to /dashboard immediately rather than waiting. Keep the profile setup dialog logic intact but ensure it only appears after successful authentication and role determination."
+        }
+      ]
+    },
+    {
+      "id": "REQ-38",
+      "summary": "Rewrite BootstrapGate.tsx to never block the LoginPage UI, allowing unauthenticated users to interact with the full login page regardless of actor or identity initialization state",
+      "acceptanceCriteria": [
+        "Opening the app when unauthenticated immediately renders the LoginPage with no loading spinner blocking it",
+        "BootstrapGate does not render a spinner or error panel on the login route",
+        "BootstrapGate still shows a loading state for authenticated users accessing protected routes before the actor is ready",
+        "The Sign In button on LoginPage is interactable before the ICP actor has finished initializing"
+      ],
+      "file_operations": [
         {
-          "path": "frontend/src/hooks/useInternetIdentity.ts",
+          "path": "frontend/src/components/bootstrap/BootstrapGate.tsx",
           "operation": "modify",
-          "description": "Review the login() function implementation to ensure it properly throws errors when authentication fails or is cancelled by the user. Currently the hook may silently fail. Add explicit error throwing: if AuthClient.login() is cancelled by user (rejected promise), throw new Error('Authentication cancelled by user'). If AuthClient.login() fails for any other reason, throw the underlying error with a descriptive message. Ensure the loginStatus state correctly transitions through 'idle' -> 'logging-in' -> 'success' or 'error' states. Add error state management so consuming components can display appropriate feedback. Maintain existing identity persistence logic in localStorage and onSuccess callback behavior."
-        },
+          "description": "Rewrite BootstrapGate to detect when the current route is the login page (use useRouter or useLocation from @tanstack/react-router to check if pathname is '/login' or '/'). When on the login route or when the user is unauthenticated (identity is null), render children directly without any loading spinner, overlay, or error panel wrapper. Only intercept and show loading/error states when the user is authenticated (identity is non-null) and attempting to access protected routes before the actor has initialized. This ensures unauthenticated users always see and can interact with the full login UI immediately, regardless of actor initialization state, while still protecting authenticated routes that require the actor to be ready."
+        }
+      ]
+    },
+    {
+      "id": "REQ-39",
+      "summary": "Audit and fix useInternetIdentity hook integration in LoginPage, ensuring correct import path, proper destructuring of login function and state values, and a useEffect that triggers role-based navigation after authentication resolves",
+      "acceptanceCriteria": [
+        "No runtime errors about missing context or undefined hook values on the login page",
+        "isLoggingIn correctly reflects true while the Internet Identity popup is open",
+        "isAuthenticated transitions to true after the user completes authentication",
+        "A useEffect in LoginPage triggers navigation once isAuthenticated is true",
+        "InternetIdentityProvider is confirmed present in main.tsx wrapping the root app"
+      ],
+      "file_operations": [
         {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/pages/LoginPage.tsx",
           "operation": "modify",
-          "description": "Verify that the route configuration correctly redirects authenticated users away from /login. Review the authentication redirect logic: if a user is already authenticated (identity exists) and navigates to /login, they should be automatically redirected to their appropriate dashboard route (/admin-dashboard, /manager-dashboard, or /client-dashboard based on role). Add a beforeLoad hook to the /login route that checks authentication status and role, then redirects accordingly using throw redirect(). This prevents authenticated users from seeing the login page and ensures successful authentication immediately navigates to the correct destination. Do not modify core routing structure, only add navigation guards."
+          "description": "Verify that useInternetIdentity is imported from the immutable path frontend/src/hooks/useInternetIdentity.ts. Ensure the destructured values include login, isLoggingIn (or loginStatus), isAuthenticated (derived from identity), and identity. If login() returns a promise, wrap the onClick handler in an async function that awaits login() before proceeding. Add a useEffect with dependencies [isAuthenticated, identity] that checks if the user is authenticated and then triggers role-based navigation. Handle any errors from login() by catching exceptions and setting local error state to display inline on the page. Confirm that no manual actor checks or initialization guards block the login button. Note: InternetIdentityProvider wrapping is already confirmed in frontend/src/main.tsx (immutable file), so no action is needed there, but document this confirmation in the implementation."
+        }
+      ]
+    },
+    {
+      "id": "REQ-40",
+      "summary": "Implement role-based post-login redirect in LoginPage that queries the user's role from the backend and redirects admin to /admin-dashboard, manager to /manager-dashboard, client to /client-dashboard, and others to /dashboard as the safe default",
+      "acceptanceCriteria": [
+        "Admin users are redirected to /admin-dashboard after successful login",
+        "Manager users are redirected to /manager-dashboard after successful login",
+        "Client users are redirected to /client-dashboard after successful login",
+        "Users with no determined role are redirected to /dashboard",
+        "The redirect happens automatically without the user needing to click anything after authentication"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/LoginPage.tsx",
+          "operation": "modify",
+          "description": "Inside the useEffect that triggers after isAuthenticated becomes true, call the useGetCallerUserRole hook from frontend/src/hooks/useQueries.ts to fetch the authenticated user's role. Wait for the query to resolve. If the role is 'admin' (UserRole.admin), navigate to /admin-dashboard. If the role is 'manager', navigate to /manager-dashboard. If the role is 'client' or 'user', navigate to /client-dashboard. For any other role or if the role query is still loading after a short timeout, redirect to /dashboard as the safe default fallback. Use TanStack Router's useNavigate hook to perform the navigation with { replace: true } to avoid back-button issues. Ensure this logic only runs once per successful authentication by wrapping it in a conditional check or using a ref to track if navigation has already occurred."
         }
       ]
     }

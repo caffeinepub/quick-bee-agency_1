@@ -1,71 +1,71 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-27T06:02:42.178Z",
-  "summary": "The diff implements most of the requested requirements: a full service catalog with 7 categories (REQ-25), 30 individual packages (REQ-26), maintenance plans (REQ-27), agency plans with color badges (REQ-28), Buy Now buttons with tier selectors and cart integration (REQ-29), and LoginPage updates (REQ-30). However, several specific acceptance criteria are only partially or potentially not met based on the evidence available, particularly around the LoginPage fix, Razorpay direct flow in REQ-29, and some display details.",
+  "generatedAt": "2026-02-27T06:51:29.880Z",
+  "summary": "The diff modifies BootstrapGate.tsx and LoginPage.tsx to address the Internet Identity login flow. REQ-38 appears well-implemented in BootstrapGate.tsx. REQ-37, REQ-39, and REQ-40 are partially implemented but have notable gaps: the button disables on 'redirecting', role mapping is incomplete (maps 'user' to manager-dashboard rather than 'manager', and has no client role), and the hook destructuring does not match the specified isLoggingIn/isAuthenticated API surface exactly. REQ-39's useEffect navigation trigger is partially present but relies on profile/role queries rather than directly on isAuthenticated. REQ-40 role-based redirects are incomplete.",
   "missing_requirements": [
     {
-      "id": "REQ-30",
-      "requirement": "Fix the Sign In button on the LoginPage so that clicking it correctly triggers the Internet Identity authentication flow, shows a loading/spinner state, redirects on success, and shows an error message on failure/cancellation.",
-      "reason": "The file-diff summary for frontend/src/pages/LoginPage.tsx only states 'Login page with QuickBee logo, feature highlights grid, Internet Identity sign-in button, and first-time profile setup dialog.' There is no diff content showing the actual code changes to the LoginPage — no loading state, error handling, redirect logic, or click handler fix is visible in the diff. The requirement may not have been implemented.",
+      "id": "REQ-37",
+      "requirement": "The Sign In button must never be disabled or have any condition preventing it from being clicked. Remove every guard, disabled prop, or conditional render that could block the button before the actor is initialized.",
+      "reason": "The diff's LoginPage.tsx disables the button while 'redirecting' is true (button is disabled on isLoggingIn || redirecting). The file summary confirms: 'disables the button only while isLoggingIn or redirecting'. The spec says the button must never be disabled.",
       "evidence": [
         "frontend/src/pages/LoginPage.tsx",
         "frontend-file-summaries.txt"
       ]
     },
     {
-      "id": "REQ-29",
-      "requirement": "If Razorpay is configured in the centralized config store, initiate a Razorpay payment flow directly for the selected item's price.",
-      "reason": "The useDirectPurchase hook only adds to cart and navigates to checkout — it does not check if Razorpay is configured or initiate a Razorpay payment flow directly. The CheckoutPage has a Razorpay option but only shows a toast saying 'coming soon'. The acceptance criterion requiring direct Razorpay payment initiation when configured is not fulfilled.",
+      "id": "REQ-39",
+      "requirement": "The hook must directly destructure isLoggingIn and isAuthenticated values; a useEffect must watch isAuthenticated/identity to trigger role-based navigation after login resolves.",
+      "reason": "LoginPage.tsx destructures 'loginStatus' and derives isLoggingIn = loginStatus === 'logging-in', and derives isAuthenticated = !!identity, rather than directly destructuring isLoggingIn and isAuthenticated from the hook. The useEffect watches profileLoading/profileFetched rather than directly watching isAuthenticated/identity as specified.",
       "evidence": [
-        "frontend/src/hooks/useDirectPurchase.ts",
-        "frontend/src/pages/CheckoutPage.tsx"
+        "frontend/src/pages/LoginPage.tsx"
       ]
     },
     {
-      "id": "REQ-26",
-      "requirement": "Cards are sorted by price ascending by default.",
-      "reason": "The ServicesPage.tsx diff is truncated and does not confirm that individual package cards are sorted by price ascending by default. The data file lists packages in order but explicit sort logic in the page is not visible.",
+      "id": "REQ-40",
+      "requirement": "Redirect admin users to /admin-dashboard, manager users to /manager-dashboard, client users to /client-dashboard, and any other authenticated user or unresolved role to /dashboard as the safe default.",
+      "reason": "The getRedirectPath function maps UserRole.admin to '/authenticated/admin-dashboard' and UserRole.user to '/authenticated/manager-dashboard' with fallback to '/authenticated/admin-dashboard'. There is no mapping for a client role, no /client-dashboard redirect, and the fallback goes to admin-dashboard instead of /dashboard. Route paths also use '/authenticated/' prefix instead of flat routes specified.",
       "evidence": [
-        "frontend/src/pages/ServicesPage.tsx",
-        "frontend/src/data/individualPackages.ts"
+        "frontend/src/pages/LoginPage.tsx"
+      ]
+    },
+    {
+      "id": "REQ-40",
+      "requirement": "If the role query is still loading, redirect to /dashboard immediately rather than waiting indefinitely.",
+      "reason": "When role is not fetched, the code calls redirectUser(undefined) which maps to getRedirectPath(undefined) returning '/authenticated/admin-dashboard' rather than '/dashboard' as specified.",
+      "evidence": [
+        "frontend/src/pages/LoginPage.tsx"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "GST (18%) calculation added to CartPage and CheckoutPage order summaries.",
-      "reason": "The build request does not mention adding GST calculation or tax display to cart or checkout pages. Both CartPage.tsx and CheckoutPage.tsx now compute and display an 18% GST line item and a final total including GST, which was not requested.",
+      "description": "Profile setup dialog flow: a first-time user profile creation dialog with showProfileSetup, profileName, profileEmail, profileBusiness, savingProfile states and useSaveCallerUserProfile integration.",
+      "reason": "The build request does not mention any profile setup dialog or first-time user onboarding flow as part of this fix. This feature was added beyond the stated requirements.",
       "evidence": [
-        "frontend/src/pages/CartPage.tsx",
-        "frontend/src/pages/CheckoutPage.tsx"
+        "frontend/src/pages/LoginPage.tsx"
       ]
     },
     {
-      "description": "formatPriceRange utility duplicated in both utils/formatCurrency.ts and data/maintenancePlans.ts.",
-      "reason": "The build request did not specify creating a duplicate formatPriceRange export in maintenancePlans.ts. The utility was already defined in formatCurrency.ts and re-defined in maintenancePlans.ts, creating unrequested redundancy.",
+      "description": "Routes use '/authenticated/' path prefix such as '/authenticated/admin-dashboard' and '/authenticated/manager-dashboard'.",
+      "reason": "The build request specifies redirects to /admin-dashboard, /manager-dashboard, /client-dashboard, and /dashboard without any '/authenticated/' prefix. This prefix was not requested.",
       "evidence": [
-        "frontend/src/utils/formatCurrency.ts",
-        "frontend/src/data/maintenancePlans.ts"
+        "frontend/src/pages/LoginPage.tsx"
+      ]
+    },
+    {
+      "description": "Handle 'already authenticated' error with clear+retry logic using setTimeout in handleLogin.",
+      "reason": "The build request does not specify any 'already authenticated' error handling or clear+retry mechanism. This is added behavior not requested in any requirement.",
+      "evidence": [
+        "frontend/src/pages/LoginPage.tsx"
       ]
     }
   ],
   "confidence": 0.72,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/cart/useCart.ts",
-    "frontend/src/components/services/BuyNowButton.tsx",
-    "frontend/src/components/services/TierSelector.tsx",
-    "frontend/src/data/agencyPlans.ts",
-    "frontend/src/data/individualPackages.ts",
-    "frontend/src/data/maintenancePlans.ts",
-    "frontend/src/data/masterServiceCatalog.ts",
-    "frontend/src/hooks/useDirectPurchase.ts",
-    "frontend/src/pages/CartPage.tsx",
-    "frontend/src/pages/CheckoutPage.tsx",
-    "frontend/src/pages/ServiceDetailPage.tsx",
-    "frontend/src/pages/ServicesPage.tsx",
-    "frontend/src/utils/formatCurrency.ts",
+    "frontend/src/components/bootstrap/BootstrapGate.tsx",
+    "frontend/src/pages/LoginPage.tsx",
     "project_state.json"
   ]
 }

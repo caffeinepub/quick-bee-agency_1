@@ -2,12 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-populate-the-services-page-with-the-complete-quick-bee-agency-2026-master-service-price-list-organise-all-entries-into-7-categories-1-web-development-services-12-services-with-student-business-premium-tiers-2-app-development-services-8-services-with-student-business-premium-tiers-3-ai-automation-services-8-services-with-starter-growth-enterprise-tiers-4-digital-marketing-growth-8-services-with-student-business-premium-tiers-5-branding-creative-services-7-services-with-starter-business-premium-tiers-6-saas-advanced-tech-8-services-with-business-advanced-enterprise-tiers-7-business-setup-systems-6-services-with-starter-growth-premium-tiers-each-service-card-must-display-the-service-name-category-all-three-pricing-tiers-with-their-inr-prices-and-the-list-of-16-features-where-provided-in-the-user-s-input-the-page-must-include-a-category-filter-tab-bar-so-users-can-browse-by-category-prices-must-be-formatted-in-indian-rupee-notation-e-g-1-20-000",
-      "featureTitle": "Populate the Services page with the complete Quick Bee Agency 2026 Master Service Price List. Organise all entries into 7 categories: (1) Web Development Services — 12 services with Student/Business/Premium tiers; (2) App Development Services — 8 services with Student/Business/Premium tiers; (3) AI Automation Services — 8 services with Starter/Growth/Enterprise tiers; (4) Digital Marketing & Growth — 8 services with Student/Business/Premium tiers; (5) Branding & Creative Services — 7 services with Starter/Business/Premium tiers; (6) SaaS & Advanced Tech — 8 services with Business/Advanced/Enterprise tiers; (7) Business Setup & Systems — 6 services with Starter/Growth/Premium tiers. Each service card must display the service name, category, all three pricing tiers with their INR (₹) prices, and the list of 16 features where provided in the user's input. The page must include a category filter/tab bar so users can browse by category. Prices must be formatted in Indian Rupee notation (e.g., ₹1,20,000).",
+      "featureId": "feature-perform-a-full-rewrite-of-frontend-src-pages-loginpage-tsx-the-sign-in-with-internet-identity-button-must-1-never-be-disabled-or-have-any-condition-preventing-it-from-being-clicked-2-call-the-login-function-from-the-useinternetidentity-hook-on-click-3-display-a-visible-loading-spinner-while-isloggingin-is-true-4-on-successful-authentication-identity-becomes-non-null-isauthenticated-becomes-true-use-tanstack-router-s-usenavigate-to-redirect-to-dashboard-or-admin-dashboard-manager-dashboard-client-dashboard-based-on-role-if-available-5-display-a-user-visible-inline-error-message-if-login-throws-or-authentication-is-cancelled-remove-every-guard-disabled-prop-or-conditional-render-that-could-block-the-button-before-the-actor-is-initialized",
+      "featureTitle": "Perform a full rewrite of frontend/src/pages/LoginPage.tsx. The Sign In with Internet Identity button must: (1) never be disabled or have any condition preventing it from being clicked; (2) call the login() function from the useInternetIdentity hook on click; (3) display a visible loading spinner while isLoggingIn is true; (4) on successful authentication (identity becomes non-null / isAuthenticated becomes true), use TanStack Router's useNavigate to redirect to /dashboard (or /admin-dashboard, /manager-dashboard, /client-dashboard based on role if available); (5) display a user-visible inline error message if login() throws or authentication is cancelled. Remove every guard, disabled prop, or conditional render that could block the button before the actor is initialized.",
       "files": [
-        "frontend/src/data/masterServiceCatalog.ts",
-        "frontend/src/pages/ServicesPage.tsx",
-        "frontend/src/utils/formatCurrency.ts"
+        "frontend/src/pages/LoginPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -23,16 +21,15 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-25"
+        "REQ-37"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-the-30-individual-service-packages-website-development-999-sales-funnel-setup-1-099-whatsapp-automation-1-199-ai-chatbot-setup-1-299-landing-pages-1-399-seo-setup-1-499-social-media-management-1-599-instagram-growth-system-1-699-lead-generation-system-1-799-branding-kit-1-899-logo-design-1-999-video-editing-2-099-ai-content-creation-2-199-email-marketing-setup-2-299-linkedin-outreach-system-2-399-e-commerce-store-setup-2-499-no-code-app-development-2-599-automation-setup-2-699-crm-setup-2-799-ai-proposal-generator-2-899-pricing-strategy-consulting-2-999-funnel-optimization-3-099-copywriting-service-3-199-reels-script-creation-3-299-ai-image-generation-3-399-t-shirt-pod-setup-3-499-etsy-automation-3-599-affiliate-marketing-system-3-699-notion-dashboard-setup-3-799-analytics-dashboard-setup-3-899-to-the-services-page-as-a-separate-individual-packages-section-or-tab-each-package-card-must-show-package-name-flat-inr-price-category-sub-category-and-its-16-listed-features-as-a-bullet-list-expandable-on-click",
-      "featureTitle": "Add the 30 individual service packages (Website Development ₹999, Sales Funnel Setup ₹1,099, WhatsApp Automation ₹1,199, AI Chatbot Setup ₹1,299, Landing Pages ₹1,399, SEO Setup ₹1,499, Social Media Management ₹1,599, Instagram Growth System ₹1,699, Lead Generation System ₹1,799, Branding Kit ₹1,899, Logo Design ₹1,999, Video Editing ₹2,099, AI Content Creation ₹2,199, Email Marketing Setup ₹2,299, LinkedIn Outreach System ₹2,399, E-commerce Store Setup ₹2,499, No-Code App Development ₹2,599, Automation Setup ₹2,699, CRM Setup ₹2,799, AI Proposal Generator ₹2,899, Pricing Strategy Consulting ₹2,999, Funnel Optimization ₹3,099, Copywriting Service ₹3,199, Reels Script Creation ₹3,299, AI Image Generation ₹3,399, T-Shirt POD Setup ₹3,499, Etsy Automation ₹3,599, Affiliate Marketing System ₹3,699, Notion Dashboard Setup ₹3,799, Analytics Dashboard Setup ₹3,899) to the Services page as a separate 'Individual Packages' section or tab. Each package card must show: package name, flat INR price, category, sub-category, and its 16 listed features as a bullet list expandable on click.",
+      "featureId": "feature-rewrite-frontend-src-components-bootstrap-bootstrapgate-tsx-so-it-never-blocks-or-visually-disables-the-loginpage-ui-bootstrapgate-must-detect-when-the-current-route-is-the-login-page-or-when-the-user-is-unauthenticated-and-render-children-directly-without-any-loading-spinner-overlay-or-disabled-wrapper-the-gate-must-only-intercept-navigation-to-authenticated-protected-routes-unauthenticated-users-must-always-see-and-interact-with-the-full-login-ui-regardless-of-actor-or-identity-initialization-state",
+      "featureTitle": "Rewrite frontend/src/components/bootstrap/BootstrapGate.tsx so it never blocks or visually disables the LoginPage UI. BootstrapGate must detect when the current route is the login page (or when the user is unauthenticated) and render children directly without any loading spinner, overlay, or disabled wrapper. The gate must only intercept navigation to authenticated/protected routes. Unauthenticated users must always see and interact with the full login UI regardless of actor or identity initialization state.",
       "files": [
-        "frontend/src/data/individualPackages.ts",
-        "frontend/src/pages/ServicesPage.tsx"
+        "frontend/src/components/bootstrap/BootstrapGate.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -48,16 +45,15 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-26"
+        "REQ-38"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-the-monthly-maintenance-subscription-plans-to-the-services-page-as-a-dedicated-maintenance-plans-section-or-tab-include-all-five-plan-categories-1-website-maintenance-basic-999-2-999-mo-business-3-999-7-999-mo-premium-ai-3d-10-000-35-000-mo-2-app-maintenance-basic-2-999-6-999-mo-growth-8-000-20-000-mo-enterprise-25-000-75-000-mo-3-ai-automation-maintenance-basic-2-999-7-999-mo-advanced-10-000-30-000-mo-4-marketing-growth-retainer-starter-4-999-12-000-mo-growth-15-000-40-000-mo-premium-50-000-1-50-000-mo-5-saas-backend-retainer-business-15-000-35-000-mo-enterprise-40-000-1-20-000-mo-each-plan-card-must-list-its-included-features-as-provided-in-the-user-s-input",
-      "featureTitle": "Add the Monthly Maintenance & Subscription plans to the Services page as a dedicated 'Maintenance Plans' section or tab. Include all five plan categories: (1) Website Maintenance — Basic (₹999–₹2,999/mo), Business (₹3,999–₹7,999/mo), Premium/AI/3D (₹10,000–₹35,000/mo); (2) App Maintenance — Basic (₹2,999–₹6,999/mo), Growth (₹8,000–₹20,000/mo), Enterprise (₹25,000–₹75,000/mo); (3) AI Automation Maintenance — Basic (₹2,999–₹7,999/mo), Advanced (₹10,000–₹30,000/mo); (4) Marketing & Growth Retainer — Starter (₹4,999–₹12,000/mo), Growth (₹15,000–₹40,000/mo), Premium (₹50,000–₹1,50,000/mo); (5) SaaS & Backend Retainer — Business (₹15,000–₹35,000/mo), Enterprise (₹40,000–₹1,20,000/mo). Each plan card must list its included features as provided in the user's input.",
+      "featureId": "feature-audit-and-fix-the-useinternetidentity-hook-integration-in-loginpage-ensure-the-hook-is-imported-from-the-correct-immutable-path-frontend-src-hooks-useinternetidentity-ts-that-the-destructured-login-function-and-isloggingin-isauthenticated-identity-values-are-correctly-consumed-and-that-a-useeffect-watches-isauthenticated-identity-to-trigger-role-based-navigation-after-login-resolves-if-the-hook-returns-a-promise-from-login-await-it-before-checking-authentication-state-confirm-the-internetidentityprovider-is-wrapping-the-app-in-frontend-src-main-tsx-so-the-hook-has-access-to-its-context",
+      "featureTitle": "Audit and fix the useInternetIdentity hook integration in LoginPage. Ensure the hook is imported from the correct immutable path (frontend/src/hooks/useInternetIdentity.ts), that the destructured login function and isLoggingIn / isAuthenticated / identity values are correctly consumed, and that a useEffect watches isAuthenticated / identity to trigger role-based navigation after login resolves. If the hook returns a promise from login(), await it before checking authentication state. Confirm the InternetIdentityProvider is wrapping the app in frontend/src/main.tsx so the hook has access to its context.",
       "files": [
-        "frontend/src/data/maintenancePlans.ts",
-        "frontend/src/pages/ServicesPage.tsx"
+        "frontend/src/pages/LoginPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -73,16 +69,15 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-27"
+        "REQ-39"
       ],
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-the-3-master-agency-plans-spark-surge-titan-to-the-services-page-as-a-prominently-styled-agency-plans-section-or-tab-display-spark-plan-4-999-25-000-student-beginner-idea-stage-surge-plan-30-000-1-20-000-local-national-business-growth-titan-plan-1-50-000-5-00-000-national-global-enterprise-clients-style-each-plan-as-a-highlighted-pricing-card-with-a-distinct-colour-badge-green-for-spark-blue-for-surge-purple-for-titan-matching-the-emoji-indicators-in-the-source-data",
-      "featureTitle": "Add the 3 Master Agency Plans (Spark, Surge, Titan) to the Services page as a prominently styled 'Agency Plans' section or tab. Display: Spark Plan (₹4,999–₹25,000, Student/Beginner/Idea Stage), Surge Plan (₹30,000–₹1,20,000, Local & National Business Growth), Titan Plan (₹1,50,000–₹5,00,000+, National/Global/Enterprise Clients). Style each plan as a highlighted pricing card with a distinct colour badge (green for Spark, blue for Surge, purple for Titan) matching the emoji indicators in the source data.",
+      "featureId": "feature-ensure-role-based-post-login-redirect-works-correctly-in-loginpage-after-login-resolves-and-the-user-is-authenticated-query-the-user-s-role-from-the-backend-actor-or-from-the-existing-usequeries-hooks-redirect-admin-users-to-admin-dashboard-manager-users-to-manager-dashboard-client-users-to-client-dashboard-and-any-other-authenticated-user-or-unresolved-role-to-dashboard-as-the-safe-default-if-the-role-query-is-still-loading-redirect-to-dashboard-immediately-rather-than-waiting-indefinitely",
+      "featureTitle": "Ensure role-based post-login redirect works correctly in LoginPage. After login() resolves and the user is authenticated, query the user's role from the backend actor (or from the existing useQueries hooks). Redirect admin users to /admin-dashboard, manager users to /manager-dashboard, client users to /client-dashboard, and any other authenticated user or unresolved role to /dashboard as the safe default. If the role query is still loading, redirect to /dashboard immediately rather than waiting indefinitely.",
       "files": [
-        "frontend/src/data/agencyPlans.ts",
-        "frontend/src/pages/ServicesPage.tsx"
+        "frontend/src/pages/LoginPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -98,36 +93,7 @@
         "blob-storage@4.0.0"
       ],
       "testIds": [
-        "REQ-28"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-on-every-service-card-pricing-tier-card-maintenance-plan-card-individual-package-card-and-agency-plan-card-on-the-services-page-add-a-direct-buy-now-or-select-pay-button-when-clicked-this-button-must-1-add-the-selected-service-plan-at-the-chosen-price-tier-to-the-cart-using-the-existing-usecart-hook-then-navigate-to-the-checkoutpage-or-2-if-razorpay-is-configured-in-the-centralized-config-store-initiate-a-razorpay-payment-flow-directly-for-the-selected-item-s-price-for-tiered-services-student-business-premium-display-a-tier-selector-radio-buttons-or-segmented-control-on-the-card-so-the-user-can-choose-which-tier-price-to-purchase-before-clicking-the-button-the-selected-tier-and-price-must-be-passed-through-to-the-cart-checkout",
-      "featureTitle": "On every service card, pricing tier card, maintenance plan card, individual package card, and agency plan card on the Services page, add a direct 'Buy Now' or 'Select & Pay' button. When clicked, this button must: (1) add the selected service/plan at the chosen price tier to the cart (using the existing useCart hook), then navigate to the CheckoutPage; OR (2) if Razorpay is configured in the centralized config store, initiate a Razorpay payment flow directly for the selected item's price. For tiered services (Student/Business/Premium), display a tier selector (radio buttons or segmented control) on the card so the user can choose which tier price to purchase before clicking the button. The selected tier and price must be passed through to the cart/checkout.",
-      "files": [
-        "frontend/src/cart/useCart.ts",
-        "frontend/src/components/services/BuyNowButton.tsx",
-        "frontend/src/components/services/TierSelector.tsx",
-        "frontend/src/hooks/useDirectPurchase.ts",
-        "frontend/src/pages/CheckoutPage.tsx",
-        "frontend/src/pages/ServicesPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "stripe@3.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "http-outcalls@3.0.0",
-        "qr-code@1.0.0",
-        "camera@1.0.0",
-        "blob-storage@4.0.0"
-      ],
-      "testIds": [
-        "REQ-29"
+        "REQ-40"
       ],
       "confidence": "high"
     }

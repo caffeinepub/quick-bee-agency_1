@@ -1,100 +1,58 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-27T06:02:42.183Z",
+  "generatedAt": "2026-02-27T06:51:29.888Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 6,
-    "implemented": 5,
+    "total": 4,
+    "implemented": 4,
     "items": [
       {
-        "id": "REQ-25",
-        "summary": "Populate the Services page with the complete Quick Bee Agency 2026 Master Service Price List. Organise all entries into 7 categories: (1) Web Development Services — 12 services with Student/Business/Premium tiers; (2) App Development Services — 8 services with Student/Business/Premium tiers; (3) AI Automation Services — 8 services with Starter/Growth/Enterprise tiers; (4) Digital Marketing & Growth — 8 services with Student/Business/Premium tiers; (5) Branding & Creative Services — 7 services with Starter/Business/Premium tiers; (6) SaaS & Advanced Tech — 8 services with Business/Advanced/Enterprise tiers; (7) Business Setup & Systems — 6 services with Starter/Growth/Premium tiers. Each service card must display the service name, category, all three pricing tiers with their INR (₹) prices, and the list of 16 features where provided in the user's input. The page must include a category filter/tab bar so users can browse by category. Prices must be formatted in Indian Rupee notation (e.g., ₹1,20,000).",
+        "id": "REQ-37",
+        "summary": "Perform a full rewrite of frontend/src/pages/LoginPage.tsx. The Sign In with Internet Identity button must: (1) never be disabled or have any condition preventing it from being clicked; (2) call the login() function from the useInternetIdentity hook on click; (3) display a visible loading spinner while isLoggingIn is true; (4) on successful authentication (identity becomes non-null / isAuthenticated becomes true), use TanStack Router's useNavigate to redirect to /dashboard (or /admin-dashboard, /manager-dashboard, /client-dashboard based on role if available); (5) display a user-visible inline error message if login() throws or authentication is cancelled. Remove every guard, disabled prop, or conditional render that could block the button before the actor is initialized.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/data/masterServiceCatalog.ts",
-          "frontend/src/pages/ServicesPage.tsx",
-          "frontend/src/utils/formatCurrency.ts"
+          "frontend/src/pages/LoginPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/data/masterServiceCatalog.ts",
-          "frontend/src/pages/ServicesPage.tsx",
-          "frontend/src/utils/formatCurrency.ts"
+          "frontend/src/pages/LoginPage.tsx"
         ]
       },
       {
-        "id": "REQ-26",
-        "summary": "Add the 30 individual service packages (Website Development ₹999, Sales Funnel Setup ₹1,099, WhatsApp Automation ₹1,199, AI Chatbot Setup ₹1,299, Landing Pages ₹1,399, SEO Setup ₹1,499, Social Media Management ₹1,599, Instagram Growth System ₹1,699, Lead Generation System ₹1,799, Branding Kit ₹1,899, Logo Design ₹1,999, Video Editing ₹2,099, AI Content Creation ₹2,199, Email Marketing Setup ₹2,299, LinkedIn Outreach System ₹2,399, E-commerce Store Setup ₹2,499, No-Code App Development ₹2,599, Automation Setup ₹2,699, CRM Setup ₹2,799, AI Proposal Generator ₹2,899, Pricing Strategy Consulting ₹2,999, Funnel Optimization ₹3,099, Copywriting Service ₹3,199, Reels Script Creation ₹3,299, AI Image Generation ₹3,399, T-Shirt POD Setup ₹3,499, Etsy Automation ₹3,599, Affiliate Marketing System ₹3,699, Notion Dashboard Setup ₹3,799, Analytics Dashboard Setup ₹3,899) to the Services page as a separate 'Individual Packages' section or tab. Each package card must show: package name, flat INR price, category, sub-category, and its 16 listed features as a bullet list expandable on click.",
+        "id": "REQ-38",
+        "summary": "Rewrite frontend/src/components/bootstrap/BootstrapGate.tsx so it never blocks or visually disables the LoginPage UI. BootstrapGate must detect when the current route is the login page (or when the user is unauthenticated) and render children directly without any loading spinner, overlay, or disabled wrapper. The gate must only intercept navigation to authenticated/protected routes. Unauthenticated users must always see and interact with the full login UI regardless of actor or identity initialization state.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/data/individualPackages.ts",
-          "frontend/src/pages/ServicesPage.tsx"
+          "frontend/src/components/bootstrap/BootstrapGate.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/data/individualPackages.ts",
-          "frontend/src/pages/ServicesPage.tsx"
+          "frontend/src/components/bootstrap/BootstrapGate.tsx"
         ]
       },
       {
-        "id": "REQ-27",
-        "summary": "Add the Monthly Maintenance & Subscription plans to the Services page as a dedicated 'Maintenance Plans' section or tab. Include all five plan categories: (1) Website Maintenance — Basic (₹999–₹2,999/mo), Business (₹3,999–₹7,999/mo), Premium/AI/3D (₹10,000–₹35,000/mo); (2) App Maintenance — Basic (₹2,999–₹6,999/mo), Growth (₹8,000–₹20,000/mo), Enterprise (₹25,000–₹75,000/mo); (3) AI Automation Maintenance — Basic (₹2,999–₹7,999/mo), Advanced (₹10,000–₹30,000/mo); (4) Marketing & Growth Retainer — Starter (₹4,999–₹12,000/mo), Growth (₹15,000–₹40,000/mo), Premium (₹50,000–₹1,50,000/mo); (5) SaaS & Backend Retainer — Business (₹15,000–₹35,000/mo), Enterprise (₹40,000–₹1,20,000/mo). Each plan card must list its included features as provided in the user's input.",
+        "id": "REQ-39",
+        "summary": "Audit and fix the useInternetIdentity hook integration in LoginPage. Ensure the hook is imported from the correct immutable path (frontend/src/hooks/useInternetIdentity.ts), that the destructured login function and isLoggingIn / isAuthenticated / identity values are correctly consumed, and that a useEffect watches isAuthenticated / identity to trigger role-based navigation after login resolves. If the hook returns a promise from login(), await it before checking authentication state. Confirm the InternetIdentityProvider is wrapping the app in frontend/src/main.tsx so the hook has access to its context.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/data/maintenancePlans.ts",
-          "frontend/src/pages/ServicesPage.tsx"
+          "frontend/src/pages/LoginPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/data/maintenancePlans.ts",
-          "frontend/src/pages/ServicesPage.tsx"
+          "frontend/src/pages/LoginPage.tsx"
         ]
       },
       {
-        "id": "REQ-28",
-        "summary": "Add the 3 Master Agency Plans (Spark, Surge, Titan) to the Services page as a prominently styled 'Agency Plans' section or tab. Display: Spark Plan (₹4,999–₹25,000, Student/Beginner/Idea Stage), Surge Plan (₹30,000–₹1,20,000, Local & National Business Growth), Titan Plan (₹1,50,000–₹5,00,000+, National/Global/Enterprise Clients). Style each plan as a highlighted pricing card with a distinct colour badge (green for Spark, blue for Surge, purple for Titan) matching the emoji indicators in the source data.",
+        "id": "REQ-40",
+        "summary": "Ensure role-based post-login redirect works correctly in LoginPage. After login() resolves and the user is authenticated, query the user's role from the backend actor (or from the existing useQueries hooks). Redirect admin users to /admin-dashboard, manager users to /manager-dashboard, client users to /client-dashboard, and any other authenticated user or unresolved role to /dashboard as the safe default. If the role query is still loading, redirect to /dashboard immediately rather than waiting indefinitely.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/data/agencyPlans.ts",
-          "frontend/src/pages/ServicesPage.tsx"
+          "frontend/src/pages/LoginPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/data/agencyPlans.ts",
-          "frontend/src/pages/ServicesPage.tsx"
+          "frontend/src/pages/LoginPage.tsx"
         ]
-      },
-      {
-        "id": "REQ-29",
-        "summary": "On every service card, pricing tier card, maintenance plan card, individual package card, and agency plan card on the Services page, add a direct 'Buy Now' or 'Select & Pay' button. When clicked, this button must: (1) add the selected service/plan at the chosen price tier to the cart (using the existing useCart hook), then navigate to the CheckoutPage; OR (2) if Razorpay is configured in the centralized config store, initiate a Razorpay payment flow directly for the selected item's price. For tiered services (Student/Business/Premium), display a tier selector (radio buttons or segmented control) on the card so the user can choose which tier price to purchase before clicking the button. The selected tier and price must be passed through to the cart/checkout.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/services/TierSelector.tsx",
-          "frontend/src/components/services/BuyNowButton.tsx",
-          "frontend/src/hooks/useDirectPurchase.ts",
-          "frontend/src/pages/ServicesPage.tsx",
-          "frontend/src/cart/useCart.ts",
-          "frontend/src/pages/CheckoutPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/services/TierSelector.tsx",
-          "frontend/src/components/services/BuyNowButton.tsx",
-          "frontend/src/hooks/useDirectPurchase.ts",
-          "frontend/src/pages/ServicesPage.tsx",
-          "frontend/src/cart/useCart.ts",
-          "frontend/src/pages/CheckoutPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-30",
-        "summary": "Fix the Sign In button on the LoginPage (frontend/src/pages/LoginPage.tsx) so that clicking it correctly triggers the Internet Identity authentication flow, waits for authentication to complete, and then redirects the authenticated user to the appropriate dashboard route. The button must show a loading/spinner state while the authentication is in progress. If authentication fails or is cancelled, display a user-visible error message. Ensure the button is not disabled or unbound from its click handler.",
-        "status": "missing",
-        "plannedFiles": [
-          "frontend/src/pages/LoginPage.tsx",
-          "frontend/src/hooks/useInternetIdentity.ts",
-          "frontend/src/App.tsx"
-        ],
-        "matchedFiles": []
       }
     ]
   },
@@ -103,19 +61,8 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/cart/useCart.ts",
-    "frontend/src/components/services/BuyNowButton.tsx",
-    "frontend/src/components/services/TierSelector.tsx",
-    "frontend/src/data/agencyPlans.ts",
-    "frontend/src/data/individualPackages.ts",
-    "frontend/src/data/maintenancePlans.ts",
-    "frontend/src/data/masterServiceCatalog.ts",
-    "frontend/src/hooks/useDirectPurchase.ts",
-    "frontend/src/pages/CartPage.tsx",
-    "frontend/src/pages/CheckoutPage.tsx",
-    "frontend/src/pages/ServiceDetailPage.tsx",
-    "frontend/src/pages/ServicesPage.tsx",
-    "frontend/src/utils/formatCurrency.ts",
+    "frontend/src/components/bootstrap/BootstrapGate.tsx",
+    "frontend/src/pages/LoginPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

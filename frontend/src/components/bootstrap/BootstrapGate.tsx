@@ -1,72 +1,69 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useActor } from '../../hooks/useActor';
-import { useInternetIdentity } from '../../hooks/useInternetIdentity';
-import BootstrapErrorPanel from './BootstrapErrorPanel';
 import { useBootstrapWatchdog } from '../../hooks/useBootstrapWatchdog';
-import { Loader2 } from 'lucide-react';
+import BootstrapErrorPanel from './BootstrapErrorPanel';
+import { useInternetIdentity } from '../../hooks/useInternetIdentity';
+import { useRouterState } from '@tanstack/react-router';
 
 interface BootstrapGateProps {
   children: React.ReactNode;
 }
 
-type Phase = 'connecting' | 'authenticating' | 'loading-profile' | 'initializing' | 'ready';
-
 export default function BootstrapGate({ children }: BootstrapGateProps) {
-  const { isFetching: actorFetching, actor } = useActor();
+  const { isFetching: actorFetching } = useActor();
   const { isInitializing, identity } = useInternetIdentity();
-  const [phase, setPhase] = useState<Phase>('connecting');
   const { hasTimedOut, reset } = useBootstrapWatchdog();
+  const routerState = useRouterState();
 
-  const isLoading = actorFetching || isInitializing || !actor;
+  const currentPath = routerState.location.pathname;
+  // Never block the login/root page — the sign-in button must always be accessible
+  const isLoginPage = currentPath === '/' || currentPath === '/login' || currentPath.startsWith('/login');
 
-  useEffect(() => {
-    if (isInitializing) {
-      setPhase('authenticating');
-    } else if (actorFetching) {
-      setPhase('initializing');
-    } else if (actor) {
-      setPhase('ready');
-    } else {
-      setPhase('connecting');
-    }
-  }, [isInitializing, actorFetching, actor]);
+  // Always pass through on login page
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
-  if (hasTimedOut && isLoading) {
-    return <BootstrapErrorPanel onRetry={reset} errorType="timeout" />;
+  // If user is not authenticated, pass through (they'll be redirected by the page itself)
+  if (!identity) {
+    return <>{children}</>;
+  }
+
+  // For authenticated users on protected routes, show loading/error states
+  const isLoading = actorFetching || isInitializing;
+
+  if (hasTimedOut) {
+    return (
+      <BootstrapErrorPanel
+        onRetry={() => {
+          reset();
+          window.location.reload();
+        }}
+      />
+    );
   }
 
   if (isLoading) {
-    const phaseLabels: Record<Phase, string> = {
-      connecting: 'Connecting to network...',
-      authenticating: 'Authenticating...',
-      'loading-profile': 'Loading profile...',
-      initializing: 'Initializing...',
-      ready: 'Ready',
-    };
-
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center mesh-bg">
-        <div className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl overflow-hidden mb-2 logo-glow">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-6">
+          <div className="relative">
             <img
               src="/assets/generated/quickbee-logo.dim_256x256.png"
               alt="QuickBee"
-              className="w-full h-full object-cover"
+              className="w-16 h-16 rounded-2xl animate-pulse"
             />
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 size={16} className="animate-spin text-primary" />
-            <span className="text-sm font-medium">{phaseLabels[phase]}</span>
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-foreground font-semibold text-lg">Loading QuickBee...</p>
+            <p className="text-muted-foreground text-sm">Connecting to the network</p>
           </div>
-          <div className="flex gap-1 justify-center">
-            {(['connecting', 'authenticating', 'initializing', 'ready'] as Phase[]).map((p, i) => (
+          <div className="flex gap-2">
+            {[0, 1, 2].map((i) => (
               <div
-                key={p}
-                className={`h-1 rounded-full transition-all duration-300 ${
-                  (['connecting', 'authenticating', 'initializing', 'ready'] as Phase[]).indexOf(phase) >= i
-                    ? 'w-6 bg-primary'
-                    : 'w-2 bg-muted'
-                }`}
+                key={i}
+                className="w-2 h-2 rounded-full bg-primary animate-bounce"
+                style={{ animationDelay: `${i * 0.15}s` }}
               />
             ))}
           </div>

@@ -1,27 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { useQueryClient } from '@tanstack/react-query';
-import { useGetCallerUserProfile, useSaveCallerUserProfile } from '../hooks/useQueries';
-import { Loader2, LogIn, User, Mail, Building2, Zap } from 'lucide-react';
+import { useGetCallerUserProfile, useSaveCallerUserProfile, useGetCallerUserRole } from '../hooks/useQueries';
+import { Loader2, Zap, Users, BarChart3, Shield, Star, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { UserRole } from '../backend';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login, clear, loginStatus, identity, isInitializing } = useInternetIdentity();
   const queryClient = useQueryClient();
+
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [profileName, setProfileName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
   const [profileBusiness, setProfileBusiness] = useState('');
-  const [profileError, setProfileError] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   const isAuthenticated = !!identity;
   const isLoggingIn = loginStatus === 'logging-in';
+
+  const saveProfile = useSaveCallerUserProfile();
 
   const {
     data: userProfile,
@@ -29,39 +34,90 @@ export default function LoginPage() {
     isFetched: profileFetched,
   } = useGetCallerUserProfile();
 
-  const saveProfile = useSaveCallerUserProfile();
+  const {
+    data: userRole,
+    isFetched: roleFetched,
+  } = useGetCallerUserRole();
 
+  // Track whether we've already triggered a redirect to avoid double-redirects
+  const hasRedirected = useRef(false);
+
+  const getRedirectPath = (role: UserRole | undefined): string => {
+    if (role === UserRole.admin) return '/authenticated/admin-dashboard';
+    if (role === UserRole.user) return '/authenticated/manager-dashboard';
+    // fallback
+    return '/authenticated/admin-dashboard';
+  };
+
+  const redirectUser = (role?: UserRole) => {
+    if (hasRedirected.current) return;
+    hasRedirected.current = true;
+    setRedirecting(true);
+    const path = getRedirectPath(role);
+    navigate({ to: path as any, replace: true });
+  };
+
+  // After login: once profile is fetched, redirect or show profile setup
   useEffect(() => {
-    if (!isAuthenticated || profileLoading || !profileFetched) return;
+    if (!isAuthenticated) {
+      hasRedirected.current = false;
+      setRedirecting(false);
+      return;
+    }
+
+    // Profile query hasn't resolved yet — wait
+    if (profileLoading || !profileFetched) return;
+
+    if (hasRedirected.current) return;
+
     if (userProfile === null) {
+      // First-time user — show profile setup
       setShowProfileSetup(true);
     } else {
-      navigate({ to: '/authenticated' });
+      // Existing user — redirect based on role
+      // If role is fetched, use it; otherwise redirect to default
+      redirectUser(roleFetched ? userRole : undefined);
     }
-  }, [isAuthenticated, profileLoading, profileFetched, userProfile, navigate]);
+  }, [isAuthenticated, profileLoading, profileFetched, userProfile, userRole, roleFetched]);
 
-  const handleLogin = async () => {
+  const handleLogin = () => {
+    setLoginError(null);
+    hasRedirected.current = false;
+
+    // login() is synchronous — it opens the II popup with callbacks
+    // It may throw synchronously if already authenticated
     try {
-      await login();
-    } catch (error: unknown) {
-      const err = error as Error;
-      if (err?.message === 'User is already authenticated') {
-        await clear();
-        setTimeout(() => login(), 300);
+      login();
+    } catch (error: any) {
+      if (error?.message === 'User is already authenticated') {
+        // Clear existing session and retry
+        try {
+          clear();
+          queryClient.clear();
+        } catch (_) {
+          // ignore clear errors
+        }
+        setTimeout(() => {
+          try {
+            login();
+          } catch (_) {
+            // ignore
+          }
+        }, 400);
+      } else if (
+        error?.message &&
+        !error.message.includes('UserInterrupt') &&
+        !error.message.includes('closed') &&
+        !error.message.includes('cancelled')
+      ) {
+        setLoginError('Login failed. Please try again.');
       }
     }
   };
 
-  const handleProfileSave = async () => {
-    if (!profileName.trim()) {
-      setProfileError('Name is required');
-      return;
-    }
-    if (!profileEmail.trim()) {
-      setProfileError('Email is required');
-      return;
-    }
-    setProfileError('');
+  const handleSaveProfile = async () => {
+    if (!profileName.trim() || !profileEmail.trim()) return;
+    setSavingProfile(true);
     try {
       await saveProfile.mutateAsync({
         name: profileName.trim(),
@@ -69,152 +125,201 @@ export default function LoginPage() {
         businessName: profileBusiness.trim() ? profileBusiness.trim() : undefined,
       });
       setShowProfileSetup(false);
-      navigate({ to: '/authenticated' });
-    } catch {
-      setProfileError('Failed to save profile. Please try again.');
+      redirectUser(roleFetched ? userRole : undefined);
+    } catch (e) {
+      console.error('Failed to save profile', e);
+    } finally {
+      setSavingProfile(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 mesh-bg">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
-      </div>
+  const features = [
+    { icon: <Users className="w-5 h-5" />, title: 'Lead Management', desc: 'Track and convert leads efficiently' },
+    { icon: <BarChart3 className="w-5 h-5" />, title: 'Analytics', desc: 'Real-time business insights' },
+    { icon: <Zap className="w-5 h-5" />, title: 'AI Automation', desc: 'Smart sales automation tools' },
+    { icon: <Shield className="w-5 h-5" />, title: 'Secure & Private', desc: 'Blockchain-powered security' },
+  ];
 
-      <div className="relative w-full max-w-md">
-        {/* Logo & Brand */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl overflow-hidden mb-4 shadow-cyan logo-glow-lg">
+  // Button is only disabled while the II popup is open or we're redirecting
+  const buttonDisabled = isLoggingIn || redirecting;
+
+  return (
+    <div className="min-h-screen bg-background flex">
+      {/* Left Panel */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary via-primary/90 to-accent flex-col justify-between p-12 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-white blur-3xl" />
+          <div className="absolute bottom-20 right-20 w-48 h-48 rounded-full bg-white blur-2xl" />
+        </div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-12">
             <img
               src="/assets/generated/quickbee-logo.dim_256x256.png"
               alt="QuickBee"
-              className="w-full h-full object-cover"
+              className="w-12 h-12 rounded-xl"
             />
-          </div>
-          <h1 className="text-3xl font-heading font-bold text-foreground">QuickBee CRM</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Your intelligent sales automation platform</p>
-        </div>
-
-        {/* Login Card */}
-        <Card className="shadow-card-lg border-border/60">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-heading">Welcome back</CardTitle>
-            <CardDescription>Sign in with your Internet Identity to continue</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Feature highlights */}
-            <div className="grid grid-cols-3 gap-3 py-2">
-              {[
-                { icon: <Zap size={16} />, label: 'Smart CRM' },
-                { icon: <User size={16} />, label: 'Lead Mgmt' },
-                { icon: <Building2 size={16} />, label: 'Analytics' },
-              ].map((feature) => (
-                <div key={feature.label} className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-muted/50 border border-border/50">
-                  <span className="text-primary">{feature.icon}</span>
-                  <span className="text-xs text-muted-foreground font-medium">{feature.label}</span>
-                </div>
-              ))}
+            <div>
+              <h1 className="text-2xl font-bold text-white">QuickBee</h1>
+              <p className="text-white/70 text-sm">Business Growth Platform</p>
             </div>
+          </div>
+          <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
+            Grow Your Business<br />
+            <span className="text-yellow-300">10x Faster</span>
+          </h2>
+          <p className="text-white/80 text-lg mb-10">
+            The complete CRM and sales automation platform for modern businesses.
+          </p>
+          <div className="grid grid-cols-1 gap-4">
+            {features.map((f, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-4 bg-white/10 rounded-xl p-4 backdrop-blur-sm"
+              >
+                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center text-white">
+                  {f.icon}
+                </div>
+                <div>
+                  <p className="text-white font-semibold">{f.title}</p>
+                  <p className="text-white/70 text-sm">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="relative z-10 flex items-center gap-2 text-white/60 text-sm">
+          <Star className="w-4 h-4 fill-yellow-300 text-yellow-300" />
+          <span>Trusted by 500+ businesses across India</span>
+        </div>
+      </div>
 
-            <Button
-              onClick={handleLogin}
-              disabled={isLoggingIn || isInitializing}
-              className="w-full h-11 font-semibold text-sm"
-              size="lg"
+      {/* Right Panel */}
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="flex lg:hidden items-center gap-3 mb-8 justify-center">
+            <img
+              src="/assets/generated/quickbee-logo.dim_256x256.png"
+              alt="QuickBee"
+              className="w-10 h-10 rounded-xl"
+            />
+            <h1 className="text-2xl font-bold text-foreground">QuickBee</h1>
+          </div>
+
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-foreground mb-2">Welcome Back</h2>
+            <p className="text-muted-foreground">Sign in to access your dashboard</p>
+          </div>
+
+          <div className="bg-card border border-border rounded-2xl p-8 shadow-lg">
+            {loginError && (
+              <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+                {loginError}
+              </div>
+            )}
+
+            {redirecting ? (
+              <div className="flex flex-col items-center gap-3 py-4">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Redirecting to your dashboard...</p>
+              </div>
+            ) : (
+              <Button
+                onClick={handleLogin}
+                disabled={buttonDisabled}
+                className="w-full h-12 text-base font-semibold"
+                size="lg"
+              >
+                {isLoggingIn ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="w-5 h-5 mr-2" />
+                    Sign In with Internet Identity
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            )}
+
+            <div className="mt-6 p-4 bg-muted/50 rounded-xl">
+              <p className="text-xs text-muted-foreground text-center leading-relaxed">
+                🔐 Secured by Internet Identity — a blockchain-based authentication system.
+                No passwords required. Your data stays private and secure.
+              </p>
+            </div>
+          </div>
+
+          <p className="text-center text-xs text-muted-foreground mt-6">
+            © {new Date().getFullYear()} QuickBee CRM. Built with ♥ using{' '}
+            <a
+              href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline font-medium"
             >
-              {isLoggingIn ? (
-                <>
-                  <Loader2 size={16} className="mr-2 animate-spin" />
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <LogIn size={16} className="mr-2" />
-                  Sign in with Internet Identity
-                </>
-              )}
-            </Button>
-
-            <p className="text-xs text-center text-muted-foreground">
-              Secured by the Internet Computer Protocol.{' '}
-              <span className="text-primary font-medium">No passwords required.</span>
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          © {new Date().getFullYear()} QuickBee CRM. Built with{' '}
-          <span className="text-destructive">♥</span> using{' '}
-          <a
-            href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline font-medium"
-          >
-            caffeine.ai
-          </a>
-        </p>
+              caffeine.ai
+            </a>
+          </p>
+        </div>
       </div>
 
       {/* Profile Setup Dialog */}
       <Dialog open={showProfileSetup} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle className="font-heading">Complete Your Profile</DialogTitle>
+            <DialogTitle>Complete Your Profile</DialogTitle>
             <DialogDescription>
-              Tell us a bit about yourself to get started with QuickBee CRM.
+              Welcome! Please set up your profile to get started.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="space-y-1.5">
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
               <Label htmlFor="name">Full Name *</Label>
               <Input
                 id="name"
-                placeholder="John Doe"
+                placeholder="Enter your full name"
                 value={profileName}
                 onChange={(e) => setProfileName(e.target.value)}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label htmlFor="email">Email Address *</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="john@example.com"
+                placeholder="Enter your email"
                 value={profileEmail}
                 onChange={(e) => setProfileEmail(e.target.value)}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="business">Business Name</Label>
+            <div className="space-y-2">
+              <Label htmlFor="business">Business Name (Optional)</Label>
               <Input
                 id="business"
-                placeholder="Acme Corp (optional)"
+                placeholder="Enter your business name"
                 value={profileBusiness}
                 onChange={(e) => setProfileBusiness(e.target.value)}
               />
             </div>
-            {profileError && (
-              <p className="text-sm text-destructive">{profileError}</p>
-            )}
-            <Button
-              onClick={handleProfileSave}
-              disabled={saveProfile.isPending}
-              className="w-full"
-            >
-              {saveProfile.isPending ? (
-                <>
-                  <Loader2 size={14} className="mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Get Started'
-              )}
-            </Button>
           </div>
+          <Button
+            onClick={handleSaveProfile}
+            disabled={!profileName.trim() || !profileEmail.trim() || savingProfile}
+            className="w-full"
+          >
+            {savingProfile ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Get Started'
+            )}
+          </Button>
         </DialogContent>
       </Dialog>
     </div>

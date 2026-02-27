@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 9,
+  "projectStateVersion": 17,
   "summary": "AI agency platform with multi-step build: Lead Management CRM (Step 1), Automation Dashboard with webhook-based Sales System Configuration (Step 2). Features include downloadable exports, invoice/GST quote generation, automation controls, API integrations (Razorpay, WhatsApp Cloud API, OpenRouter/OpenAI, Supabase, Airtable, Resend, Google Sheets, PDF generator), AI Smart Systems, and no-code configurable webhook automation engine.",
   "architectural_notes": [
     "All AI systems connect through external automation tools (e.g., Make.com) via webhook URLs — no direct backend API integration",
@@ -14,7 +14,8 @@
     "AI responses (OpenRouter/OpenAI) not displaying in dashboard",
     "Razorpay payment webhooks and WhatsApp auto-reply triggers not functioning correctly",
     "AI Smart Systems 'Launch Tool' buttons not opening functional tool UIs — tools are non-functional placeholders",
-    "Sign In button on login screen is non-functional / not working"
+    "Sign In button on login screen is non-functional / not working",
+    "Services section not displaying catalog correctly and missing version-19-style options/UI"
   ],
   "isFixRequest": true,
   "existing_features": [
@@ -185,6 +186,86 @@
         "REQ-29"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-fix-the-sign-in-with-internet-identity-button-on-loginpage-frontend-src-pages-loginpage-tsx-so-that-clicking-it-correctly-triggers-the-internet-identity-authentication-flow-via-the-useinternetidentity-hook-the-button-must-1-be-properly-bound-to-its-click-handler-and-not-disabled-by-default-2-call-the-login-function-from-useinternetidentity-when-clicked-3-display-a-visible-loading-spinner-state-while-authentication-is-in-progress-isloggingin-state-4-redirect-the-authenticated-user-to-the-appropriate-dashboard-route-upon-successful-login-using-tanstack-router-navigate-5-show-a-user-visible-error-message-if-authentication-fails-or-is-cancelled-by-the-user-ensure-the-bootstrapgate-component-frontend-src-components-bootstrap-bootstrapgate-tsx-does-not-block-the-login-button-from-being-clickable-before-the-actor-is-fully-ready-or-that-the-loginpage-bypasses-the-gate-appropriately-so-unauthenticated-users-can-always-access-the-sign-in-flow",
+      "title": "Fix the Sign In with Internet Identity button on LoginPage (frontend/src/pages/LoginPage.tsx) so that clicking it correctly triggers the Internet Identity authentication flow via the useInternetIdentity hook. The button must: (1) be properly bound to its click handler and not disabled by default; (2) call the login() function from useInternetIdentity when clicked; (3) display a visible loading/spinner state while authentication is in progress (isLoggingIn state); (4) redirect the authenticated user to the appropriate dashboard route upon successful login (using TanStack Router navigate); (5) show a user-visible error message if authentication fails or is cancelled by the user. Ensure the BootstrapGate component (frontend/src/components/bootstrap/BootstrapGate.tsx) does not block the login button from being clickable before the actor is fully ready, or that the LoginPage bypasses the gate appropriately so unauthenticated users can always access the sign-in flow.",
+      "reqIds": [
+        "REQ-31"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-sign-in-with-internet-identity-button-on-loginpage-frontend-src-pages-loginpage-tsx-so-that-clicking-it-correctly-triggers-the-internet-identity-authentication-flow-the-button-must-1-be-properly-bound-to-its-click-handler-and-never-disabled-by-default-2-call-the-login-function-from-useinternetidentity-when-clicked-3-display-a-visible-loading-spinner-state-while-authentication-is-in-progress-4-redirect-the-authenticated-user-to-the-appropriate-dashboard-route-upon-successful-login-using-tanstack-router-navigate-5-show-a-user-visible-error-message-if-authentication-fails-or-is-cancelled-ensure-bootstrapgate-frontend-src-components-bootstrap-bootstrapgate-tsx-does-not-block-the-login-button-before-the-actor-is-fully-ready-unauthenticated-users-must-always-be-able-to-access-and-click-the-sign-in-button-regardless-of-actor-initialization-state",
+      "title": "Fix the Sign In with Internet Identity button on LoginPage (frontend/src/pages/LoginPage.tsx) so that clicking it correctly triggers the Internet Identity authentication flow. The button must: (1) be properly bound to its click handler and never disabled by default; (2) call the login() function from useInternetIdentity when clicked; (3) display a visible loading/spinner state while authentication is in progress; (4) redirect the authenticated user to the appropriate dashboard route upon successful login using TanStack Router navigate; (5) show a user-visible error message if authentication fails or is cancelled. Ensure BootstrapGate (frontend/src/components/bootstrap/BootstrapGate.tsx) does not block the login button before the actor is fully ready — unauthenticated users must always be able to access and click the Sign In button regardless of actor initialization state.",
+      "reqIds": [
+        "REQ-32"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-fix-the-services-page-frontend-src-pages-servicespage-tsx-so-it-correctly-displays-the-full-service-catalog-the-page-must-render-all-tabs-and-sections-master-services-7-categories-with-tiered-pricing-individual-packages-30-items-maintenance-plans-and-agency-plans-spark-surge-titan-exactly-as-they-appeared-in-the-working-version-19-ui-specifically-1-restore-the-category-filter-tab-bar-at-the-top-so-users-can-browse-by-category-2-ensure-all-service-cards-package-cards-maintenance-plan-cards-and-agency-plan-cards-are-visible-and-not-blank-empty-3-restore-the-tier-selector-radio-buttons-or-segmented-control-on-tiered-service-cards-4-restore-the-buy-now-select-pay-button-on-every-card-that-adds-the-item-to-the-cart-via-usecart-and-navigates-to-checkoutpage-or-initiates-a-razorpay-flow-if-razorpay-is-configured-5-ensure-search-filter-inputs-work-correctly-to-filter-the-displayed-cards-6-ensure-expandable-feature-lists-on-individual-package-cards-open-on-click-all-data-must-be-sourced-from-the-existing-static-data-files-masterservicecatalog-ts-individualpackages-ts-maintenanceplans-ts-agencyplans-ts",
+      "title": "Fix the Services page (frontend/src/pages/ServicesPage.tsx) so it correctly displays the full service catalog. The page must render all tabs and sections — Master Services (7 categories with tiered pricing), Individual Packages (30 items), Maintenance Plans, and Agency Plans (Spark/Surge/Titan) — exactly as they appeared in the working version 19 UI. Specifically: (1) restore the category filter/tab bar at the top so users can browse by category; (2) ensure all service cards, package cards, maintenance plan cards, and agency plan cards are visible and not blank/empty; (3) restore the tier selector (radio buttons or segmented control) on tiered service cards; (4) restore the 'Buy Now' / 'Select & Pay' button on every card that adds the item to the cart via useCart and navigates to CheckoutPage, or initiates a Razorpay flow if Razorpay is configured; (5) ensure search/filter inputs work correctly to filter the displayed cards; (6) ensure expandable feature lists on individual package cards open on click. All data must be sourced from the existing static data files (masterServiceCatalog.ts, individualPackages.ts, maintenancePlans.ts, agencyPlans.ts).",
+      "reqIds": [
+        "REQ-33"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-loginpage-frontend-src-pages-loginpage-tsx-so-the-sign-in-with-internet-identity-button-is-fully-functional-the-button-must-1-never-be-disabled-by-default-2-call-the-login-function-from-the-useinternetidentity-hook-when-clicked-3-show-a-visible-loading-spinner-state-while-isloggingin-is-true-4-on-successful-authentication-use-tanstack-router-s-navigate-to-redirect-the-user-to-the-appropriate-dashboard-route-dashboard-or-role-based-equivalent-5-display-a-user-visible-inline-error-message-if-authentication-fails-or-the-user-cancels-the-flow-remove-any-condition-or-prop-that-could-prevent-the-button-from-being-clickable-before-the-actor-is-initialized",
+      "title": "Rewrite LoginPage (frontend/src/pages/LoginPage.tsx) so the Sign In with Internet Identity button is fully functional. The button must: (1) never be disabled by default; (2) call the login() function from the useInternetIdentity hook when clicked; (3) show a visible loading/spinner state while isLoggingIn is true; (4) on successful authentication, use TanStack Router's navigate to redirect the user to the appropriate dashboard route (/dashboard or role-based equivalent); (5) display a user-visible inline error message if authentication fails or the user cancels the flow. Remove any condition or prop that could prevent the button from being clickable before the actor is initialized.",
+      "reqIds": [
+        "REQ-34"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-bootstrapgate-frontend-src-components-bootstrap-bootstrapgate-tsx-so-it-does-not-block-or-disable-the-login-ui-before-the-actor-and-identity-are-fully-initialized-unauthenticated-users-must-be-able-to-see-and-interact-with-the-loginpage-including-clicking-the-sign-in-button-regardless-of-actor-initialization-state-bootstrapgate-should-only-gate-authenticated-protected-content-not-the-login-page-itself",
+      "title": "Update BootstrapGate (frontend/src/components/bootstrap/BootstrapGate.tsx) so it does not block or disable the login UI before the actor and identity are fully initialized. Unauthenticated users must be able to see and interact with the LoginPage — including clicking the Sign In button — regardless of actor initialization state. BootstrapGate should only gate authenticated/protected content, not the login page itself.",
+      "reqIds": [
+        "REQ-35"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-that-once-the-user-is-authenticated-via-internet-identity-their-identity-and-role-are-used-to-redirect-them-to-the-correct-dashboard-route-admin-users-should-be-redirected-to-admin-dashboard-or-equivalent-manager-users-to-manager-dashboard-client-users-to-client-dashboard-and-any-other-authenticated-user-to-dashboard-if-the-role-cannot-be-determined-yet-redirect-to-dashboard-as-a-safe-default-this-redirect-must-happen-automatically-in-loginpage-after-login-resolves-successfully",
+      "title": "Ensure that once the user is authenticated via Internet Identity, their identity and role are used to redirect them to the correct dashboard route. Admin users should be redirected to /admin-dashboard (or equivalent), manager users to /manager-dashboard, client users to /client-dashboard, and any other authenticated user to /dashboard. If the role cannot be determined yet, redirect to /dashboard as a safe default. This redirect must happen automatically in LoginPage after login() resolves successfully.",
+      "reqIds": [
+        "REQ-36"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-perform-a-full-rewrite-of-frontend-src-pages-loginpage-tsx-the-sign-in-with-internet-identity-button-must-1-never-be-disabled-or-have-any-condition-preventing-it-from-being-clicked-2-call-the-login-function-from-the-useinternetidentity-hook-on-click-3-display-a-visible-loading-spinner-while-isloggingin-is-true-4-on-successful-authentication-identity-becomes-non-null-isauthenticated-becomes-true-use-tanstack-router-s-usenavigate-to-redirect-to-dashboard-or-admin-dashboard-manager-dashboard-client-dashboard-based-on-role-if-available-5-display-a-user-visible-inline-error-message-if-login-throws-or-authentication-is-cancelled-remove-every-guard-disabled-prop-or-conditional-render-that-could-block-the-button-before-the-actor-is-initialized",
+      "title": "Perform a full rewrite of frontend/src/pages/LoginPage.tsx. The Sign In with Internet Identity button must: (1) never be disabled or have any condition preventing it from being clicked; (2) call the login() function from the useInternetIdentity hook on click; (3) display a visible loading spinner while isLoggingIn is true; (4) on successful authentication (identity becomes non-null / isAuthenticated becomes true), use TanStack Router's useNavigate to redirect to /dashboard (or /admin-dashboard, /manager-dashboard, /client-dashboard based on role if available); (5) display a user-visible inline error message if login() throws or authentication is cancelled. Remove every guard, disabled prop, or conditional render that could block the button before the actor is initialized.",
+      "reqIds": [
+        "REQ-37"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-rewrite-frontend-src-components-bootstrap-bootstrapgate-tsx-so-it-never-blocks-or-visually-disables-the-loginpage-ui-bootstrapgate-must-detect-when-the-current-route-is-the-login-page-or-when-the-user-is-unauthenticated-and-render-children-directly-without-any-loading-spinner-overlay-or-disabled-wrapper-the-gate-must-only-intercept-navigation-to-authenticated-protected-routes-unauthenticated-users-must-always-see-and-interact-with-the-full-login-ui-regardless-of-actor-or-identity-initialization-state",
+      "title": "Rewrite frontend/src/components/bootstrap/BootstrapGate.tsx so it never blocks or visually disables the LoginPage UI. BootstrapGate must detect when the current route is the login page (or when the user is unauthenticated) and render children directly without any loading spinner, overlay, or disabled wrapper. The gate must only intercept navigation to authenticated/protected routes. Unauthenticated users must always see and interact with the full login UI regardless of actor or identity initialization state.",
+      "reqIds": [
+        "REQ-38"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-audit-and-fix-the-useinternetidentity-hook-integration-in-loginpage-ensure-the-hook-is-imported-from-the-correct-immutable-path-frontend-src-hooks-useinternetidentity-ts-that-the-destructured-login-function-and-isloggingin-isauthenticated-identity-values-are-correctly-consumed-and-that-a-useeffect-watches-isauthenticated-identity-to-trigger-role-based-navigation-after-login-resolves-if-the-hook-returns-a-promise-from-login-await-it-before-checking-authentication-state-confirm-the-internetidentityprovider-is-wrapping-the-app-in-frontend-src-main-tsx-so-the-hook-has-access-to-its-context",
+      "title": "Audit and fix the useInternetIdentity hook integration in LoginPage. Ensure the hook is imported from the correct immutable path (frontend/src/hooks/useInternetIdentity.ts), that the destructured login function and isLoggingIn / isAuthenticated / identity values are correctly consumed, and that a useEffect watches isAuthenticated / identity to trigger role-based navigation after login resolves. If the hook returns a promise from login(), await it before checking authentication state. Confirm the InternetIdentityProvider is wrapping the app in frontend/src/main.tsx so the hook has access to its context.",
+      "reqIds": [
+        "REQ-39"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-role-based-post-login-redirect-works-correctly-in-loginpage-after-login-resolves-and-the-user-is-authenticated-query-the-user-s-role-from-the-backend-actor-or-from-the-existing-usequeries-hooks-redirect-admin-users-to-admin-dashboard-manager-users-to-manager-dashboard-client-users-to-client-dashboard-and-any-other-authenticated-user-or-unresolved-role-to-dashboard-as-the-safe-default-if-the-role-query-is-still-loading-redirect-to-dashboard-immediately-rather-than-waiting-indefinitely",
+      "title": "Ensure role-based post-login redirect works correctly in LoginPage. After login() resolves and the user is authenticated, query the user's role from the backend actor (or from the existing useQueries hooks). Redirect admin users to /admin-dashboard, manager users to /manager-dashboard, client users to /client-dashboard, and any other authenticated user or unresolved role to /dashboard as the safe default. If the role query is still loading, redirect to /dashboard immediately rather than waiting indefinitely.",
+      "reqIds": [
+        "REQ-40"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -318,6 +399,12 @@
       "reqIds": [
         "REQ-30"
       ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-25",
+      "summary": "Fix the Services section to display the catalog/service list correctly and restore the UI options/layout as they appeared in version 19",
+      "reqIds": [],
       "status": "pending"
     }
   ],
